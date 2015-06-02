@@ -7,7 +7,7 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
 
 ## 应用需要完成的事情
 为了能够分布式消费Loghub中的数据，应用方需要完成以下事情：
-* 提供一个mysql实例，用户持久化shard同步信息，以及checkpoint
+* 提供一个mysql实例，用于持久化shard同步信息，以及checkpoint
 * 实现Loghub client worker的两个接口类 :
     * ILogHubProcessor // 每个shard对应一个实例，每个实例只消费特定shard的数据。
     * ILogHubProcessorFactory // 负责生产实现ILogHubProcessor接口实例
