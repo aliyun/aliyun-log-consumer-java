@@ -78,7 +78,7 @@ public class LogHubLease {
 		return this.mLeaseOwner.equals(this.mLeaseConsumer);
 	}
 	
-	public void ConsumerHoldLease()
+	public void makeConsumerHoldLease()
 	{
 		this.mLeaseConsumer = this.mLeaseOwner;
 	}

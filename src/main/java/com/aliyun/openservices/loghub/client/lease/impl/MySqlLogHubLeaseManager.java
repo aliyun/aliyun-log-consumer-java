@@ -229,12 +229,9 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 				+ "' and logstream_sig = '" + mSignature
 				+ "' and shard_id = '" + lease.getLeaseKey()
 				+ "' and lease_id = " + lease.getLeaseId();
-		// long t_1 = System.nanoTime();
 		if (updateQuery(query, null) == 1) {
-			// long t_2 = System.nanoTime();
-			// System.out.println("query:" + query + " exe time:" + String.valueOf(t_2 - t_1));
 			if (update_consumer) {
-				lease.ConsumerHoldLease();
+				lease.makeConsumerHoldLease();
 			}
 			lease.setLeaseId(lease.getLeaseId() + 1);
 			return true;
@@ -273,7 +270,7 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 				if (updateQuery(query, null) == 1) {
 					lease.setLeaseId(lease.getLeaseId() + 1);
 					if (update_consumer) {
-						lease.ConsumerHoldLease();
+						lease.makeConsumerHoldLease();
 					}
 					renewSuccessShards.add(shardId);
 				}

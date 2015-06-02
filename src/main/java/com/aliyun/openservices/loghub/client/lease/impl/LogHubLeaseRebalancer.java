@@ -224,7 +224,9 @@ public class LogHubLeaseRebalancer implements ILogHubLeaseRebalancer{
 		numLeasesToReachTarget -= leasesToTake.size();
 
 		if (numLeasesToReachTarget > 0) {
-			if (numLeases % numWorkers > 0) { // avoid thrashing
+			int mode = numLeases % numWorkers;
+			if (mode > 0 && getCountLargerOrEqual(instanceLeases, target) >= mode)
+			{
 				numLeasesToReachTarget--;
 			}
 			
@@ -247,6 +249,16 @@ public class LogHubLeaseRebalancer implements ILogHubLeaseRebalancer{
 		return leasesToTake;
 	}
 
+	private int getCountLargerOrEqual(Map<String, List<LogHubLease>> instances,
+			int target) {
+		int res = 0;
+		for (Map.Entry<String, List<LogHubLease>> entry : instances.entrySet()) {
+			if (entry.getValue().size() >= target) {
+				res++;
+			}
+		}
+		return res;
+	}
 	private Map<String, Integer> computeStealTarget(
 			List<CountEntry> to_steal_instance, int to_steal_count) {
 		Collections.sort(to_steal_instance, new CountEntryComparator());

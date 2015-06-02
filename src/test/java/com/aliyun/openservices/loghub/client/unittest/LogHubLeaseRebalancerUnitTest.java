@@ -1,6 +1,8 @@
 package com.aliyun.openservices.loghub.client.unittest;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -322,6 +324,7 @@ public class LogHubLeaseRebalancerUnitTest {
 				allInstance, mustTakedLease, optinalTakeLeas, optionalTakeCount);
 	}
 	
+	@Test
 	public void TestComputeLeasesToTake_part_3() {
 		List<LogHubLease> allLease = new ArrayList<LogHubLease>();
 		List<LogHubLease> expiredLease = new ArrayList<LogHubLease>();
@@ -343,6 +346,7 @@ public class LogHubLeaseRebalancerUnitTest {
 				allInstance, mustTakedLease, optinalTakeLeas, optionalTakeCount);
 	}
 	
+	@Test
 	public void TestComputeLeasesToTake_part_4() {
 		List<LogHubLease> allLease = new ArrayList<LogHubLease>();
 		List<LogHubLease> expiredLease = new ArrayList<LogHubLease>();
@@ -392,7 +396,6 @@ public class LogHubLeaseRebalancerUnitTest {
 		
 		assertEquals(toTakeLease.size(), optionalTakeCount + mustTakedLease.size());
 		
-		Set<String> toTakeLeaseKeys = new HashSet<String>();
 		int must_take_count = 0;
 		int option_take_count = 0;
 		for(LogHubLease lease : toTakeLease)
@@ -415,122 +418,204 @@ public class LogHubLeaseRebalancerUnitTest {
 		assertEquals(option_take_count, optionalTakeCount);
 	}
 	
-	public void TestLogHubClient()
+	
+	@Test
+	public void TesttakeLeases()
 	{
-		LogHubClient loghubClient = new LogHubClient("10.101.214.153", 60001, "a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6");
-	
-		String project = "loghub-client-worker-test";
-		String stream = "test_2_shards";
+		List<LogHubLease> allLease = new ArrayList<LogHubLease>();
+		String instanceName = "a";
+		List<String> allInstance = new ArrayList<String>();
+		Set<String> mustTakedLease = new HashSet<String>();
+		Set<String> optinalTakeLeas = new HashSet<String>();
+		int optionalTakeCount = 1;
+		LogHubLease lease = null;
 		
-		
-/*		try {
-			loghubClient.createLogStream(project, new LogStreamResource(stream, 
-					new LogStreamDetailResource(new LogStreamLifeCycleResource(), new LogStreamShardResource(2))));
-		} catch (LogHubException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (LogHubClientException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} */
-
-		
-		
-		LogHubClientAdapter adapter = new LogHubClientAdapter(loghubClient, project, stream);
-		System.out.println(adapter.listShard().toString());
-		LogHubClientDbConfig dbConfig = new LogHubClientDbConfig(
-				"10.101.172.22", 3306, "scmc", "apsara", "123456",
-				"loghub_worker", "loghub_lease");
-		
-		LogHubConfig config = new  LogHubConfig("consume_group_ut_1", "instance_1", "10.101.214.153", 60001, 
-				"e2eproject1432909423", "e2elogstream1432909423",
-				"a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6", dbConfig, LogHubCursorPosition.END_CURSOR);
+		lease = new LogHubLease("0", "b", "b", 0);
+		lease.setLastUpdateTimeNaons(System.nanoTime());
+		allLease.add(lease);
+		optinalTakeLeas.add("0");
+		lease = new LogHubLease("1", "b", "b", 0);
+		lease.setLastUpdateTimeNaons(System.nanoTime());
+		allLease.add(lease);
+		optinalTakeLeas.add("1");
+		lease = new LogHubLease("2", "c", "c", 0);
+		lease.setLastUpdateTimeNaons(System.nanoTime());
+		allLease.add(lease);
+		takeLeasesHelp(allLease, instanceName, 10000,
+				allInstance, mustTakedLease, optinalTakeLeas, optionalTakeCount);
 	}
-	//@Test
-	public void xxxTestSample() throws LogHubLeaseException {
-		LogHubClientDbConfig dbConfig = new LogHubClientDbConfig(
-				"10.101.172.22", 3306, "scmc", "apsara", "123456",
-				"loghub_worker", "loghub_lease");
-		MySqlLogHubLeaseManager leaseManager = new MySqlLogHubLeaseManager(
-				"conume_g_1" , "sig_11", dbConfig);
-		leaseManager.Initilize();
-		
-		
-		System.out.println(leaseManager.listLeases());
-		
-		
-		
-		MockLogHubClientAdapter clientAdapter = new MockLogHubClientAdapter();
-		List<String> shards = new ArrayList<String>();
-		for (int i = 0 ; i < 10; i++)
-		{
-			shards.add(String.valueOf(i));
-		}
-		clientAdapter.setShard(shards);
-		LogHubClient loghubClient = new LogHubClient("10.101.214.153", 60001, "a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6");
-		String project = "e2eproject1432909423";
-		String stream = "stream_for_loghub_client";
-		//LogHubClientAdapter clientAdapter = new LogHubClientAdapter(loghubClient, project, stream);
-		
-		leaseManager.registerWorker("instance_1");
-		LogHubLeaseCoordinator coordinator_1 = new LogHubLeaseCoordinator(
-				clientAdapter, leaseManager, "instance_1", 2000);
-
-		coordinator_1.start();
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-
-			e.printStackTrace();
-		}
-		Map<String, LogHubLease> leases = coordinator_1.getAllHeldLease();
-	//	assertEquals(leases.size(), 10);
-		leaseManager.registerWorker("instance_2");
-		
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-
-			e.printStackTrace();
-		}
-		leases = coordinator_1.getAllHeldLease();
-		//assertEquals(leases.size(), 10);
 	
+	@Test
+	public void TesttakeLeases_1()
+	{
+		List<LogHubLease> allLease = new ArrayList<LogHubLease>();
+		String instanceName = "8";
+		List<String> allInstance = new ArrayList<String>();
+		Set<String> mustTakedLease = new HashSet<String>();
+		Set<String> optinalTakeLeas = new HashSet<String>();
+		int optionalTakeCount = 2;
+		LogHubLease lease = null;
+		for ( int i = 0 ; i < 10 ; i++)
+		{
+			String shardId = String.valueOf(i);
+			if ( i < 7)
+			{
+				lease = new LogHubLease(shardId, "0", "0", 0);
+				lease.setLastUpdateTimeNaons(System.nanoTime());
+				optinalTakeLeas.add(shardId);
+			}
+			else
+			{
+				String instanceId = String.valueOf(i);
+				lease = new LogHubLease(shardId, instanceId, instanceId, 0);
+				lease.setLastUpdateTimeNaons(System.nanoTime());
+				
+			}
+			allLease.add(lease);
+		}
+		takeLeasesHelp(allLease, instanceName, 10000,
+				allInstance, mustTakedLease, optinalTakeLeas, optionalTakeCount);
+	}
+	
+	@Test
+	public void TesttakeLeases_2()
+	{
+		List<LogHubLease> allLease = new ArrayList<LogHubLease>();
+		String instanceName = "10";
+		List<String> allInstance = new ArrayList<String>();
+		Set<String> mustTakedLease = new HashSet<String>();
+		Set<String> optinalTakeLeas = new HashSet<String>();
+		int optionalTakeCount = 1;
+		LogHubLease lease = null;
+		for ( int i = 0 ; i < 10 ; i++)
+		{
+			String shardId = String.valueOf(i);
+	
+			String instanceId = String.valueOf(i/2);
+			lease = new LogHubLease(shardId, instanceId, instanceId, 0);
+			lease.setLastUpdateTimeNaons(System.nanoTime());
+			allLease.add(lease);
+			optinalTakeLeas.add(shardId);
+		}
+		takeLeasesHelp(allLease, instanceName, 10000,
+				allInstance, mustTakedLease, optinalTakeLeas, optionalTakeCount);
+	}
+	
+	@Test
+	public void TesttakeLeases_3()
+	{
+		List<LogHubLease> allLease = new ArrayList<LogHubLease>();
+		String instanceName = "10";
+		List<String> allInstance = new ArrayList<String>();
+		Set<String> mustTakedLease = new HashSet<String>();
+		Set<String> optinalTakeLeas = new HashSet<String>();
+		int optionalTakeCount = 1;
+		LogHubLease lease = null;
+		for ( int i = 0 ; i < 7 ; i++)
+		{
+			String shardId = String.valueOf(i);
+			String instanceId = null;
+			if ( i < 3)
+			{
+				instanceId = "0";
+				optinalTakeLeas.add(shardId);
+			}
+			else if (i < 5)
+			{
+				instanceId = "1";
+			}
+			else if ( i < 7)
+			{
+				instanceId = "2";
+			}
+			lease = new LogHubLease(shardId, instanceId, instanceId, 0);
+			lease.setLastUpdateTimeNaons(System.nanoTime());
+			allLease.add(lease);
+			
+		}
+		takeLeasesHelp(allLease, instanceName, 10000,
+				allInstance, mustTakedLease, optinalTakeLeas, optionalTakeCount);
+	}
+	
+	@Test
+	public void TesttakeLeases_4()
+	{
+		List<LogHubLease> allLease = new ArrayList<LogHubLease>();
+		String instanceName = "10";
+		List<String> allInstance = new ArrayList<String>();
+		Set<String> mustTakedLease = new HashSet<String>();
+		Set<String> optinalTakeLeas = new HashSet<String>();
+		int optionalTakeCount = 2;
+		LogHubLease lease = null;
+		for ( int i = 0 ; i < 7 ; i++)
+		{
+			String shardId = String.valueOf(i);
+			String instanceId = null;
+			if ( i < 4)
+			{
+				instanceId = "0";
+				optinalTakeLeas.add(shardId);
+			}
+			else if (i < 5)
+			{
+				instanceId = "1";
+			}
+			else if ( i < 7)
+			{
+				instanceId = "2";
+			}
+			lease = new LogHubLease(shardId, instanceId, instanceId, 0);
+			lease.setLastUpdateTimeNaons(System.nanoTime());
+			allLease.add(lease);
+			
+		}
+		takeLeasesHelp(allLease, instanceName, 10000,
+				allInstance, mustTakedLease, optinalTakeLeas, optionalTakeCount);
+	}
+	
+	
+	private void takeLeasesHelp(List<LogHubLease> allLeases,
+			String instanceName, long leaseDurationMillis,
+			List<String> allInstance, Set<String> mustTakedLease,
+			Set<String> optinalTakeLeas, int optionalTakeCount) {
+		MockLogHubClientAdapter adapter = new MockLogHubClientAdapter();
+		MockLogHubLeaseManager manager = new MockLogHubLeaseManager();
+		LogHubLeaseRebalancer rebalancer = new LogHubLeaseRebalancer(adapter,
+				manager, instanceName, leaseDurationMillis);
+		HashMap<String, LogHubLease> seenLeases = (HashMap<String, LogHubLease>) (getPrivateObj(
+				rebalancer, "mAllSeenLeases"));
+		for (LogHubLease lease : allLeases) {
+			seenLeases.put(lease.getLeaseKey(), lease);
+		}
 		
-		LogHubLeaseCoordinator coordinator_2 = new LogHubLeaseCoordinator(
-				clientAdapter, leaseManager, "instance_2", 2000);
-		coordinator_2.start();
+		manager.setInstance(allInstance);
 		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
+			List<LogHubLease> takenLeases = rebalancer.takeLeases();
 
-			e.printStackTrace();
-		}
-
-		LogHubLeaseCoordinator coordinator_3 = new LogHubLeaseCoordinator(
-				clientAdapter, leaseManager, "instance_3", 2000);
-		coordinator_3.start();
-		for (int i = 0; i < 30; i++) {
-			Map<String, LogHubLease> leases_1 = coordinator_1.getAllHeldLease();
-			Map<String, LogHubLease> leases_2 = coordinator_2.getAllHeldLease();
-			Map<String, LogHubLease> leases_3 = coordinator_3.getAllHeldLease();
-			System.out.println(leases_1.keySet().toString());
-			System.out.println(leases_2.keySet().toString());
-			System.out.println(leases_3.keySet().toString());
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-			}
-			if (i  == 10)
+			int must_take_count = 0;
+			int option_take_count = 0;
+			for(LogHubLease lease : takenLeases)
 			{
-				coordinator_1.stop();
+				String leaseKey = lease.getLeaseKey();
+				if (mustTakedLease.contains(leaseKey))
+				{
+					must_take_count += 1;
+				}
+				else if (optinalTakeLeas.contains(leaseKey))
+				{
+					option_take_count += 1;
+				}
+				else
+				{
+					assertTrue("The lease key should not take:" + leaseKey, false);
+				}	
 			}
-			if( i == 20)
-			{
-				coordinator_2.stop();
-			}
+			assertEquals(must_take_count, mustTakedLease.size());
+			assertEquals(option_take_count, optionalTakeCount);
+		} catch (LogHubLeaseException e) {
+			assertTrue(e.getMessage(), false);
 		}
-
+		
 
 	}
 }
