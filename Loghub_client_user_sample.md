@@ -7,6 +7,7 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
 
 ## 应用需要完成的事情
 为了能够分布式消费Loghub中的数据，应用方需要完成以下事情：
+* 提供一个mysql实例，用户持久化shard同步信息，以及checkpoint
 * 实现Loghub client worker的两个接口类 :
     * ILogHubProcessor // 每个shard对应一个实例，每个实例只消费特定shard的数据。
     * ILogHubProcessorFactory // 负责生产实现ILogHubProcessor接口实例
@@ -74,7 +75,8 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 			}
 		}
 		long curTime = System.currentTimeMillis();
-		// 每隔60秒，写一次check point到外部系统，其他时刻，只将check point记录在内存
+		// 每隔60秒，写一次check point到mysql中，如果60秒内，worker crash，
+		// 新启动的worker会从上一个checkpoint其消费数据，有可能有重复数据
 		if (curTime - mLastCheckTime >  60 * 1000) {
 			try {
 				checkPointTracker.saveCheckPoint(true);
