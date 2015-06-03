@@ -64,7 +64,60 @@ LogHub提供一个client，client内部完成自动的load balance，fail over�
     * 续租线程 : 对于已经hold lease的shard进行续租，定期执行，执行时间间隔小于lease_timeout_interval/2
 
 #### 5.3.2 强占线程
-||||
-|---|---|----|
-||||
-|||
+* 统计以下信息：
+    * Live_instance_count ：活跃的instance个数（第一次启动从两个数据库表都需要获取，之后只从loghub_client_shard_lease表获取）
+        * 首期启动 ：live_instance = distinct( worker_instance (wher update_time > (now() – 60))  +  lease_owner)
+        * 非首次启动 : live_instance = distinct(lease_owner (where not timeout) )
+    * shard_count : 所有的shard个数
+    * held_shard_count : 已经占用的shard个数
+* 计算每个instance应该hold的最多shard个数：
+    * To_hold_shard_count = ceil(shard_count/live_instance_count)  // 向上取整
+    * 计算需要抢占的shard个数：
+        * To_take_shard_count = To_hold_shard_count – held_shard_count
+* 如果To_take_shard_count > 0 , 选取需要抢占的shard lease
+    * 首先从lease timeout的shard中选择To_take_shard_coun个shard
+    * 如果不够，对于每个hold lease超过ceil(shard_count/live_instance_count)的instance，以循环轮训的方式每个instance随机选择1个shard，直到候选的可以抢占的shard达到To_take_shard_count个
+* 尝试抢占这些shard ：
+    * 对于timeout的shard，抢占时候，更新lease_owner，consumer_owner为当前instance_name。并设定可消费时间当前时刻。
+    * 对于从其他instance抢占的shard，只更新lease_owner为intancea_name，不更新consumer_owner。设定可消费时间为当前时刻 + lease_timeout_interval。 // 需要等待被抢占者因为lease过期退出之后才能消费
+* 对于抢占成功的shard，加入到续租线程
+
+#### 5.3.3 续租线程
+* 对于已经hold的lease，进行续租：
+* 如果系统时间大于shard可消费时间，则更新lease_id为lease_id + 1, consumer_owner为instance_name
+* 否则只更新lease_id
+
+#### 5.3.4 lease timeout 判断
+每个instance worker以自己保存的内存时间判断一个lease是否timeout。
+* Worker从数据库中，list所有shard的lease的时候，判断一个shard的lease是否第一次看到，如果是，则将lease的last_update_time（instance认为lease更新时间）设置成当前系统时间
+* 如果lease的lease_id和上次看到的不一样， last_update_time同样设置成系统时间
+* Lease_id为0， last_update_time 设置成0
+* 否则lease的last_update_time不变（即上次看到lease时候设置的时间）
+* 如果sys_time – last_update_time > lease_timeout_interval, 则instance任务该lease已经超时
+* 如果instance去抢一个lease超时的shard，则会使用超时时候，shard的lease_id去竞争，如果抢成功，表示在lease_timeout_interval内，没有其他人更新过该shard的lease
+
+###  5.4 CheckPoint
+LogHub client提供check point相关的接口完成check point的操作。Checkpoint的内容由loghub的cursor和offset组成。
+#### 5.4.1 worker instance初始化check point
+* 当一个shard被确定可消费的时候，client自动从数据库load check point
+* 如果数据库没有，则根据配置，确定是从shard的begin或者end开始读取数据
+#### 5.4.2 worker instance持久化check point
+* Client提供一下接口进行check point的操作：
+    * saveCheckPoint (Bool persistent) // 保存check point到内存中或外部系统，如果persistent为true则放到外部持久化系统，否则就放在内存中 
+* 当一个shard被其他instance抢占之后，LogHub client会将用户上次内存中save的check point持久化到数据库
+* 只有当数据库中， consumer_onwer 和 instance_name相同的时候，才能持久化check point（这个时候，lease可能已经被其他instance抢占了）
+
+### 5.5 执行主逻辑
+执行框架是一个每隔一定时间执行一次的循环，执行以下逻辑：
+* 获取当前hold lease的shard
+* 为这些shard生成一个consumer（如果没有）
+* consumer内部是一个状态机，有几种状态：INITIALIZING, PROCESSING,  STOPPING, STOP_COMPLETED
+* 在每一种状态的时候，都会生成一个task来完成，task会提交到并发线程池中执行
+* 框架每次会调用consumer的run函数，执行：
+    * 检测上次的task是否执行成功
+    * 状态转换
+    * 提交新的task
+* 在STOPPING的过程中，会将该shard的check point信息持久化
+
+
+
