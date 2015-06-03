@@ -26,7 +26,25 @@ LogHub提供一个client，client内部完成自动的load balance，fail over�
 ### 5.1 整体框架
 ### 5.2 数据库Schema
 #### 5.2.1 保存worker alive信息的表：loghub_client_worker_instance
+|列名|类型|说明|
+|---|---|---|
+|consume_group	|Char(128)|	PK , 对于某一个logstream的消费组|
+|logstream_sig	|Char(64)|	PK，用于表示唯一的<project, logstream>|
+|worker_instance|	Char(64)|	PK|
+|create_time|	DateTime|	Worker instance 创建的时间|
+
 #### 5.2.2 保存shard租赁信息的表 : loghub_client_shard_lease
+|列名|类型|说明|
+|---|---|---|
+|consume_group	|Char(64)|	PK , 对于某一个logstream的消费组|
+|logstream_sig|	Char(64)|	PK，用于表示唯一的<project, logstream>|
+|shard_id	|Char(64)|	PK|
+|lease_id	|Int(20)|	用户租赁shard使用的id，用于原子的test and set 操作，保证任意时刻，只有一个owner能修改lease的值，也就是能抢到该shard |
+|lease_owner|	Char(64)|	当前抢shard lease的owner|
+|consumer_owner|	Char(64)|	当前正在消费该shard的owner|
+|check_point	|Text|	保存该shard已经被消费到的check point|
+|update_time	|DateTime|	只是用于记录更新时间，供监控使用|
+
 
 ### 5.3 租赁协议
 * 所有shard的当前信息对所有worker instance可见，worker通过观察update_time， owner的信息，确认当前活着的instance_count
@@ -50,10 +68,3 @@ LogHub提供一个client，client内部完成自动的load balance，fail over�
 |---|---|----|
 ||||
 |||
-
-
-
-
-
-
-
