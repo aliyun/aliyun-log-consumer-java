@@ -63,7 +63,7 @@ LogHub提供一个client，client内部完成自动的load balance，fail over�
     * 抢占线程 : 通过占有timeout out的lease，或者抢占其他instance已经占有的lease，来达到平衡，执行时间为lease_timeout_interval * 2
     * 续租线程 : 对于已经hold lease的shard进行续租，定期执行，执行时间间隔小于lease_timeout_interval/2
 
-#### 5.3.2 强占线程
+#### 5.3.2 抢占线程
 * 统计以下信息：
     * Live_instance_count ：活跃的instance个数（第一次启动从两个数据库表都需要获取，之后只从loghub_client_shard_lease表获取）
         * 首期启动 ：live_instance = distinct( worker_instance (wher update_time > (now() – 60))  +  lease_owner)
@@ -118,6 +118,3 @@ LogHub client提供check point相关的接口完成check point的操作。Checkp
     * 状态转换
     * 提交新的task
 * 在STOPPING的过程中，会将该shard的check point信息持久化
-
-
-
