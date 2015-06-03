@@ -7,7 +7,6 @@ public class LogHubConfig {
 	private String mConsumeGroupName;
 	private String mWorkerInstanceName;
 	private String mLogHubEndPoint;
-	private int mLogHubPort;
 	private String mLogHubProject;
 	private String mLogHubStreamName;
 	private String mAccessId;
@@ -18,7 +17,7 @@ public class LogHubConfig {
 	private long mDataFetchIntervalMillis;
 
 	
-	public LogHubConfig(String consumeGroupName, String workerInstanceName, String loghubEndPoint, int loghubPort, 
+	public LogHubConfig(String consumeGroupName, String workerInstanceName, String loghubEndPoint, 
 			String loghubProject, String loghubStreamName,
 			String accessId, String accessKey,
 			LogHubClientDbConfig dbConfig, LogHubCursorPosition cursorPosition)
@@ -26,7 +25,6 @@ public class LogHubConfig {
 		mConsumeGroupName = consumeGroupName;
 		mWorkerInstanceName = workerInstanceName;
 		mLogHubEndPoint = loghubEndPoint;
-		mLogHubPort = loghubPort;
 		mLogHubProject = loghubProject;
 		mLogHubStreamName = loghubStreamName;
 		mAccessId = accessId;
@@ -64,10 +62,6 @@ public class LogHubConfig {
 	public String getLogHubEndPoint()
 	{
 		return mLogHubEndPoint;
-	}
-	public int getLogHubPort()
-	{
-		return mLogHubPort;
 	}
 	public String getLogHubProject()
 	{

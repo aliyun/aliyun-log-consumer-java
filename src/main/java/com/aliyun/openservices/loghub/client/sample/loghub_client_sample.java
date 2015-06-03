@@ -48,7 +48,7 @@ public class loghub_client_sample {
 			shards.add(String.valueOf(i));
 		}
 		clientAdapter.setShard(shards);
-		LogHubClient loghubClient = new LogHubClient("10.101.214.153", 60001, "a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6");
+		LogHubClient loghubClient = new LogHubClient("10.101.214.153:6001","a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6");
 		String project = "e2eproject1432909423";
 		String stream = "stream_for_loghub_client";
 		//LogHubClientAdapter clientAdapter = new LogHubClientAdapter(loghubClient, project, stream);

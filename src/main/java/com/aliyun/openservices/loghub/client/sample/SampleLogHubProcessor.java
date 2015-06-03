@@ -1,13 +1,12 @@
 package com.aliyun.openservices.loghub.client.sample;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import com.alibaba.fastjson.JSONObject;
 import com.aliyun.openservices.loghub.client.ILogHubCheckPointTracker;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 import com.aliyun.openservices.loghub.common.LogGroup;
+import com.aliyun.openservices.loghub.common.LogItem;
 
 public class SampleLogHubProcessor implements ILogHubProcessor {
 
@@ -23,10 +22,10 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 	public void process(List<LogGroup> logGroups,
 			ILogHubCheckPointTracker checkPointTracker) {
 		for (LogGroup group : logGroups) {
-			ArrayList<JSONObject> objs = group.getAllLogs();
+			List<LogItem> items = group.getAllLogs();
 			
-			for (JSONObject obj : objs) {
-				System.out.println("shard_id:" + mShardId + " " + obj.toString());
+			for (LogItem item : items) {
+				System.out.println("shard_id:" + mShardId + " " + item.toJSONString());
 			}
 		}
 		long curTime = System.currentTimeMillis();

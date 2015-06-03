@@ -2,7 +2,6 @@ package com.aliyun.openservices.loghub.client;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import com.aliyun.openservices.loghub.LogHubClient;
 import com.aliyun.openservices.loghub.common.ShardResource;
@@ -25,7 +24,7 @@ public class LogHubClientAdapter {
 	{
 		List<String> shards = new ArrayList<String>();
 		try {
-			Vector<ShardResource>  res = mClient.listShard(mProject, mStream).getShards();
+			List<ShardResource>  res = mClient.listShard(mProject, mStream).getShards();
 			for(ShardResource resource : res)
 			{
 		//		if (resource.getShardStatus().equals("OK"))

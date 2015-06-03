@@ -39,8 +39,8 @@ public class ClientWorker implements Runnable {
 		mLeaseManager = new MySqlLogHubLeaseManager(
 				config.getConsumeGroupName(), md5Value, config.getDbConfig());
 		LogHubClient loghubClient = new LogHubClient(
-				config.getLogHubEndPoint(), config.getLogHubPort(),
-				config.getAccessId(), config.getAccessKey());
+				config.getLogHubEndPoint(), config.getAccessId(),
+				config.getAccessKey());
 		LogHubClientAdapter clientAdpater = new LogHubClientAdapter(
 				loghubClient, config.getLogHubProject(),
 				config.getLogHubStreamName());
@@ -133,8 +133,7 @@ public class ClientWorker implements Runnable {
 		}
 		
 		LogHubClient loghubClient = new LogHubClient(
-				mLogHubConfig.getLogHubEndPoint(),
-				mLogHubConfig.getLogHubPort(), mLogHubConfig.getAccessId(),
+				mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
 				mLogHubConfig.getAccessKey());
 		consumer = new LogHubConsumer(loghubClient,
 				mLogHubConfig.getLogHubProject(),

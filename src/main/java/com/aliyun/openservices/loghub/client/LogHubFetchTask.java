@@ -40,10 +40,16 @@ public class LogHubFetchTask implements ITask {
 						Integer.parseInt(mShardId), MAX_FETCH_LOGGROUP_SIZE,
 						mMode, mCursor);
 				List<LogGroup> fetchedData = new ArrayList<LogGroup>();
-				for (int i = 0; i < response.getCount(); i++) {
-					response.setIndex(i);
-					fetchedData.add(response.getLogGroup());
+				
+				for (int i = 0 ; i < response.getCount(); i++)
+				{
+					LogGroup group = response.getLogGroup(i);
+					if (group != null)
+					{
+						fetchedData.add(group);
+					}
 				}
+				
 				String cursor = response.getLastCursor();
 /*				System.out.println("fetch shard_id = " + mShardId
 						+ ", fetech result : " + String.valueOf(fetchedData.size())

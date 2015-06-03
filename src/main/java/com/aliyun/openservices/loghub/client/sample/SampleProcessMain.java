@@ -22,9 +22,9 @@ public class SampleProcessMain {
 		String stream = "test_2_shards";
 
 		LogHubConfig config = new LogHubConfig("consume_2_shards",
-				instanceName, "10.101.214.153", 60001, project, stream,
+				instanceName, "10.101.214.153:60001", project, stream,
 				"a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6", dbConfig,
-				LogHubCursorPosition.END_CURSOR);
+				LogHubCursorPosition.BEGIN_CURSOR);
 		config.setDataFetchIntervalMillis(1000);
 		ClientWorker worker = new ClientWorker(
 				new SampleLogHubProcessorFactory(), config);
