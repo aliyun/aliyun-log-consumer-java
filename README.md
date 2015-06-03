@@ -37,7 +37,7 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
         LogHubCursorPosition init_cursor = LogHubCursorPosition.END_CURSOR
         
 		LogHubConfig config = new LogHubConfig($loghub_consume_group, $instanceName,
-				$loghub_enpoint, $loghub_port, $loghub_project, $loghub_logstream,
+				$loghub_enpoint, $loghub_project, $loghub_logstream,
 				$access_id, $access_key, dbConfig,
 				$init_cursor);  
 				
@@ -68,10 +68,10 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 	public void process(List<LogGroup> logGroups,
 			ILogHubCheckPointTracker checkPointTracker) {
 		for (LogGroup group : logGroups) {
-			ArrayList<JSONObject> objs = group.getAllLogs();
-			for (JSONObject obj : objs) {
+			List<LogItem> items = group.getAllLogs();
+			for (LogItem item : items) {
 			    // 打印loggroup中的数据
-				System.out.println("shard_id:" + mShardId + " " + obj.toString());
+				System.out.println("shard_id:" + mShardId + " " + item.toJSONString());
 			}
 		}
 		long curTime = System.currentTimeMillis();
@@ -118,7 +118,6 @@ public class LogHubConfig {
 	private String mConsumeGroupName;
 	private String mWorkerInstanceName;
 	private String mLogHubEndPoint;
-	private int mLogHubPort;
 	private String mLogHubProject;
 	private String mLogHubStreamName;
 	private String mAccessId;
@@ -126,6 +125,6 @@ public class LogHubConfig {
 	private LogHubClientDbConfig mDbConfig;
 	private LogHubCursorPosition mCursorPosition;
 	private long mLeaseDurationMillis;
-	private long mDataFetchIntervalMillis;
+	private long mDataFetchIntervalMillis;  // 轮询获取loghub的时间间隔，间隔越小，抓取越快，单位是ms
 }
 ```
