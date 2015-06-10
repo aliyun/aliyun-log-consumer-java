@@ -8,7 +8,7 @@ LogHub的消费者，绝大部分情况下，都是在分布式环境下进行�
 * 如何动态负载均衡，当shard个数变化或LogStream中数据量增大的情况下，如何保证在不中断消费过程，通过增加消费进程完成负责均衡
 
 ## 2. LogHub Client Lib的目标
-针对以上问题，LogHub提供一个client lib，client lib内部完成自动的load balance，fail over处理，使得应用方只需要focuse在数据处理上即可。
+针对以上问题，LogHub提供一个client lib，client lib内部完成自动的load balance，fail over处理，使得应用方只需要关心数据处理即可。
 
 ## 3. 实现方案
 * Client实现shard 租赁协议
@@ -149,4 +149,3 @@ Kafka、kinesis提供类似的数据临时存储，实时消费供，同样也�
 **数据重复消费**：kafka和kinesis client在新增worker instance进行rebalance的时候，会出现数据重复消费的情况（被抢占者不能将最新check point信息持久化）。LogHub client在shard租赁协议中，将lease owner和consumer owner做了分离，新的worker instance在抢占shard的lease owner之后，会等待一段时间之后才去更新shard的consumer owner，以确保被抢占的instance worker有足够的时间来更新其最后消费位置的check point，使得抢占者在设置consumer owner之后，可从正确的位置继续消费而不引入重复数据。 
 
 **负载均衡收敛速度**：在shard个数、instance worker个数发生变化的时候， LogHub client lib会批量抢占其他instance worker占用的shard，相对于Kinesis在每轮抢占只抢占1个shard，能使整个系统能尽快达到负载均衡状态。
-
