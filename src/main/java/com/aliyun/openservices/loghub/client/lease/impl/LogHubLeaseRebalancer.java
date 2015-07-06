@@ -28,7 +28,7 @@ public class LogHubLeaseRebalancer implements ILogHubLeaseRebalancer{
 	private boolean mFirstTaken = true;
 	private long mLastCheckNewShardTime_ms = 0;
 	public static final long LIST_SHARD_INTERVAL_MS = 60 * 1000;
-	protected Logger logger = Logger.getLogger(this.getClass());
+	private static final Logger logger = Logger.getLogger(LogHubLeaseRebalancer.class);
 
 	public LogHubLeaseRebalancer(LogHubClientAdapter clientAdpter, ILogHubLeaseManager leaseManager, String instanceName, long leaseDurationMillis)
 	{
@@ -199,9 +199,11 @@ public class LogHubLeaseRebalancer implements ILogHubLeaseRebalancer{
 	
 	private Set<LogHubLease> computeLeasesToTake(List<LogHubLease> expiredLeases) throws LogHubLeaseException {
 		Map<String, List<LogHubLease>> instanceLeases = computeInstanceLeases(expiredLeases);
+		/*
 		logger.info("instance:" + this.mInstanceName + " Find instance count:"
 				+ String.valueOf(instanceLeases.size()) + ",instances:"
 				+ instanceLeases.keySet().toString());
+		*/
 		Set<LogHubLease> leasesToTake = new HashSet<LogHubLease>();
 
 		int numLeases = this.mAllSeenLeases.size();

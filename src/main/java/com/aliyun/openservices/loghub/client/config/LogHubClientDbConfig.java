@@ -1,6 +1,10 @@
 package com.aliyun.openservices.loghub.client.config;
 
-public class LogHubClientDbConfig {
+import java.io.Serializable;
+
+public class LogHubClientDbConfig implements Serializable {
+	private static final long serialVersionUID = 1971458274348122817L;
+
 	private final String mDbHost;
 	private final int mDbPort;
 	private final String mDbName;

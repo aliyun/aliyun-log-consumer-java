@@ -1,24 +1,24 @@
 package com.aliyun.openservices.loghub.client;
 
-import com.aliyun.openservices.loghub.LogHubClient;
+import com.aliyun.openservices.sls.SLSClient;
+import com.aliyun.openservices.sls.response.GetCursorResponse;
+import com.aliyun.openservices.sls.common.SlsConsts.CursorMode;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 import com.aliyun.openservices.loghub.client.lease.ILogHubLeaseManager;
-import com.aliyun.openservices.loghub.common.LogHubModes.LogHubMode;
-import com.aliyun.openservices.loghub.response.GetCursorResponse;
 
 public class InitializeTask implements ITask {
 
 	private ILogHubLeaseManager mLeaseManager;
 	private ILogHubProcessor mProcessor;
-	private LogHubClient mLogHubClient;
+	private SLSClient mLogHubClient;
 	private String mProject;
 	private String mLogStream;
 	private String mShardId;
 	private LogHubCursorPosition mCursorPosition;
 
 	public InitializeTask(ILogHubProcessor processor,
-			ILogHubLeaseManager leaseManager, LogHubClient logHubClient,
+			ILogHubLeaseManager leaseManager, SLSClient logHubClient,
 			String project, String logStream, String shardId, LogHubCursorPosition cursorPosition) {
 		mProcessor = processor;
 		mLeaseManager = leaseManager;
@@ -34,27 +34,23 @@ public class InitializeTask implements ITask {
 			mProcessor.initialize(mShardId);
 			String checkPoint = mLeaseManager.getCheckPoint(mShardId);
 			String cursor = null;
-			LogHubMode mode = null;
 			if (checkPoint != null && checkPoint.length() > 0) {
 				cursor = checkPoint;
-				mode = LogHubMode.AFTER;
 			} else {
 				// get cursor from loghub client , begin or end
 				GetCursorResponse cursorResponse = null;
 				if(mCursorPosition.equals(LogHubCursorPosition.BEGIN_CURSOR))
 				{
-					cursorResponse = mLogHubClient.getCursor(mProject, mLogStream, Integer.parseInt(mShardId), LogHubMode.BEGIN);
-					cursor = cursorResponse.getCursor();
-					mode = LogHubMode.AT;
+					cursorResponse = mLogHubClient.GetCursor(mProject, mLogStream, Integer.parseInt(mShardId), CursorMode.BEGIN);
+					cursor = cursorResponse.GetCursor();
 				}
 				else
 				{
-					cursorResponse = mLogHubClient.getCursor(mProject, mLogStream, Integer.parseInt(mShardId), LogHubMode.END);	
-					cursor = cursorResponse.getCursor();
-					mode = LogHubMode.AFTER;
+					cursorResponse = mLogHubClient.GetCursor(mProject, mLogStream, Integer.parseInt(mShardId), CursorMode.END);	
+					cursor = cursorResponse.GetCursor();
 				}
 			}
-			return new InitTaskResult(cursor, mode);
+			return new InitTaskResult(cursor);
 		} catch (Exception e) {
 			return new TaskResult(e);
 		}

@@ -24,7 +24,7 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 	private String mSignature;
 	private LogHubClientDbConfig mDbConfig;
 	private String mMysqlUrl;
-	protected Logger logger = Logger.getLogger(this.getClass());
+	private static final Logger logger = Logger.getLogger(MySqlLogHubLeaseManager.class);
 	public MySqlLogHubLeaseManager(String consumeGroupname, String sigNature, LogHubClientDbConfig  dbConfig)
 	{
 		mDbConfig = dbConfig;

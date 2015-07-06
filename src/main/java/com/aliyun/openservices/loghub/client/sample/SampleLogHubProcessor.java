@@ -5,8 +5,8 @@ import java.util.List;
 import com.aliyun.openservices.loghub.client.ILogHubCheckPointTracker;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
-import com.aliyun.openservices.loghub.common.LogGroup;
-import com.aliyun.openservices.loghub.common.LogItem;
+import com.aliyun.openservices.sls.common.LogGroupData;
+import com.aliyun.openservices.sls.common.LogItem;
 
 public class SampleLogHubProcessor implements ILogHubProcessor {
 
@@ -19,13 +19,14 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 	}
 
 	@Override
-	public void process(List<LogGroup> logGroups,
+	public void process(List<LogGroupData> logGroups,
 			ILogHubCheckPointTracker checkPointTracker) {
-		for (LogGroup group : logGroups) {
-			List<LogItem> items = group.getAllLogs();
-			
+		
+		for (LogGroupData group : logGroups) {
+			List<LogItem> items = group.GetAllLogs();
+		
 			for (LogItem item : items) {
-				System.out.println("shard_id:" + mShardId + " " + item.toJSONString());
+				System.out.println("shard_id:" + mShardId + " " + item.ToJsonString());
 			}
 		}
 		long curTime = System.currentTimeMillis();

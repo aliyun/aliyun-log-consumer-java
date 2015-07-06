@@ -16,16 +16,9 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import com.aliyun.openservices.loghub.LogHubClient;
-import com.aliyun.openservices.loghub.client.LogHubClientAdapter;
-import com.aliyun.openservices.loghub.client.config.LogHubClientDbConfig;
-import com.aliyun.openservices.loghub.client.config.LogHubConfig;
-import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubLeaseException;
 import com.aliyun.openservices.loghub.client.lease.LogHubLease;
-import com.aliyun.openservices.loghub.client.lease.LogHubLeaseCoordinator;
 import com.aliyun.openservices.loghub.client.lease.impl.LogHubLeaseRebalancer;
-import com.aliyun.openservices.loghub.client.lease.impl.MySqlLogHubLeaseManager;
 
 public class LogHubLeaseRebalancerUnitTest {
 	@Test

@@ -1,37 +1,25 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.apache.log4j.Logger;
 
-import com.aliyun.openservices.loghub.LogHubClient;
+import com.aliyun.openservices.sls.SLSClient;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
+import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 import com.aliyun.openservices.loghub.client.lease.impl.MySqlLogHubLeaseManager;
-import com.aliyun.openservices.loghub.common.LogGroup;
-import com.aliyun.openservices.loghub.common.LogHubModes.LogHubMode;
 
 public class LogHubConsumer {
 	enum ConsumerStatus {
 		INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
 	}
 
-	class FetchedLogGroup {
-		public String mEndCursor;
-		public List<LogGroup> mFetchedData;
-
-		public FetchedLogGroup(List<LogGroup> fetchedData, String endCursor) {
-			mFetchedData = fetchedData;
-			mEndCursor = endCursor;
-		}
-	}
-
 	private String mShardId;
 	private String mInstanceName;
-	private LogHubClient mLogHubClient;
+	private SLSClient mLogHubClient;
 	private String mProject;
 	private String mLogStream;
 	private DefaultLogHubCHeckPointTracker mCheckPointTracker;
@@ -47,15 +35,14 @@ public class LogHubConsumer {
 
 	private ExecutorService mExecutorService;
 	private String mNextFetchCourse;
-	private LogHubMode mNextFetchMode;
 	private boolean mShutDown = false;
 
 	private FetchedLogGroup mLastFetchedData;
 	
-	protected Logger logger = Logger.getLogger(this.getClass());
+	private static final Logger logger = Logger.getLogger(LogHubConsumer.class);
 	private long mLastLogErrorTime = 0;
 
-	public LogHubConsumer(LogHubClient loghubClient, String project,
+	public LogHubConsumer(SLSClient loghubClient, String project,
 			String logStream, String shardId, String instanceName,
 			MySqlLogHubLeaseManager leaseManager, ILogHubProcessor processor,
 			ExecutorService executorService,  LogHubCursorPosition cursorPosition) {
@@ -80,6 +67,11 @@ public class LogHubConsumer {
 			fetchData();
 		}
 	}
+	
+	public void saveCheckPoint(String cursor, boolean persistent) 
+			throws LogHubCheckPointException {		
+		mCheckPointTracker.saveCheckPoint(cursor, persistent);		
+	}
 
 	private void checkAndGenerateNextTask() {
 		if (mTaskFuture == null || mTaskFuture.isCancelled()
@@ -91,7 +83,6 @@ public class LogHubConsumer {
 				if (mCurStatus.equals(ConsumerStatus.INITIALIZING)) {
 					InitTaskResult initResult = (InitTaskResult) (result);
 					mNextFetchCourse = initResult.getCursor();
-					mNextFetchMode = initResult.getMode();
 				}
 			}
 			sampleLogError(result);
@@ -106,10 +97,9 @@ public class LogHubConsumer {
 			TaskResult result = getTaskResult(mFetchDataFeture);
 			if (result != null && result.getException() == null) {
 				FetchTaskResult fetchResult = (FetchTaskResult) result;
-				mLastFetchedData = new FetchedLogGroup(
+				mLastFetchedData = new FetchedLogGroup(mShardId,
 						fetchResult.getFetchedData(), fetchResult.getCursor());
 				mNextFetchCourse = fetchResult.getCursor();
-				mNextFetchMode = LogHubMode.AFTER;
 			}
 			sampleLogError(result);
 
@@ -117,8 +107,7 @@ public class LogHubConsumer {
 			// fetch data this time
 			if (result == null || result.getException() == null) {
 				LogHubFetchTask task = new LogHubFetchTask(mLogHubClient,
-						mProject, mLogStream, mShardId, mNextFetchCourse,
-						mNextFetchMode);
+						mProject, mLogStream, mShardId, mNextFetchCourse);
 				mFetchDataFeture = mExecutorService.submit(task);
 			} else {
 				mFetchDataFeture = null;
@@ -186,7 +175,7 @@ public class LogHubConsumer {
 
 	public void shutdown() {
 		this.mShutDown = true;
-		if (isShutdown()) {
+		if (!isShutdown()) {
 			checkAndGenerateNextTask();
 		}
 	}

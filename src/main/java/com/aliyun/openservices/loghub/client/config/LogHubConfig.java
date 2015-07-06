@@ -1,7 +1,10 @@
 package com.aliyun.openservices.loghub.client.config;
 
-public class LogHubConfig {
-	
+import java.io.Serializable;
+
+public class LogHubConfig implements Serializable {
+	private static final long serialVersionUID = -460559812263406428L;
+
 	public static final long DEFAULT_LEASE_DURATION_TIME_MS = 15 * 1000; // default 15 sec
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 500;
 	private String mConsumeGroupName;

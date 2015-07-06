@@ -27,6 +27,10 @@ public class DefaultLogHubCHeckPointTracker implements ILogHubCheckPointTracker 
 	public void setCursor(String cursor) {
 		mCursor = cursor;
 	}
+	
+	public String getCursor() {
+		return mCursor;
+	}
 
 	public void saveCheckPoint(boolean persistent)
 			throws LogHubCheckPointException {
@@ -36,6 +40,16 @@ public class DefaultLogHubCHeckPointTracker implements ILogHubCheckPointTracker 
 		if (persistent) {
 			flushCheckPoint();
 		}
+	}
+	
+	public void saveCheckPoint(String cursor, boolean persistent) 
+		throws LogHubCheckPointException {
+		
+		mTempCheckPoint = cursor;
+		
+		if (persistent) {
+			flushCheckPoint();
+		}		
 	}
 
 	public void flushCheckPoint() throws LogHubCheckPointException {

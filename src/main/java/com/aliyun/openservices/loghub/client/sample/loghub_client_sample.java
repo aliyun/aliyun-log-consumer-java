@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.aliyun.openservices.loghub.LogHubClient;
+import com.aliyun.openservices.sls.SLSClient;
 import com.aliyun.openservices.loghub.client.LogHubClientAdapter;
 import com.aliyun.openservices.loghub.client.config.LogHubClientDbConfig;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubLeaseException;
@@ -48,7 +48,7 @@ public class loghub_client_sample {
 			shards.add(String.valueOf(i));
 		}
 		clientAdapter.setShard(shards);
-		LogHubClient loghubClient = new LogHubClient("10.101.214.153:6001","a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6");
+		SLSClient loghubClient = new SLSClient("10.101.214.153:6001","a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6");
 		String project = "e2eproject1432909423";
 		String stream = "stream_for_loghub_client";
 		//LogHubClientAdapter clientAdapter = new LogHubClientAdapter(loghubClient, project, stream);

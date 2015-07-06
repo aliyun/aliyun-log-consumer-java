@@ -22,7 +22,7 @@ public class LogHubLeaseRenewer implements ILogHubLeaseRenewer {
 	private final String mInstanceName;
 	private final long mLeaseDuration_nanos;
 	private final ConcurrentNavigableMap<String, LogHubLease> mHeldLeases= new ConcurrentSkipListMap<String, LogHubLease>();
-	protected Logger logger = Logger.getLogger(this.getClass());
+	private final static Logger logger = Logger.getLogger(LogHubLeaseRenewer.class);
 	
 	public LogHubLeaseRenewer(ILogHubLeaseManager leaseManager, String instanceName, long leaseDurationMillis)
 	{
@@ -94,6 +94,7 @@ public class LogHubLeaseRenewer implements ILogHubLeaseRenewer {
 				this.mHeldLeases.remove(lease.getLeaseKey());
 			}
 		}
+		/*
 		logger.info("instance:"
 				+ mInstanceName
 				+ ";renew release,all:"
@@ -102,6 +103,7 @@ public class LogHubLeaseRenewer implements ILogHubLeaseRenewer {
 				+ renewSuccessShards.toString()
 				+ "total renew time(ms)"
 				+ String.valueOf((System.nanoTime() - curTime) / 1000.0 / 1000.0));
+		*/
 	}
 	
 	private boolean renewLease(LogHubLease lease) {
@@ -128,8 +130,8 @@ public class LogHubLeaseRenewer implements ILogHubLeaseRenewer {
 				logger.warn("instance:" + this.mInstanceName
 						+ " Failed renew lease:" + lease.toString());
 			} else {
-				logger.info("instance:" + this.mInstanceName
-						+ " Success to renew lease:" + lease.toString());
+				//logger.info("instance:" + this.mInstanceName
+				//		+ " Success to renew lease:" + lease.toString());
 			}
 		} catch (LogHubLeaseException e) {
 			logger.error("Failed to renew lease instance:" + this.mInstanceName

@@ -2,20 +2,20 @@ package com.aliyun.openservices.loghub.client;
 
 import java.util.List;
 
-import com.aliyun.openservices.loghub.common.LogGroup;
+import com.aliyun.openservices.sls.common.LogGroupData;
 
 public class FetchTaskResult extends TaskResult {
 
-	private List<LogGroup> mFetchData;
+	private List<LogGroupData> mFetchData;
 	private String mCursor;
 
-	public FetchTaskResult(List<LogGroup> fetchData, String cursor) {
+	public FetchTaskResult(List<LogGroupData> fetchData, String cursor) {
 		super(null);
 		mFetchData = fetchData;
 		mCursor = cursor;
 	}
 
-	public List<LogGroup> getFetchedData() {
+	public List<LogGroupData> getFetchedData() {
 		return mFetchData;
 	}
 

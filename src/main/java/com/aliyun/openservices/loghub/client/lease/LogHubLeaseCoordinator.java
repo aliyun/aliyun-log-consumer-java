@@ -23,7 +23,7 @@ public class LogHubLeaseCoordinator {
 	private final long mRebalacneIntervalMillis;
 
 	private ScheduledExecutorService threadpool;
-	protected Logger logger = Logger.getLogger(this.getClass());
+	private static final Logger logger = Logger.getLogger(LogHubLeaseCoordinator.class);
 	private boolean running = false;
 
 	public LogHubLeaseCoordinator(LogHubClientAdapter clientAdpter,

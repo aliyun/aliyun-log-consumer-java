@@ -1,25 +1,29 @@
 package com.aliyun.openservices.loghub.client.sample;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
-import com.aliyun.openservices.loghub.LogHubClient;
-import com.aliyun.openservices.loghub.common.LogGroup;
-import com.aliyun.openservices.loghub.common.LogItem;
-import com.aliyun.openservices.loghub.common.LogMeta;
-import com.aliyun.openservices.loghub.exception.LogHubClientException;
-import com.aliyun.openservices.loghub.exception.LogHubException;
+import org.apache.log4j.PropertyConfigurator;
+
+import com.aliyun.openservices.sls.SLSClient;
+import com.aliyun.openservices.sls.common.LogItem;
+import com.aliyun.openservices.sls.exception.SlsException;
 
 public class SampleSendData {
+	static {
+		PropertyConfigurator.configure("config" + File.separator + "log4j.properties");
+	}
 
 	private static Scanner sn;
 
 	public static void main(String args[]) throws IOException {
-		LogHubClient loghubClient = new LogHubClient("10.101.214.153:60001",
-				"a7zan0ywbuE794dm", "wxq6YGQ4csLRkCvFeE0HJvZA4oR7A6");
-		String project = "loghub-client-worker-test";
-		String stream = "test_2_shards";
-
+		SLSClient loghubClient = new SLSClient("cn-hangzhou-devcommon-intranet.sls.aliyuncs.com",
+				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=");
+		String project = "ali-yun-xgl";
+		String stream = "logstore-xgl";		
 		
 		int index = 0;
 		sn = new Scanner(System.in);
@@ -27,20 +31,25 @@ public class SampleSendData {
 		while (true) {
 			System.out.println("Input loggroup count to send:");
 			int num = sn.nextInt();
-			for (int i = 0; i < num; i++ , index++) {
-				LogGroup logGroup = new LogGroup(new LogMeta());
-				LogItem item = new LogItem(System.currentTimeMillis());
-				item.append("key_" + String.valueOf(index), "value_" + String.valueOf(index));
+
+			for (int i = 0; i < num; i++ , index++) {			
+				List<LogItem> logItems = new ArrayList<LogItem>();
+				LogItem item = new LogItem();	
 				
-				logGroup.addLog(item);
+				String key = "key_" + String.valueOf(index);
+				String val = "value_" + String.valueOf(index);
+				
+				item.PushBack(key, "value_" + val);
+				logItems.add(item);
+				
 				try {
-					loghubClient.sendData(project, stream, logGroup);
+					loghubClient.PutLogs(project, stream, "", logItems, "");
 					total_suc += 1;
-				} catch (LogHubException e) {
+				} catch (SlsException e) {
 					e.printStackTrace();
-				} catch (LogHubClientException e) {
-					e.printStackTrace();
-				}
+				} 
+				
+				System.out.println("key: " + key + " val: " + val);
 			}
 			System.out.println("Total success:" + String.valueOf(total_suc));
 		}

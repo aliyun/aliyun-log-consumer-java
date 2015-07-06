@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
 
-import com.aliyun.openservices.loghub.LogHubClient;
+import com.aliyun.openservices.sls.SLSClient;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubLeaseException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
@@ -29,7 +29,8 @@ public class ClientWorker implements Runnable {
 	private boolean mShutDown = false;
 	private final Map<String, LogHubConsumer> mShardConsumer = new HashMap<String, LogHubConsumer>();
 	private final ExecutorService mExecutorService = Executors.newCachedThreadPool();
-	protected Logger logger = Logger.getLogger(this.getClass());
+	
+	private static final Logger logger = Logger.getLogger(ClientWorker.class);
 
 	public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) {
 		mLogHubProcessorFactory = factory;
@@ -38,7 +39,7 @@ public class ClientWorker implements Runnable {
 		String md5Value = GetMd5Value(sigBody.toLowerCase());
 		mLeaseManager = new MySqlLogHubLeaseManager(
 				config.getConsumeGroupName(), md5Value, config.getDbConfig());
-		LogHubClient loghubClient = new LogHubClient(
+		SLSClient loghubClient = new SLSClient(
 				config.getLogHubEndPoint(), config.getAccessId(),
 				config.getAccessKey());
 		LogHubClientAdapter clientAdpater = new LogHubClientAdapter(
@@ -132,7 +133,7 @@ public class ClientWorker implements Runnable {
 			return consumer;
 		}
 		
-		LogHubClient loghubClient = new LogHubClient(
+		SLSClient loghubClient = new SLSClient(
 				mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
 				mLogHubConfig.getAccessKey());
 		consumer = new LogHubConsumer(loghubClient,

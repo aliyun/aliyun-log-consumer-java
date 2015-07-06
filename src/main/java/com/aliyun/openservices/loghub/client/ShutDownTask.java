@@ -9,7 +9,7 @@ public class ShutDownTask implements ITask {
 
 	private ILogHubProcessor mProcessor;
 	private DefaultLogHubCHeckPointTracker mCheckPointTracker;
-	protected Logger logger = Logger.getLogger(this.getClass());
+	private static final Logger logger = Logger.getLogger(ShutDownTask.class);
 
 	public ShutDownTask(ILogHubProcessor processor,
 			DefaultLogHubCHeckPointTracker checkPointTracker) {

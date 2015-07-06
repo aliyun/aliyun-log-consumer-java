@@ -3,18 +3,17 @@ package com.aliyun.openservices.loghub.client;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.aliyun.openservices.loghub.LogHubClient;
-import com.aliyun.openservices.loghub.common.ShardResource;
-import com.aliyun.openservices.loghub.exception.LogHubClientException;
-import com.aliyun.openservices.loghub.exception.LogHubException;
+import com.aliyun.openservices.sls.SLSClient;
+import com.aliyun.openservices.sls.common.Shard;
+import com.aliyun.openservices.sls.exception.SlsException;
 
 public class LogHubClientAdapter {
 
-	private final LogHubClient mClient;
+	private final SLSClient mClient;
 	private final String mProject;
 	private final String mStream;
 	
-	public LogHubClientAdapter(LogHubClient client, String project,
+	public LogHubClientAdapter(SLSClient client, String project,
 			String stream) {
 		mClient = client;
 		mProject = project;
@@ -24,19 +23,18 @@ public class LogHubClientAdapter {
 	{
 		List<String> shards = new ArrayList<String>();
 		try {
-			List<ShardResource>  res = mClient.listShard(mProject, mStream).getShards();
-			for(ShardResource resource : res)
+			List<Shard>  res = mClient.ListShard(mProject, mStream).GetShards();
+			for(Shard resource : res)
 			{
 		//		if (resource.getShardStatus().equals("OK"))
 				{
-					shards.add(String.valueOf(resource.getShardId()));
+					shards.add(String.valueOf(resource.GetShardId()));
 				}
 			}
-		} catch (LogHubException e) {
+		} catch (SlsException e) {
 			
-		} catch (LogHubClientException e) {
-			
-		}
+		} 
+		
 		return shards;
 	}
 }

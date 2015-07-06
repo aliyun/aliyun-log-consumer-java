@@ -3,32 +3,29 @@ package com.aliyun.openservices.loghub.client;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.aliyun.openservices.loghub.LogHubClient;
-import com.aliyun.openservices.loghub.common.LogGroup;
-import com.aliyun.openservices.loghub.common.LogHubModes.LogHubMode;
-import com.aliyun.openservices.loghub.exception.LogHubClientException;
-import com.aliyun.openservices.loghub.exception.LogHubException;
-import com.aliyun.openservices.loghub.response.GetCursorResponse;
-import com.aliyun.openservices.loghub.response.GetLogDataResponse;
+import com.aliyun.openservices.sls.SLSClient;
+import com.aliyun.openservices.sls.common.LogGroupData;
+import com.aliyun.openservices.sls.common.SlsConsts.CursorMode;
+import com.aliyun.openservices.sls.exception.SlsException;
+import com.aliyun.openservices.sls.response.GetCursorResponse;
+import com.aliyun.openservices.sls.response.BatchGetLogResponse;
 
 public class LogHubFetchTask implements ITask {
-	private LogHubClient mLoghubClient;
+	private SLSClient mLoghubClient;
 
 	private String mProject;
 	private String mLogStream;
 	private String mShardId;
 	private String mCursor;
-	private LogHubMode mMode;
 	private final int MAX_FETCH_LOGGROUP_SIZE = 1000;
 
-	public LogHubFetchTask(LogHubClient client, String project,
-			String logStream, String shardId, String cursor, LogHubMode mode) {
+	public LogHubFetchTask(SLSClient client, String project,
+			String logStream, String shardId, String cursor) {
 		mLoghubClient = client;
 		mProject = project;
 		mLogStream = logStream;
 		mShardId = shardId;
 		mCursor = cursor;
-		mMode = mode;
 	}
 
 	public TaskResult call() {
@@ -36,24 +33,28 @@ public class LogHubFetchTask implements ITask {
 		for (int retry = 0 ; retry < 2 ; retry++)
 		{
 			try {
-				GetLogDataResponse response = mLoghubClient.getLogData(mProject, mLogStream,
-						Integer.parseInt(mShardId), MAX_FETCH_LOGGROUP_SIZE,
-						mMode, mCursor);
-				List<LogGroup> fetchedData = new ArrayList<LogGroup>();
+				BatchGetLogResponse response = mLoghubClient.BatchGetLog(mProject, mLogStream,
+						Integer.parseInt(mShardId), MAX_FETCH_LOGGROUP_SIZE, mCursor);
+				List<LogGroupData> fetchedData = new ArrayList<LogGroupData>();
 				
-				for (int i = 0 ; i < response.getCount(); i++)
+				for (int i = 0 ; i < response.GetCount(); i++)
 				{
-					LogGroup group = response.getLogGroup(i);
+					LogGroupData group = response.GetLogGroup(i);
 					if (group != null)
 					{
 						fetchedData.add(group);
 					}
 				}
 				
-				String cursor = response.getLastCursor();
-/*				System.out.println("fetch shard_id = " + mShardId
+				String cursor = response.GetNextCursor();
+				
+				if (fetchedData.size() > 0)
+				{
+					System.out.println("fetch shard_id = " + mShardId
 						+ ", fetech result : " + String.valueOf(fetchedData.size())
-						+ ";get cursor:" + mCursor + ";return cursor:" + cursor);*/
+						+ ";get cursor:" + mCursor + ";return cursor:" + cursor);
+				}
+				
 				if (cursor.isEmpty()) {
 					return new FetchTaskResult(fetchedData, mCursor);
 				} else {
@@ -64,8 +65,8 @@ public class LogHubFetchTask implements ITask {
 			}
 			
 			// only retry if the first request get "InvalidCursor" exception
-			if(retry == 0 && exception instanceof LogHubException && 
-					((LogHubException)(exception)).getErrorCode().equals("InvalidCursor"))
+			if(retry == 0 && exception instanceof SlsException && 
+					((SlsException)(exception)).GetErrorCode().equals("InvalidCursor"))
 			{ 
 				try {
 					freshCursor();
@@ -81,11 +82,10 @@ public class LogHubFetchTask implements ITask {
 		}
 		return new TaskResult(exception);
 	}
-	public void freshCursor() throws NumberFormatException, LogHubException, LogHubClientException
+	public void freshCursor() throws NumberFormatException, SlsException
 	{
-		GetCursorResponse response = mLoghubClient.getCursor(mProject,
-				mLogStream, Integer.parseInt(mShardId), LogHubMode.BEGIN);
-		mCursor = response.getCursor();
-		mMode = LogHubMode.AT;
+		GetCursorResponse response = mLoghubClient.GetCursor(mProject,
+				mLogStream, Integer.parseInt(mShardId), CursorMode.BEGIN);
+		mCursor = response.GetCursor();
 	}
 }
