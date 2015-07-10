@@ -13,6 +13,10 @@ public class InnerFetcherProcessor implements ILogHubProcessor {
 	private String mShardId;
 	private final ClientFetcher mFetcher;
 	
+	//because shutdown is asynchronous operation, shutdown callback may be called multiple times. this flag
+	//is dedicated to avoid duplicated operation/notification because of multi-shutdown calling.
+	private boolean bHasShutdown = false;
+	
 	public InnerFetcherProcessor(ClientFetcher fetcher) {
 		mFetcher = fetcher;
 	}
@@ -45,11 +49,15 @@ public class InnerFetcherProcessor implements ILogHubProcessor {
 	@Override
 	public void shutdown(ILogHubCheckPointTracker checkPointTracker) {
 		
-		//remove all the cached data (before here, no more data will be fetched)
-		mFetcher.cleanCachedData(mShardId);
+		if (!bHasShutdown) {
+			//remove all the cached data (before here, no more data will be fetched)
+			mFetcher.cleanCachedData(mShardId);
 		
-		ILogHubShardListener listener = mFetcher.getShardListener();
-		if (listener != null)
-			listener.ShardDeleted(mShardId);		
+			ILogHubShardListener listener = mFetcher.getShardListener();
+			if (listener != null)
+				listener.ShardDeleted(mShardId);	
+			
+			bHasShutdown = true;
+		}
 	}	
 }

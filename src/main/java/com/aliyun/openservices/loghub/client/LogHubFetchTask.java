@@ -48,13 +48,6 @@ public class LogHubFetchTask implements ITask {
 				
 				String cursor = response.GetNextCursor();
 				
-				if (fetchedData.size() > 0)
-				{
-					System.out.println("fetch shard_id = " + mShardId
-						+ ", fetech result : " + String.valueOf(fetchedData.size())
-						+ ";get cursor:" + mCursor + ";return cursor:" + cursor);
-				}
-				
 				if (cursor.isEmpty()) {
 					return new FetchTaskResult(fetchedData, mCursor);
 				} else {
