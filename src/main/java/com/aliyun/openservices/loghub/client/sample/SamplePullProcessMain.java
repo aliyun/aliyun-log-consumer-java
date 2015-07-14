@@ -54,12 +54,12 @@ public class SamplePullProcessMain {
 
 		sn.close();
 		
-		String project = "ali-yun-xgl";
-		String stream = "logstore-xgl";
+		String project = "ali-yun-xuguilin-test";
+		String stream = "xgl-test";
 
 		LogHubConfig config = new LogHubConfig("consume_10_shards",
-				instanceName, "cn-hangzhou-devcommon-intranet.sls.aliyuncs.com", project, stream,
-				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=", dbConfig,
+				instanceName, "cn-hangzhou-staging-intranet.sls.aliyuncs.com", project, stream,
+				"rDwmctL3ImDUh01b", "eDEQO0CUbw6j3y0bDgLLOhxrSXxCZ0", dbConfig,
 				LogHubCursorPosition.BEGIN_CURSOR);
 
 		ClientFetcher clientFetcher = new ClientFetcher(config);

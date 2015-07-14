@@ -4,11 +4,11 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,13 +34,13 @@ public class ClientFetcher {
 	private final MySqlLogHubLeaseManager mLeaseManager;
 	private final LogHubLeaseCoordinator mLeaseCorordinator;
 	
-	private final ConcurrentHashMap<String, LogHubConsumer> mShardConsumer = 
-			new ConcurrentHashMap<String, LogHubConsumer>();
+	private final Map<String, LogHubConsumer> mShardConsumer = 
+			new HashMap<String, LogHubConsumer>();
 
 	int _curShardIndex = 0;
 	private final List<String> mShardList = new ArrayList<String>();
-	private final ConcurrentHashMap<String, FetchedLogGroup> mCachedData 
-		= new ConcurrentHashMap<String, FetchedLogGroup>();
+	private final Map<String, FetchedLogGroup> mCachedData 
+		= new HashMap<String, FetchedLogGroup>();
 	
 	private final ExecutorService mExecutorService = Executors.newCachedThreadPool();
 	private final ScheduledExecutorService mShardListUpdateService = Executors.newScheduledThreadPool(1);
@@ -157,7 +157,7 @@ public class ClientFetcher {
 		        	break;
 		        }
 		   }
-	}
+		}
        
         return result;
 	}	
@@ -165,14 +165,16 @@ public class ClientFetcher {
 	public void saveCheckPoint(String shardId, String cursor, boolean persistent) 
 			throws LogHubCheckPointException {
 		
-		LogHubConsumer consumer = mShardConsumer.get(shardId);
-		if (consumer != null)
-		{
-			consumer.saveCheckPoint(cursor, persistent);
-		}
-		else
-		{
-			throw new LogHubCheckPointException("Invalid shardId when saving checkpoint");
+		synchronized(mShardList) {
+			LogHubConsumer consumer = mShardConsumer.get(shardId);
+			if (consumer != null)
+			{
+				consumer.saveCheckPoint(cursor, persistent);
+			}
+			else
+			{
+				throw new LogHubCheckPointException("Invalid shardId when saving checkpoint");
+			}
 		}
 	}
 	
@@ -180,14 +182,18 @@ public class ClientFetcher {
 	 * update cached data from internal processor (not used externally by end users)
 	 */
 	public void updateCachedData(String shardId, FetchedLogGroup data) {
-		mCachedData.put(shardId, data);
+		synchronized(mShardList) {
+			mCachedData.put(shardId, data);
+		}
 	}
 
 	/*
 	 * clean cached data from internal processor (not used externally by end users)
 	 */	
 	public void cleanCachedData(String shardId) {
-		mCachedData.remove(shardId);
+		synchronized(mShardList) {
+			mCachedData.remove(shardId);
+		}
 	}
 	
 	private class ShardListUpdator implements Runnable {	
@@ -212,18 +218,18 @@ public class ClientFetcher {
 	
 	private void cleanConsumer(Set<String> ownedShard)
 	{
-		Set<String> processingShard = mShardConsumer.keySet();
-		for (String shardId : processingShard)
-		{
-			LogHubConsumer consumer = mShardConsumer.get(shardId);
-			if (ownedShard.contains(shardId) == false)
+		synchronized(mShardList) {
+			Set<String> processingShard = mShardConsumer.keySet();
+			for (String shardId : processingShard)
 			{
-				consumer.shutdown();
-			}
-			if (consumer.isShutdown())
-			{
-				mShardConsumer.remove(shardId);
-				synchronized(mShardList) {
+				LogHubConsumer consumer = mShardConsumer.get(shardId);
+				if (ownedShard.contains(shardId) == false)
+				{
+					consumer.shutdown();
+				}
+				if (consumer.isShutdown())
+				{
+					mShardConsumer.remove(shardId);
 					mShardList.remove(shardId);
 				}
 			}
@@ -232,29 +238,29 @@ public class ClientFetcher {
 	
 	private LogHubConsumer getConsuemr(String shardId)
 	{
-		LogHubConsumer consumer = mShardConsumer.get(shardId);
-		if (consumer != null)
-		{
+		synchronized(mShardList) {
+			LogHubConsumer consumer = mShardConsumer.get(shardId);
+			if (consumer != null)
+			{
+				return consumer;
+			}
+			
+			SLSClient loghubClient = new SLSClient(
+					mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
+					mLogHubConfig.getAccessKey());
+			consumer = new LogHubConsumer(loghubClient,
+					mLogHubConfig.getLogHubProject(),
+					mLogHubConfig.getLogHubStreamName(), shardId,
+					mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
+					mLogHubProcessorFactory.generatorProcessor(), mExecutorService, mLogHubConfig.getCursorPosition());
+			mShardConsumer.put(shardId, consumer);
+			mShardList.add(shardId);
+			
+			logger.info("new consumer is added for shard " + shardId);
+			
+			//trigger first consume operation to emit Initialize task.
+			consumer.consume();
 			return consumer;
 		}
-		
-		SLSClient loghubClient = new SLSClient(
-				mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
-				mLogHubConfig.getAccessKey());
-		consumer = new LogHubConsumer(loghubClient,
-				mLogHubConfig.getLogHubProject(),
-				mLogHubConfig.getLogHubStreamName(), shardId,
-				mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
-				mLogHubProcessorFactory.generatorProcessor(), mExecutorService, mLogHubConfig.getCursorPosition());
-		mShardConsumer.put(shardId, consumer);
-		
-		synchronized (mShardList) {
-			mShardList.add(shardId);
-		}
-		logger.info("new consumer is added for shard " + shardId);
-		
-		//trigger first consume operation to emit Initialize task.
-		consumer.consume();
-		return consumer;
 	}
 }

@@ -20,10 +20,10 @@ public class SampleSendData {
 	private static Scanner sn;
 
 	public static void main(String args[]) throws IOException {
-		SLSClient loghubClient = new SLSClient("cn-hangzhou-devcommon-intranet.sls.aliyuncs.com",
-				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=");
-		String project = "ali-yun-xgl";
-		String stream = "logstore-xgl";		
+		SLSClient loghubClient = new SLSClient("cn-hangzhou-staging-intranet.sls.aliyuncs.com",
+				"rDwmctL3ImDUh01b", "eDEQO0CUbw6j3y0bDgLLOhxrSXxCZ0");
+		String project = "ali-yun-xuguilin-test";
+		String stream = "xgl-test";		
 		
 		int index = 0;
 		sn = new Scanner(System.in);
