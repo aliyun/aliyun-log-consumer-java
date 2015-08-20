@@ -43,10 +43,11 @@
         </dependency>
         
         <dependency>
-  			<groupId>com.aliyun.openservices</groupId>
-  			<artifactId>aliyun-sls</artifactId>
-  			<version>0.5.0</version>        
-        </dependency>        
+			<groupId>com.aliyun.openservices</groupId>
+ 			<artifactId>aliyun-sls-inner-test</artifactId>
+ 			<version>0.5.0</version>
+ 			<classifier>aliyun-sls-inner-test</classifier> 
+        </dependency>       
 
         <dependency>
             <groupId>commons-beanutils</groupId>
