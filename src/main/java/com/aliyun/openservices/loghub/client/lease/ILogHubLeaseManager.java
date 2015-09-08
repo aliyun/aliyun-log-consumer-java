@@ -8,7 +8,9 @@ import com.aliyun.openservices.loghub.client.excpetions.LogHubLeaseException;
 
 public interface ILogHubLeaseManager {
 
-	public boolean Initilize() throws LogHubLeaseException;
+	public boolean Initilize(String consumerGroupName,
+			String workerInstanceName, String project, String logStore)
+			throws LogHubLeaseException;
 
 	public List<String> listNewCreatedInstance() throws LogHubLeaseException;
 
@@ -17,7 +19,8 @@ public interface ILogHubLeaseManager {
 	public boolean createLeaseForShards(List<String> lease)
 			throws LogHubLeaseException;
 
-	public void registerWorker(String workerName) throws LogHubLeaseException;
+	// register current worker 
+//	public void registerWorker(String workerInstanceName) throws LogHubLeaseException;
 
 	// if update_consumer is set to true, user lease.mLeaseOwner as consumer,
 	// and save it to back end

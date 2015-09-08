@@ -1,9 +1,5 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
@@ -23,15 +19,15 @@ import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointExceptio
 import com.aliyun.openservices.loghub.client.excpetions.LogHubLeaseException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubShardListener;
+import com.aliyun.openservices.loghub.client.lease.ILogHubLeaseManager;
 import com.aliyun.openservices.loghub.client.lease.LogHubLease;
 import com.aliyun.openservices.loghub.client.lease.LogHubLeaseCoordinator;
-import com.aliyun.openservices.loghub.client.lease.impl.MySqlLogHubLeaseManager;
 
 public class ClientFetcher {
 	
 	private final ILogHubProcessorFactory mLogHubProcessorFactory;
 	private final LogHubConfig mLogHubConfig;
-	private final MySqlLogHubLeaseManager mLeaseManager;
+	private final ILogHubLeaseManager mLeaseManager;
 	private final LogHubLeaseCoordinator mLeaseCorordinator;
 	
 	private final Map<String, LogHubConsumer> mShardConsumer = 
@@ -51,51 +47,30 @@ public class ClientFetcher {
 	
 	private static final Logger logger = Logger.getLogger(ClientFetcher.class);
 
-	public ClientFetcher(LogHubConfig config) {
+	public ClientFetcher(LogHubConfig config, ILogHubLeaseManager leaseManager) {
 		mLogHubProcessorFactory = new InnerFetcherProcessorFactory(this);
 		mLogHubConfig = config;
-		String sigBody = config.getLogHubProject() + "#" + config.getLogHubStreamName();
-		String md5Value = GetMd5Value(sigBody.toLowerCase());
-		mLeaseManager = new MySqlLogHubLeaseManager(
-				config.getConsumeGroupName(), md5Value, config.getDbConfig());
+		
+		mLeaseManager = leaseManager;
+
 		SLSClient loghubClient = new SLSClient(
 				config.getLogHubEndPoint(), config.getAccessId(),
 				config.getAccessKey());
 		LogHubClientAdapter clientAdpater = new LogHubClientAdapter(
-				loghubClient, config.getLogHubProject(),
-				config.getLogHubStreamName());
+				loghubClient, config.getProject(),
+				config.getLogStore());
 		mLeaseCorordinator = new LogHubLeaseCoordinator(clientAdpater,
 				mLeaseManager, config.getWorkerInstanceName(),
 				config.getLeaseDurtionTimeMillis());
 	}
 	
-	private String GetMd5Value(String body) {
-		try {
-			byte[] bytes = body.getBytes("utf-8");
-			MessageDigest md;
-			md = MessageDigest.getInstance("MD5");
-			String res = new BigInteger(1, md.digest(bytes)).toString(16)
-					.toUpperCase();
-
-			StringBuilder zeros = new StringBuilder();
-			for (int i = 0; i + res.length() < 32; i++) {
-				zeros.append("0");
-			}
-			return zeros.toString() + res;
-		} catch (NoSuchAlgorithmException e) {
-			return "";
-		} catch (UnsupportedEncodingException e) {
-			return "";
-		}
-	}
 	
 	
 	public void start() {
 
 		try {
-			mLeaseManager.Initilize();
-			mLeaseManager.registerWorker(this.mLogHubConfig
-					.getWorkerInstanceName());
+			mLeaseManager.Initilize(mLogHubConfig.getConsumerGroupName(), mLogHubConfig.getWorkerInstanceName(),
+					mLogHubConfig.getProject(), mLogHubConfig.getLogStore());
 		} catch (LogHubLeaseException e) {
 			logger.error("Failed to init the loghub worker client env, exit", e);
 			return;
@@ -249,8 +224,8 @@ public class ClientFetcher {
 					mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
 					mLogHubConfig.getAccessKey());
 			consumer = new LogHubConsumer(loghubClient,
-					mLogHubConfig.getLogHubProject(),
-					mLogHubConfig.getLogHubStreamName(), shardId,
+					mLogHubConfig.getProject(),
+					mLogHubConfig.getLogStore(), shardId,
 					mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
 					mLogHubProcessorFactory.generatorProcessor(), mExecutorService, mLogHubConfig.getCursorPosition());
 			mShardConsumer.put(shardId, consumer);

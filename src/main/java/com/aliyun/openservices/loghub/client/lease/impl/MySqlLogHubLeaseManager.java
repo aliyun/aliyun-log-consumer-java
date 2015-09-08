@@ -1,5 +1,9 @@
 package com.aliyun.openservices.loghub.client.lease.impl;
 
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -21,27 +25,51 @@ import com.aliyun.openservices.loghub.client.lease.LogHubLease;
 public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 	
 	private String mConsumeGroupName;
+	private String mWorkerInstanceName;
 	private String mSignature;
 	private LogHubClientDbConfig mDbConfig;
 	private String mMysqlUrl;
 	private static final Logger logger = Logger.getLogger(MySqlLogHubLeaseManager.class);
-	public MySqlLogHubLeaseManager(String consumeGroupname, String sigNature, LogHubClientDbConfig  dbConfig)
+	public MySqlLogHubLeaseManager(LogHubClientDbConfig  dbConfig)
 	{
 		mDbConfig = dbConfig;
-		mConsumeGroupName = consumeGroupname;
-		mSignature = sigNature;
 		
 		mMysqlUrl = "jdbc:mysql://" + mDbConfig.getDbHost() + ":" + mDbConfig.getDbPort() + "/" + mDbConfig.getDbName()
 				+ "?connectTimeout=5000&socketTimeout=5000";
 	}
+	
+	private String GetMd5Value(String body) {
+		try {
+			byte[] bytes = body.getBytes("utf-8");
+			MessageDigest md;
+			md = MessageDigest.getInstance("MD5");
+			String res = new BigInteger(1, md.digest(bytes)).toString(16)
+					.toUpperCase();
 
-	public boolean Initilize() throws LogHubLeaseException{
+			StringBuilder zeros = new StringBuilder();
+			for (int i = 0; i + res.length() < 32; i++) {
+				zeros.append("0");
+			}
+			return zeros.toString() + res;
+		} catch (NoSuchAlgorithmException e) {
+			return "";
+		} catch (UnsupportedEncodingException e) {
+			return "";
+		}
+	}
+	
+	public boolean Initilize(String consumerGroupName,
+			String workerInstanceName, String project, String logstore)
+			throws LogHubLeaseException {
+		this.mConsumeGroupName = consumerGroupName;
+		this.mWorkerInstanceName = workerInstanceName;
+		mSignature = GetMd5Value(project + "#" + logstore);
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 		} catch (ClassNotFoundException e1) {
 			throw new LogHubLeaseException("Failed to load mysql jdbc driver", e1);
 		}
-		return creaseLeaseTable() &&  createWorkerTable();
+		return creaseLeaseTable() &&  createWorkerTable() && registerWorker();
 	}
 	
 
@@ -74,7 +102,15 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 	private boolean createTable(String table_sql) throws LogHubLeaseException {
 		return updateQuery(table_sql, null) != -1;
 	}
-
+	
+	private boolean registerWorker() throws LogHubLeaseException {
+		String query = "insert into " + mDbConfig.getWorkerTableName()
+				+ "(consume_group, logstream_sig, instance_name, update_time) values ('"
+				+ mConsumeGroupName + "', '" + mSignature + "','" + mWorkerInstanceName
+				+ "', now()) on duplicate key update update_time = now()";
+		return updateQuery(query, null) != -1;
+	}
+	
 	private int updateQuery(String query, Connection mysql_con)
 			throws LogHubLeaseException {
 		boolean new_create_con = false;
@@ -194,8 +230,6 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 		}
 		return res;
 	}
-	
-
 	
 	
 	public boolean createLeaseForShards(List<String> shards_list) throws LogHubLeaseException{
@@ -329,12 +363,6 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 		return null;
 	}
 
-	public void registerWorker(String workerName) throws LogHubLeaseException {
-		String query = "insert into " + mDbConfig.getWorkerTableName()
-				+ "(consume_group, logstream_sig, instance_name, update_time) values ('"
-				+ mConsumeGroupName + "', '" + mSignature + "','" + workerName
-				+ "', now()) on duplicate key update update_time = now()";
-		updateQuery(query, null);
-	}
+
 	
 }

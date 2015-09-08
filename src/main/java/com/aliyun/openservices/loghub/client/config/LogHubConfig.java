@@ -7,35 +7,42 @@ public class LogHubConfig implements Serializable {
 
 	public static final long DEFAULT_LEASE_DURATION_TIME_MS = 15 * 1000; // default 15 sec
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 500;
-	private String mConsumeGroupName;
+	private String mConsumerGroupName;
 	private String mWorkerInstanceName;
 	private String mLogHubEndPoint;
-	private String mLogHubProject;
-	private String mLogHubStreamName;
+	private String mProject;
+	private String mLogStore;
 	private String mAccessId;
 	private String mAccessKey;
-	private LogHubClientDbConfig mDbConfig;
 	private LogHubCursorPosition mCursorPosition;
 	private long mLeaseDurationMillis;
 	private long mDataFetchIntervalMillis;
 
 	
-	public LogHubConfig(String consumeGroupName, String workerInstanceName, String loghubEndPoint, 
-			String loghubProject, String loghubStreamName,
+	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+			String project, String logStore,
 			String accessId, String accessKey,
-			LogHubClientDbConfig dbConfig, LogHubCursorPosition cursorPosition)
+			LogHubCursorPosition cursorPosition)
 	{
-		mConsumeGroupName = consumeGroupName;
+		mConsumerGroupName = consumerGroupName;
 		mWorkerInstanceName = workerInstanceName;
 		mLogHubEndPoint = loghubEndPoint;
-		mLogHubProject = loghubProject;
-		mLogHubStreamName = loghubStreamName;
+		mProject = project;
+		mLogStore = logStore;
 		mAccessId = accessId;
 		mAccessKey = accessKey;
-		mDbConfig = dbConfig;
 		mCursorPosition = cursorPosition;
 		mLeaseDurationMillis = DEFAULT_LEASE_DURATION_TIME_MS;
 		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+	}
+	
+	public String getConsumerGroupName()
+	{
+		return mConsumerGroupName;
+	}
+	public String getWorkerInstanceName()
+	{
+		return mWorkerInstanceName;
 	}
 	
 	public void setLeaseDurationTimeMillis(long durationMs)
@@ -54,25 +61,18 @@ public class LogHubConfig implements Serializable {
 	{
 		return this.mDataFetchIntervalMillis;
 	}
-	public String getConsumeGroupName()
-	{
-		return mConsumeGroupName;
-	}
-	public String getWorkerInstanceName()
-	{
-		return mWorkerInstanceName;
-	}
+
 	public String getLogHubEndPoint()
 	{
 		return mLogHubEndPoint;
 	}
-	public String getLogHubProject()
+	public String getProject()
 	{
-		return mLogHubProject;
+		return mProject;
 	}
-	public String getLogHubStreamName()
+	public String getLogStore()
 	{
-		return mLogHubStreamName;
+		return mLogStore;
 	}
 	public String getAccessId()
 	{
@@ -81,10 +81,6 @@ public class LogHubConfig implements Serializable {
 	public String getAccessKey()
 	{
 		return mAccessKey;
-	}
-	public LogHubClientDbConfig getDbConfig()
-	{
-		return mDbConfig;
 	}
 	
 	public LogHubCursorPosition getCursorPosition()

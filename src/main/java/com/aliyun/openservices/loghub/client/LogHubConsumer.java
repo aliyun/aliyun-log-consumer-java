@@ -10,7 +10,7 @@ import com.aliyun.openservices.sls.SLSClient;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
-import com.aliyun.openservices.loghub.client.lease.impl.MySqlLogHubLeaseManager;
+import com.aliyun.openservices.loghub.client.lease.ILogHubLeaseManager;
 
 public class LogHubConsumer {
 	enum ConsumerStatus {
@@ -23,7 +23,7 @@ public class LogHubConsumer {
 	private String mProject;
 	private String mLogStream;
 	private DefaultLogHubCHeckPointTracker mCheckPointTracker;
-	private MySqlLogHubLeaseManager mLeaseManager;
+	private ILogHubLeaseManager mLeaseManager;
 	private ILogHubProcessor mProcessor;
 	LogHubCursorPosition mCursorPosition;
 	
@@ -44,7 +44,7 @@ public class LogHubConsumer {
 
 	public LogHubConsumer(SLSClient loghubClient, String project,
 			String logStream, String shardId, String instanceName,
-			MySqlLogHubLeaseManager leaseManager, ILogHubProcessor processor,
+			ILogHubLeaseManager leaseManager, ILogHubProcessor processor,
 			ExecutorService executorService,  LogHubCursorPosition cursorPosition) {
 		mLogHubClient = loghubClient;
 		mProject = project;

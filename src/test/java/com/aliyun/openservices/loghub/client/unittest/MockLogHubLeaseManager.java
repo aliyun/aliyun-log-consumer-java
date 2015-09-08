@@ -14,11 +14,6 @@ public class MockLogHubLeaseManager implements ILogHubLeaseManager{
 	private List<LogHubLease> mLeaseToList = new ArrayList<LogHubLease>();
 	private List<String> mShardToCreate = new ArrayList<String>();
 	private List<String> mInstance = new ArrayList<String>();
-	@Override
-	public boolean Initilize() throws LogHubLeaseException {
-		// TODO Auto-generated method stub
-		return false;
-	}
 
 	@Override
 	public List<String> listNewCreatedInstance() throws LogHubLeaseException {
@@ -92,6 +87,14 @@ public class MockLogHubLeaseManager implements ILogHubLeaseManager{
 	public String getCheckPoint(String shardId) throws LogHubLeaseException {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public boolean Initilize(String consumerGroupName,
+			String workerInstanceName, String project, String logStore)
+			throws LogHubLeaseException {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

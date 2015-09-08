@@ -13,6 +13,7 @@ import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubShardListener;
+import com.aliyun.openservices.loghub.client.lease.impl.MySqlLogHubLeaseManager;
 import com.aliyun.openservices.sls.common.LogGroupData;
 import com.aliyun.openservices.sls.common.LogItem;
 
@@ -50,19 +51,22 @@ public class SamplePullProcessMain {
 		System.out.println("Please input instancename for pull test:");
 		Scanner sn = new Scanner(System.in);
 		
+		String consumeGroupName = "loghub-test-consumer-grouper";
 		String instanceName = sn.next();
 
 		sn.close();
 		
 		String project = "ali-yun-xuguilin-test";
-		String stream = "xgl-test";
+		String logstore = "xgl-test";
 
-		LogHubConfig config = new LogHubConfig("consume_10_shards",
-				instanceName, "cn-hangzhou-staging-intranet.sls.aliyuncs.com", project, stream,
-				"rDwmctL3ImDUh01b", "eDEQO0CUbw6j3y0bDgLLOhxrSXxCZ0", dbConfig,
+		LogHubConfig config = new LogHubConfig(consumeGroupName, instanceName,
+				"cn-hangzhou-staging-intranet.sls.aliyuncs.com", project, logstore,
+				"rDwmctL3ImDUh01b", "eDEQO0CUbw6j3y0bDgLLOhxrSXxCZ0",
 				LogHubCursorPosition.BEGIN_CURSOR);
 
-		ClientFetcher clientFetcher = new ClientFetcher(config);
+		MySqlLogHubLeaseManager leaseManager = new MySqlLogHubLeaseManager(dbConfig);
+		
+		ClientFetcher clientFetcher = new ClientFetcher(config, leaseManager);
 		
 		clientFetcher.registerShardListener(new ShardListener());
 		
