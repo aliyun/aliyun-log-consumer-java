@@ -1,6 +1,7 @@
 package com.aliyun.openservices.loghub.client;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -83,17 +84,19 @@ public class ClientWorker implements Runnable {
 	
 	private void cleanConsumer(Set<String> ownedShard)
 	{
-		Set<String> processingShard = mShardConsumer.keySet();
+		Set<String> processingShard = new HashSet<String>(mShardConsumer.keySet());
 		for (String shardId : processingShard)
 		{
 			LogHubConsumer consumer = mShardConsumer.get(shardId);
 			if (ownedShard.contains(shardId) == false)
 			{
 				consumer.shutdown();
+				logger.warn("try to shut down a consumer shard:" + shardId);
 			}
 			if (consumer.isShutdown())
 			{
 				mShardConsumer.remove(shardId);
+				logger.warn("remove a consumer shard:" + shardId);
 			}
 		}
 	}
@@ -115,6 +118,7 @@ public class ClientWorker implements Runnable {
 				mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
 				mLogHubProcessorFactory.generatorProcessor(), mExecutorService, mLogHubConfig.getCursorPosition());
 		mShardConsumer.put(shardId, consumer);
+		logger.warn("create a consumer shard:" + shardId);
 		return consumer;
 	}
 }

@@ -1,6 +1,5 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -126,12 +125,10 @@ public class LogHubConsumer {
 	}
 
 	private TaskResult getTaskResult(Future<TaskResult> future) {
-		if (future != null && future.isDone()) {
+		if (future != null && (future.isDone() || future.isCancelled())) {
 			try {
 				return future.get();
-			} catch (InterruptedException e) {
-
-			} catch (ExecutionException e) {
+			} catch (Exception e) {
 			}
 		}
 		return null;
@@ -152,6 +149,11 @@ public class LogHubConsumer {
 			}
 		} else if (this.mCurStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
 			nextTask = new ShutDownTask(mProcessor, mCheckPointTracker);
+			if (mFetchDataFeture != null) {
+				mFetchDataFeture.cancel(true);
+				getTaskResult(mFetchDataFeture);
+				logger.warn("Cancel a fetch task, shard id:" + mShardId);
+			}
 		}
 		if (nextTask != null) {
 			mCurrentTask = nextTask;

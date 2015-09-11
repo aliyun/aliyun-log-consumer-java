@@ -58,9 +58,6 @@ public class LogHubLeaseRenewer implements ILogHubLeaseRenewer {
 	}
 
 	public void renewLeases() {
-/*		for (LogHubLease lease : this.mHeldLeases.descendingMap().values()) {
-			renewLease(lease);
-		}*/
 		Map<String, LogHubLease> all_leases = new HashMap<String, LogHubLease>();
 		Set<String> toRenewConsumerShards = new HashSet<String>();
 		long curTime = System.nanoTime();
@@ -92,18 +89,29 @@ public class LogHubLeaseRenewer implements ILogHubLeaseRenewer {
 			} else if (lease.isExpired(this.mLeaseDuration_nanos,
 					System.nanoTime())) {
 				this.mHeldLeases.remove(lease.getLeaseKey());
+				logger.info("remove time out shard:" + lease.getLeaseKey());
 			}
 		}
-		/*
-		logger.info("instance:"
-				+ mInstanceName
-				+ ";renew release,all:"
-				+ all_leases.keySet().toString()
-				+ ";success:"
-				+ renewSuccessShards.toString()
-				+ "total renew time(ms)"
-				+ String.valueOf((System.nanoTime() - curTime) / 1000.0 / 1000.0));
-		*/
+		if (all_leases.size() != renewSuccessShards.size()) {
+			logger.warn("renew lease has failed shard, instance:"
+					+ mInstanceName
+					+ ";renew release,all:"
+					+ all_leases.keySet().toString()
+					+ ";success:"
+					+ renewSuccessShards.toString()
+					+ "total renew time(ms)"
+					+ String.valueOf((System.nanoTime() - curTime) / 1000.0 / 1000.0));
+		} else {
+			logger.debug("instance:"
+					+ mInstanceName
+					+ ";renew release,all:"
+					+ all_leases.keySet().toString()
+					+ ";success:"
+					+ renewSuccessShards.toString()
+					+ "total renew time(ms)"
+					+ String.valueOf((System.nanoTime() - curTime) / 1000.0 / 1000.0));
+		}
+		
 	}
 	
 	private boolean renewLease(LogHubLease lease) {
@@ -130,8 +138,8 @@ public class LogHubLeaseRenewer implements ILogHubLeaseRenewer {
 				logger.warn("instance:" + this.mInstanceName
 						+ " Failed renew lease:" + lease.toString());
 			} else {
-				//logger.info("instance:" + this.mInstanceName
-				//		+ " Success to renew lease:" + lease.toString());
+				logger.debug("instance:" + this.mInstanceName
+						+ " Success to renew lease:" + lease.toString());
 			}
 		} catch (LogHubLeaseException e) {
 			logger.error("Failed to renew lease instance:" + this.mInstanceName

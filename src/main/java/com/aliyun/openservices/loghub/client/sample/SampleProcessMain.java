@@ -20,7 +20,7 @@ public class SampleProcessMain {
 
 	public static void main(String args[]) {
 		LogHubClientDbConfig dbConfig = new LogHubClientDbConfig(
-				"10.101.172.22", 3306, "scmc", "apsara", "123456",
+				"127.0.0.1", 3306, "scmc", "apsara", "pass_word",
 				"loghub_worker", "loghub_lease");
 
 		System.out.println("Please input instancename:");
@@ -29,14 +29,15 @@ public class SampleProcessMain {
 		String consumer_group_name = "stt-test-10";
 		String instanceName = sn.next();
 
-		String project = "ali-cn-hangzhou-sls-admin";
-		String logstore = "your_project";
-
+		String project = "ali-sls-test";
+		
+		String stream = "sls-test-stt";
+		//stream = "sls-test-3";
 		LogHubConfig config = new LogHubConfig(consumer_group_name,
 				instanceName, "cn-hangzhou-staging-intranet.sls.aliyuncs.com",
-				project, logstore, "you_access_id",
+				project, stream, "your_access_id",
 				"your_access_key",
-				LogHubCursorPosition.BEGIN_CURSOR);
+				LogHubCursorPosition.END_CURSOR);
 		config.setDataFetchIntervalMillis(1000);
 		MySqlLogHubLeaseManager leaseManager = new MySqlLogHubLeaseManager(
 				dbConfig);

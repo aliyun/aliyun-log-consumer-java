@@ -3,6 +3,8 @@ package com.aliyun.openservices.loghub.client;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import com.aliyun.openservices.sls.SLSClient;
 import com.aliyun.openservices.sls.common.LogGroupData;
 import com.aliyun.openservices.sls.common.SlsConsts.CursorMode;
@@ -18,6 +20,7 @@ public class LogHubFetchTask implements ITask {
 	private String mShardId;
 	private String mCursor;
 	private final int MAX_FETCH_LOGGROUP_SIZE = 1000;
+	private static final Logger logger = Logger.getLogger(LogHubFetchTask.class);
 
 	public LogHubFetchTask(SLSClient client, String project,
 			String logStream, String shardId, String cursor) {
@@ -36,6 +39,10 @@ public class LogHubFetchTask implements ITask {
 				BatchGetLogResponse response = mLoghubClient.BatchGetLog(mProject, mLogStream,
 						Integer.parseInt(mShardId), MAX_FETCH_LOGGROUP_SIZE, mCursor);
 				List<LogGroupData> fetchedData = new ArrayList<LogGroupData>();
+
+				logger.debug("shard id = " + mShardId + " cursor = " + mCursor
+						+ " next cursor" + response.GetNextCursor() + " size:"
+						+ String.valueOf(response.GetCount()));
 				
 				for (int i = 0 ; i < response.GetCount(); i++)
 				{
@@ -56,29 +63,28 @@ public class LogHubFetchTask implements ITask {
 			} catch (Exception e) {
 				exception = e;
 			}
-			
-			// only retry if the first request get "InvalidCursor" exception
-			if(retry == 0 && exception instanceof SlsException && 
-					((SlsException)(exception)).GetErrorCode().equals("InvalidCursor"))
-			{ 
+		
+			// only retry if the first request get "SLSInvalidCursor" exception
+			if (retry == 0
+					&& exception instanceof SlsException
+					&& ((SlsException) (exception)).GetErrorCode()
+							.toLowerCase().indexOf("invalidcursor") != -1) {
 				try {
 					freshCursor();
 				} catch (Exception e) {
 					return new TaskResult(exception);
 				}
 				continue;
-			}
-			else
-			{
+			} else {
 				break;
 			}
 		}
 		return new TaskResult(exception);
 	}
-	public void freshCursor() throws NumberFormatException, SlsException
-	{
+
+	public void freshCursor() throws NumberFormatException, SlsException {
 		GetCursorResponse response = mLoghubClient.GetCursor(mProject,
-				mLogStream, Integer.parseInt(mShardId), CursorMode.BEGIN);
+				mLogStream, Integer.parseInt(mShardId), CursorMode.END);
 		mCursor = response.GetCursor();
 	}
 }
