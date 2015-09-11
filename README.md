@@ -38,13 +38,16 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
         
 		LogHubConfig config = new LogHubConfig($loghub_consume_group, $instanceName,
 				$loghub_enpoint, $loghub_project, $loghub_logstream,
-				$access_id, $access_key, dbConfig,
+				$access_id, $access_key,
 				$init_cursor);  
 				
 		config.setDataFetchIntervalMillis(1000); // 设置每个shard从loghub中抓取的时间间隔，单位是毫秒
+		
+		ILogHubLeaseManager leaseManager = new MySqlLogHubLeaseManager(dbConfig);  //构建一个用于shard租赁的manager
+				
 		ClientWorker worker = new ClientWorker(
 				new SampleLogHubProcessorFactory(),  // 用户实现的processor工厂类，用于为每个shard生成一个Processor
-				config);
+				config， leaseManager);
 		
 		//启动 worker
 		worker.run();
