@@ -33,7 +33,7 @@ public class loghub_client_sample {
 		};
 		
 		LogHubClientDbConfig dbConfig = new LogHubClientDbConfig(
-				"10.101.172.22", 3306, "scmc", "apsara", "123456",
+				"10.101.172.22", 3306, "db_name", "db_user", "db_password",
 				"loghub_worker", "loghub_lease");
 		MySqlLogHubLeaseManager leaseManager_1 = new MySqlLogHubLeaseManager(dbConfig);
 		leaseManager_1.Initilize("consumer_group_1", "worker_instance_1", "sample_project", "sample_logstore");

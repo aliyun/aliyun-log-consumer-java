@@ -3,7 +3,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.aliyun</groupId>
-    <artifactId>loghub-client</artifactId>
+    <artifactId>sls-loghub-client-inner</artifactId>
     <packaging>jar</packaging>
     <name>LogHub Client Library for Java</name>
     <version>0.1.0</version>
@@ -43,11 +43,10 @@
         </dependency>
         
         <dependency>
-			<groupId>com.aliyun.openservices</groupId>
- 			<artifactId>aliyun-sls-inner-test</artifactId>
- 			<version>0.5.0</version>
- 			<classifier>aliyun-sls-inner-test</classifier> 
-        </dependency>       
+            <groupId>com.aliyun.openservices</groupId>
+            <artifactId>aliyun-sls-v0.5-inner</artifactId>
+            <version>0.1.2</version>
+        </dependency>   
 
         <dependency>
             <groupId>commons-beanutils</groupId>
