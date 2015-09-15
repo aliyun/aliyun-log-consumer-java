@@ -131,3 +131,11 @@ public class LogHubConfig {
 	private long mDataFetchIntervalMillis;  // 轮询获取loghub的时间间隔，间隔越小，抓取越快，单位是ms
 }
 ```
+## Maven配置
+```
+<dependency>
+  <groupId>com.aliyun</groupId>
+  <artifactId>sls-loghub-client-inner</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
