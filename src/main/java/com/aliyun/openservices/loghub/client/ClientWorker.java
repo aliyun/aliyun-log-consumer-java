@@ -112,11 +112,12 @@ public class ClientWorker implements Runnable {
 		SLSClient loghubClient = new SLSClient(
 				mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
 				mLogHubConfig.getAccessKey());
-		consumer = new LogHubConsumer(loghubClient,
-				mLogHubConfig.getProject(),
+		consumer = new LogHubConsumer(loghubClient, mLogHubConfig.getProject(),
 				mLogHubConfig.getLogStore(), shardId,
 				mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
-				mLogHubProcessorFactory.generatorProcessor(), mExecutorService, mLogHubConfig.getCursorPosition());
+				mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
+				mLogHubConfig.getCursorPosition(),
+				mLogHubConfig.GetCursorStartTime());
 		mShardConsumer.put(shardId, consumer);
 		logger.warn("create a consumer shard:" + shardId);
 		return consumer;

@@ -15,6 +15,7 @@ public class LogHubConfig implements Serializable {
 	private String mAccessId;
 	private String mAccessKey;
 	private LogHubCursorPosition mCursorPosition;
+	private int  mLoghubCursorStartTime = 0;
 	private long mLeaseDurationMillis;
 	private long mDataFetchIntervalMillis;
 
@@ -32,6 +33,24 @@ public class LogHubConfig implements Serializable {
 		mAccessId = accessId;
 		mAccessKey = accessKey;
 		mCursorPosition = cursorPosition;
+		mLeaseDurationMillis = DEFAULT_LEASE_DURATION_TIME_MS;
+		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+	}
+	
+	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+			String project, String logStore,
+			String accessId, String accessKey,
+			int start_time)
+	{
+		mConsumerGroupName = consumerGroupName;
+		mWorkerInstanceName = workerInstanceName;
+		mLogHubEndPoint = loghubEndPoint;
+		mProject = project;
+		mLogStore = logStore;
+		mAccessId = accessId;
+		mAccessKey = accessKey;
+		mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
+		mLoghubCursorStartTime = start_time;
 		mLeaseDurationMillis = DEFAULT_LEASE_DURATION_TIME_MS;
 		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
 	}
@@ -86,5 +105,10 @@ public class LogHubConfig implements Serializable {
 	public LogHubCursorPosition getCursorPosition()
 	{
 		return mCursorPosition;
+	}
+	
+	public int GetCursorStartTime()
+	{
+		return mLoghubCursorStartTime;
 	}
 }

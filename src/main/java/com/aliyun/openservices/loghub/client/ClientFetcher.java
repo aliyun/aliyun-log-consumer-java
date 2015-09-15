@@ -227,7 +227,8 @@ public class ClientFetcher {
 					mLogHubConfig.getProject(),
 					mLogHubConfig.getLogStore(), shardId,
 					mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
-					mLogHubProcessorFactory.generatorProcessor(), mExecutorService, mLogHubConfig.getCursorPosition());
+					mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
+					mLogHubConfig.getCursorPosition(), mLogHubConfig.GetCursorStartTime());
 			mShardConsumer.put(shardId, consumer);
 			mShardList.add(shardId);
 			

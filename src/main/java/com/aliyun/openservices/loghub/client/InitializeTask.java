@@ -16,10 +16,12 @@ public class InitializeTask implements ITask {
 	private String mLogStream;
 	private String mShardId;
 	private LogHubCursorPosition mCursorPosition;
+	private long mCursorStartTime = 0;
 
 	public InitializeTask(ILogHubProcessor processor,
 			ILogHubLeaseManager leaseManager, SLSClient logHubClient,
-			String project, String logStream, String shardId, LogHubCursorPosition cursorPosition) {
+			String project, String logStream, String shardId,
+			LogHubCursorPosition cursorPosition, long cursorStartTime) {
 		mProcessor = processor;
 		mLeaseManager = leaseManager;
 		mLogHubClient = logHubClient;
@@ -27,6 +29,7 @@ public class InitializeTask implements ITask {
 		mLogStream = logStream;
 		mShardId = shardId;
 		mCursorPosition = cursorPosition;
+		mCursorStartTime = cursorStartTime;
 	}
 
 	public TaskResult call() {
@@ -44,9 +47,14 @@ public class InitializeTask implements ITask {
 					cursorResponse = mLogHubClient.GetCursor(mProject, mLogStream, Integer.parseInt(mShardId), CursorMode.BEGIN);
 					cursor = cursorResponse.GetCursor();
 				}
-				else
+				else if (mCursorPosition.equals(LogHubCursorPosition.END_CURSOR))
 				{
 					cursorResponse = mLogHubClient.GetCursor(mProject, mLogStream, Integer.parseInt(mShardId), CursorMode.END);	
+					cursor = cursorResponse.GetCursor();
+				}
+				else
+				{
+					cursorResponse = mLogHubClient.GetCursor(mProject, mLogStream, Integer.parseInt(mShardId), mCursorStartTime);	
 					cursor = cursorResponse.GetCursor();
 				}
 			}

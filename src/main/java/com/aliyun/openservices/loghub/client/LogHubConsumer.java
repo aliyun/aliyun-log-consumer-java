@@ -24,7 +24,8 @@ public class LogHubConsumer {
 	private DefaultLogHubCHeckPointTracker mCheckPointTracker;
 	private ILogHubLeaseManager mLeaseManager;
 	private ILogHubProcessor mProcessor;
-	LogHubCursorPosition mCursorPosition;
+	private LogHubCursorPosition mCursorPosition;
+	private int mCursorStartTime = 0;
 	
 	private ConsumerStatus mCurStatus = ConsumerStatus.INITIALIZING;
 
@@ -44,13 +45,14 @@ public class LogHubConsumer {
 	public LogHubConsumer(SLSClient loghubClient, String project,
 			String logStream, String shardId, String instanceName,
 			ILogHubLeaseManager leaseManager, ILogHubProcessor processor,
-			ExecutorService executorService,  LogHubCursorPosition cursorPosition) {
+			ExecutorService executorService,  LogHubCursorPosition cursorPosition, int cursorStartTime) {
 		mLogHubClient = loghubClient;
 		mProject = project;
 		mLogStream = logStream;
 		mShardId = shardId;
 		mInstanceName = instanceName;
 		mCursorPosition = cursorPosition;
+		mCursorStartTime = cursorStartTime;
 		mLeaseManager = leaseManager;
 		mProcessor = processor;
 		mCheckPointTracker = new DefaultLogHubCHeckPointTracker(mLeaseManager,
@@ -139,7 +141,7 @@ public class LogHubConsumer {
 		ITask nextTask = null;
 		if (this.mCurStatus.equals(ConsumerStatus.INITIALIZING)) {
 			nextTask = new InitializeTask(mProcessor, this.mLeaseManager,
-					mLogHubClient, mProject, mLogStream, mShardId, mCursorPosition);
+					mLogHubClient, mProject, mLogStream, mShardId, mCursorPosition , mCursorStartTime);
 		} else if (this.mCurStatus.equals(ConsumerStatus.PROCESSING)) {
 			if (mLastFetchedData != null) {
 				mCheckPointTracker.setCursor(mLastFetchedData.mEndCursor);
