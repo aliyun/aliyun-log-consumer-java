@@ -136,6 +136,6 @@ public class LogHubConfig {
 <dependency>
   <groupId>com.aliyun</groupId>
   <artifactId>sls-loghub-client-inner</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
