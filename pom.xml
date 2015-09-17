@@ -6,7 +6,7 @@
     <artifactId>sls-loghub-client-inner</artifactId>
     <packaging>jar</packaging>
     <name>LogHub Client Library for Java</name>
-    <version>0.1.2</version>
+    <version>0.1.3</version>
     <description>The LogHub client Library</description>
     <url></url>
 

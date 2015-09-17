@@ -95,7 +95,7 @@ public class LogHubConsumer {
 				{
 					ProcessTaskResult process_task_result = (ProcessTaskResult)(result);
 					String roll_back_checkpoint = process_task_result.getRollBackCheckpoint();
-					if (roll_back_checkpoint != "" && roll_back_checkpoint.isEmpty() == false)
+					if (roll_back_checkpoint != null && roll_back_checkpoint.isEmpty() == false)
 					{
 						mLastFetchedData = null;
 						CancelCurrentFetch();
