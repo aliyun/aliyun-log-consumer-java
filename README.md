@@ -68,7 +68,7 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 	}
 
 	// 消费数据的主逻辑
-	public void process(List<LogGroup> logGroups,
+	public String process(List<LogGroup> logGroups,
 			ILogHubCheckPointTracker checkPointTracker) {
 		for (LogGroup group : logGroups) {
 			List<LogItem> items = group.getAllLogs();
@@ -94,6 +94,7 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 				e.printStackTrace();
 			}
 		}
+		return "";  // 返回空表示正常处理数据， 如果需要回滚到上个check point的点进行重试的话，可以return checkPointTracker.getCheckpoint()
 	}
 	
 	public void shutdown(ILogHubCheckPointTracker checkPointTracker) {
@@ -136,6 +137,6 @@ public class LogHubConfig {
 <dependency>
   <groupId>com.aliyun</groupId>
   <artifactId>sls-loghub-client-inner</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.3</version>
 </dependency>
 ```
