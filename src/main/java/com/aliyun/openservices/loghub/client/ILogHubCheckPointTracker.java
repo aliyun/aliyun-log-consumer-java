@@ -24,4 +24,10 @@ public interface ILogHubCheckPointTracker {
 	 *            other wise save it to memory
 	 */
 	public void saveCheckPoint(boolean persistent) throws LogHubCheckPointException;
+	
+	/**
+	 * Get the last saved check point
+	 * @return the last saved checkpoint
+	 */
+	public String getCheckPoint();
 }

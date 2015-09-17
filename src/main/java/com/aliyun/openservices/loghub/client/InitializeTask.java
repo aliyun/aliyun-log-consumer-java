@@ -35,9 +35,11 @@ public class InitializeTask implements ITask {
 	public TaskResult call() {
 		try {
 			mProcessor.initialize(mShardId);
+			boolean is_cursor_persistent = false;
 			String checkPoint = mLeaseManager.getCheckPoint(mShardId);
 			String cursor = null;
 			if (checkPoint != null && checkPoint.length() > 0) {
+				is_cursor_persistent = true;
 				cursor = checkPoint;
 			} else {
 				// get cursor from loghub client , begin or end
@@ -58,7 +60,7 @@ public class InitializeTask implements ITask {
 					cursor = cursorResponse.GetCursor();
 				}
 			}
-			return new InitTaskResult(cursor);
+			return new InitTaskResult(cursor, is_cursor_persistent);
 		} catch (Exception e) {
 			return new TaskResult(e);
 		}

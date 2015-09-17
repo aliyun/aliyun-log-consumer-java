@@ -16,6 +16,7 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 	private String mShardId;
 	private long mLastCheckTime = 0;
 	private static final Logger logger = Logger.getLogger(SampleLogHubProcessor.class);
+	private long last_log_data = 0;
 	@Override
 	public void initialize(String shardId) {
 		mShardId = shardId;
@@ -23,15 +24,21 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 	}
 
 	@Override
-	public void process(List<LogGroupData> logGroups,
+	public String process(List<LogGroupData> logGroups,
 			ILogHubCheckPointTracker checkPointTracker) {
 		DefaultLogHubCHeckPointTracker tracher = (DefaultLogHubCHeckPointTracker)(checkPointTracker);
 		logger.info("process data, shard id = " + mShardId + " next cursor" + tracher.getCursor() + " size:" + logGroups.size());
+
+		
 		for (LogGroupData group : logGroups) {
 			List<LogItem> items = group.GetAllLogs();
 		
 			if (items.size() > 0)
 			{
+				if (last_log_data == 0)
+				{
+					last_log_data = items.get(0).mLogTime;
+				}
 				logger.info("shard_id:" + mShardId + " " + items.get(0).mLogTime);;
 				break;
 			}
@@ -53,6 +60,7 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 				e.printStackTrace();
 			}
 		}
+		return "";
 	}
 
 	@Override

@@ -6,8 +6,8 @@ import com.aliyun.openservices.loghub.client.lease.ILogHubLeaseManager;
 
 public class DefaultLogHubCHeckPointTracker implements ILogHubCheckPointTracker {
 	private String mCursor;
-	private String mTempCheckPoint;
-	private String mLastPersistentCheckPoint;
+	private String mTempCheckPoint = "";
+	private String mLastPersistentCheckPoint = "";
 
 	private ILogHubLeaseManager mLeaseManager;
 	private String mInstanceName;
@@ -42,6 +42,15 @@ public class DefaultLogHubCHeckPointTracker implements ILogHubCheckPointTracker 
 		}
 	}
 	
+	public void setInMemoryCheckPoint(String cursor)
+	{
+		mTempCheckPoint = cursor;
+	}
+	
+	public void setInPeristentCheckPoint(String cursor)
+	{
+		mLastPersistentCheckPoint = cursor;
+	}
 	public void saveCheckPoint(String cursor, boolean persistent) 
 		throws LogHubCheckPointException {
 		
@@ -79,5 +88,10 @@ public class DefaultLogHubCHeckPointTracker implements ILogHubCheckPointTracker 
 			}
 			mLastCheckTime = curTime;
 		}
+	}
+
+	@Override
+	public String getCheckPoint() {
+		return mTempCheckPoint;
 	}
 }

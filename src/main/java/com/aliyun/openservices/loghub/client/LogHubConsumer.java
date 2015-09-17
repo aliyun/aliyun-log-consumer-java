@@ -79,11 +79,28 @@ public class LogHubConsumer {
 				|| mTaskFuture.isDone()) {
 			boolean taskSuccess = false;
 			TaskResult result = getTaskResult(mTaskFuture);
+			mTaskFuture = null;
 			if (result != null && result.getException() == null) {
 				taskSuccess = true;
 				if (mCurStatus.equals(ConsumerStatus.INITIALIZING)) {
 					InitTaskResult initResult = (InitTaskResult) (result);
 					mNextFetchCourse = initResult.getCursor();
+					mCheckPointTracker.setInMemoryCheckPoint(mNextFetchCourse);
+					if(initResult.isCursorPersistent())
+					{
+						mCheckPointTracker.setInPeristentCheckPoint(mNextFetchCourse);
+					}
+				}
+				else if (result instanceof ProcessTaskResult)
+				{
+					ProcessTaskResult process_task_result = (ProcessTaskResult)(result);
+					String roll_back_checkpoint = process_task_result.getRollBackCheckpoint();
+					if (roll_back_checkpoint != "" && roll_back_checkpoint.isEmpty() == false)
+					{
+						mLastFetchedData = null;
+						CancelCurrentFetch();
+						mNextFetchCourse = roll_back_checkpoint;
+					}
 				}
 			}
 			sampleLogError(result);
@@ -136,7 +153,16 @@ public class LogHubConsumer {
 		return null;
 
 	}
-
+	private void CancelCurrentFetch()
+	{
+		if (mFetchDataFeture != null) {
+			mFetchDataFeture.cancel(true);
+			getTaskResult(mFetchDataFeture);
+			logger.warn("Cancel a fetch task, shard id:" + mShardId);
+			mFetchDataFeture = null;
+		}
+	}
+	
 	private void generateNextTask() {
 		ITask nextTask = null;
 		if (this.mCurStatus.equals(ConsumerStatus.INITIALIZING)) {
@@ -151,11 +177,7 @@ public class LogHubConsumer {
 			}
 		} else if (this.mCurStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
 			nextTask = new ShutDownTask(mProcessor, mCheckPointTracker);
-			if (mFetchDataFeture != null) {
-				mFetchDataFeture.cancel(true);
-				getTaskResult(mFetchDataFeture);
-				logger.warn("Cancel a fetch task, shard id:" + mShardId);
-			}
+			CancelCurrentFetch();
 		}
 		if (nextTask != null) {
 			mCurrentTask = nextTask;

@@ -31,7 +31,7 @@ public class InnerFetcherProcessor implements ILogHubProcessor {
 	}
 
 	@Override
-	public void process(List<LogGroupData> logGroups,
+	public String process(List<LogGroupData> logGroups,
 			ILogHubCheckPointTracker checkPointTracker) {
 		
 		if (logGroups.size() > 0)
@@ -44,6 +44,7 @@ public class InnerFetcherProcessor implements ILogHubProcessor {
 		
 			mFetcher.updateCachedData(mShardId, data);
 		}
+		return "";
 	}
 
 	@Override

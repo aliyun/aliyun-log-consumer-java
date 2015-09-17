@@ -20,13 +20,13 @@ public class ProcessTask implements ITask {
 	}
 
 	public TaskResult call() {
+		String checkpoint = null;
 		try {
-			mProcessor.process(mLogGroup, mCheckPointTracker);
+			checkpoint = mProcessor.process(mLogGroup, mCheckPointTracker);
 			mCheckPointTracker.flushCheck();
 		} catch (Exception e) {
-			e.printStackTrace();
 			return new TaskResult(e);
 		}
-		return new TaskResult(null);
+		return new ProcessTaskResult(checkpoint);
 	}
 }
