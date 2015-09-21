@@ -39,7 +39,8 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
 		LogHubConfig config = new LogHubConfig($loghub_consume_group, $instanceName,
 				$loghub_enpoint, $loghub_project, $loghub_logstream,
 				$access_id, $access_key,
-				$init_cursor);    // 如果需要拉取特定时间点之后的数据，最后一个参数也可以填写成time_stamp， 如(int)(curTime - 3600) ， 从一个小时之前开始拉数据
+				$init_cursor);    // 如果需要拉取特定时间点之后的数据，最后一个参数也可以填写成time_stamp（精确到秒）
+				                  // 如(int)(curTime - 3600)， 表示从一个小时之前开始拉数据
 				
 		config.setDataFetchIntervalMillis(1000); // 设置每个shard从loghub中抓取的时间间隔，单位是毫秒
 		
