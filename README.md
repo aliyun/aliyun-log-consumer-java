@@ -141,3 +141,10 @@ public class LogHubConfig {
   <version>0.1.3</version>
 </dependency>
 ```
+
+## 注意事项
+1. 确保数据库的能够正常连接（权限，网络问题），LoghubClient强依赖数据库的可用性
+2. 如果连接数据库的延时太高、worker cpu太高，可能导致shard lease更新失败，而导致丢锁，进而导致worker对shard进行shut down操作。可增加进程来降低worker的cpu消耗
+3. 确保实现的process（）接口每次都能顺利执行，并退出，这点很重要
+4. ILogHubCheckPointTracker的saveCheckPoint（）接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则理解持久化至数据库，false则每隔60秒同步一次到数据库
+5. LogHubConfig的setLeaseDurationTimeMillis()函数可以设置同步至数据库的时间间隔，默认为45000毫秒，如果数据库连接不稳定的话，可以设置成120 * 1000毫秒
