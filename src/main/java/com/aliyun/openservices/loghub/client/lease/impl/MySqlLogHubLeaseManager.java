@@ -72,8 +72,31 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 		return creaseLeaseTable() &&  createWorkerTable() && registerWorker();
 	}
 	
-
+	private boolean isTableExist(String tableName) {
+		Connection mysql_con = null;
+		Statement state = null;
+		ResultSet res = null;
+		try {
+			mysql_con = getConnection();
+			state = mysql_con.createStatement();
+			res = state.executeQuery("select count(*) from " + tableName);
+			while (res.next()) {
+				return true;
+			}
+		} catch (SQLException e) {
+		} catch (LogHubLeaseException e) {
+		} finally {
+			closeObj(res);
+			closeObj(state);
+			closeObj(mysql_con);
+		}
+		return false;
+	}
 	private boolean creaseLeaseTable() throws LogHubLeaseException {
+		if (isTableExist(mDbConfig.getLeaseTableName()))
+		{
+			return true;
+		}
 		String table_sql = "Create Table if not exists " + mDbConfig.getLeaseTableName()
 				+ "(auto_id int(10) not null auto_increment,"
 				+ "consume_group varchar(64),"
@@ -91,6 +114,10 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 	}
 
 	private boolean createWorkerTable() throws LogHubLeaseException{
+		if (isTableExist(mDbConfig.getWorkerTableName()))
+		{
+			return true;
+		}
 		String table_sql = "Create Table if not exists " + mDbConfig.getWorkerTableName()
 				+ "(auto_id int(10) not null auto_increment,"
 				+ "consume_group varchar(64),"
