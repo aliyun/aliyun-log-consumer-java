@@ -142,6 +142,36 @@ public class LogHubConfig {
 </dependency>
 ```
 
+## 数据库创建说明
+```
+Create Table if not exists loghub_lease
+(
+`auto_id` int(10) not null auto_increment,
+`consume_group` varchar(64),
+`logstream_sig` varchar(64),
+`shard_id` varchar(64), 
+`lease_id` int(20),
+`lease_owner` varchar(64),
+`consumer_owner` varchar(64),
+`update_time` datetime,
+`checkpoint` text,
+PRIMARY KEY(`auto_id`),
+UNIQUE KEY(`consume_group`,`logstream_sig`, `shard_id`)
+)ENGINE = InnoDB DEFAULT CHARSET=utf8;
+
+Create Table if not exists loghub_worker
+(
+`auto_id` int(10) not null auto_increment,
+`consume_group` varchar(64),
+`logstream_sig` varchar(64),
+`instance_name` varchar(64),
+`update_time` datetime,
+PRIMARY KEY(`auto_id`),
+UNIQUE KEY(`consume_group`, `logstream_sig`, `instance_name`)
+)ENGINE = InnoDB DEFAULT CHARSET=utf8;
+				
+```
+
 ## 常见问题&注意事项
 1. LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的worker分摊消费logstore中的shard数据，同一个consumerGroupName中的worker，通过workerInstance name进行区分。 
 ```
