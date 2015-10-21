@@ -39,7 +39,8 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
 		LogHubConfig config = new LogHubConfig($loghub_consume_group, $instanceName,
 				$loghub_enpoint, $loghub_project, $loghub_logstream,
 				$access_id, $access_key,
-				$init_cursor);  
+				$init_cursor);    // 如果需要拉取特定时间点之后的数据，最后一个参数也可以填写成time_stamp（精确到秒）
+				                  // 如(int)(curTime - 3600)， 表示从一个小时之前开始拉数据
 				
 		config.setDataFetchIntervalMillis(1000); // 设置每个shard从loghub中抓取的时间间隔，单位是毫秒
 		
@@ -140,3 +141,53 @@ public class LogHubConfig {
   <version>0.1.3</version>
 </dependency>
 ```
+
+## 数据库创建说明
+```
+Create Table if not exists loghub_lease
+(
+`auto_id` int(10) not null auto_increment,
+`consume_group` varchar(64),
+`logstream_sig` varchar(64),
+`shard_id` varchar(64), 
+`lease_id` int(20),
+`lease_owner` varchar(64),
+`consumer_owner` varchar(64),
+`update_time` datetime,
+`checkpoint` text,
+PRIMARY KEY(`auto_id`),
+UNIQUE KEY(`consume_group`,`logstream_sig`, `shard_id`)
+)ENGINE = InnoDB DEFAULT CHARSET=utf8;
+
+Create Table if not exists loghub_worker
+(
+`auto_id` int(10) not null auto_increment,
+`consume_group` varchar(64),
+`logstream_sig` varchar(64),
+`instance_name` varchar(64),
+`update_time` datetime,
+PRIMARY KEY(`auto_id`),
+UNIQUE KEY(`consume_group`, `logstream_sig`, `instance_name`)
+)ENGINE = InnoDB DEFAULT CHARSET=utf8;
+				
+```
+
+## 常见问题&注意事项
+1. LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的worker分摊消费logstore中的shard数据，同一个consumerGroupName中的worker，通过workerInstance name进行区分。 
+```
+   假设logstore中有shard 0 ~ shard 4 这4个shard。
+   有3个worker，其consumerGroupName和workerinstance name分别是 : 
+   worker 1  : <consumer_group_name_1 , worker_A>
+   worker 2  : <consumer_group_name_1 , worker_B>
+   worker 3  : <consumer_group_name_2 , worker_C>
+   则，这些worker和shard的分配关系是：
+   worker 1  : <consumer_group_name_1 , worker_A>   : shard_0, shard_1
+   worker 2  : <consumer_group_name_1 , worker_B>   : shard_2, shard_3
+   worker 3  : <consumer_group_name_2 , worker_C>   : shard_0, shard_1, shard_2, shard_3  # group name不同的worker相互不影响
+```
+
+2. 确保数据库的能够正常连接（权限，网络问题），LoghubClient强依赖数据库的可用性
+3. 如果连接数据库的延时太高、worker cpu太高，可能导致shard lease更新失败，而导致丢锁，进而导致worker对shard进行shut down操作。可增加进程来降低worker的cpu消耗
+4. LogHubConfig的setLeaseDurationTimeMillis()函数可以设置同步至数据库的时间间隔，默认为45000毫秒，如果数据库连接不稳定的话，可以设置成120 * 1000毫秒
+5. 确保实现的process（）接口每次都能顺利执行，并退出，这点很重要
+6. ILogHubCheckPointTracker的saveCheckPoint（）接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则立刻持久化至数据库，false则每隔60秒同步一次到数据库
