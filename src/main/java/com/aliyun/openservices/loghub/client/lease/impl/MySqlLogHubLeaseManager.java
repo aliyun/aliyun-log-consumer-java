@@ -75,7 +75,8 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 
 	private boolean creaseLeaseTable() throws LogHubLeaseException {
 		String table_sql = "Create Table if not exists " + mDbConfig.getLeaseTableName()
-				+ "( consume_group varchar(64),"
+				+ "(auto_id int(10) not null auto_increment,"
+				+ "consume_group varchar(64),"
 				+ "logstream_sig varchar(64),"
 				+ "shard_id varchar(64)," 
 				+ "lease_id int(20),"
@@ -83,18 +84,21 @@ public class MySqlLogHubLeaseManager implements ILogHubLeaseManager {
 				+ "consumer_owner varchar(64),"
 				+ "update_time datetime,"
 				+ "checkpoint text,"
-				+ "PRIMARY KEY(`consume_group`,`logstream_sig`, `shard_id`))"
+				+ "PRIMARY KEY(`auto_id`),"
+				+ "UNIQUE KEY(`consume_group`,`logstream_sig`, `shard_id`))"
 				+ "ENGINE = InnoDB DEFAULT CHARSET=utf8;";
 		return createTable(table_sql);
 	}
 
 	private boolean createWorkerTable() throws LogHubLeaseException{
 		String table_sql = "Create Table if not exists " + mDbConfig.getWorkerTableName()
-				+ "( consume_group varchar(64),"
+				+ "(auto_id int(10) not null auto_increment,"
+				+ "consume_group varchar(64),"
 				+ "logstream_sig varchar(64),"
 				+ "instance_name varchar(64)," 
 				+ "update_time datetime,"
-				+ "PRIMARY KEY(`consume_group`, `logstream_sig`, `instance_name`)) "
+				+ "PRIMARY KEY(`auto_id`),"
+				+ "UNIQUE KEY(`consume_group`, `logstream_sig`, `instance_name`)) "
 				+ "ENGINE = InnoDB DEFAULT CHARSET=utf8;";
 		return createTable(table_sql);
 	}
