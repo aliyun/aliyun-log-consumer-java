@@ -175,7 +175,7 @@ UNIQUE KEY(`consume_group`, `logstream_sig`, `instance_name`)
 ## 常见问题&注意事项
 1. LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的worker分摊消费logstore中的shard数据，同一个consumerGroupName中的worker，通过workerInstance name进行区分。 
 ```
-   假设logstore中有shard 0 ~ shard 4 这4个shard。
+   假设logstore中有shard 0 ~ shard 3 这4个shard。
    有3个worker，其consumerGroupName和workerinstance name分别是 : 
    worker 1  : <consumer_group_name_1 , worker_A>
    worker 2  : <consumer_group_name_1 , worker_B>
