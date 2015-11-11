@@ -18,18 +18,18 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
 ```
 	public static void main(String args[]) {
 
-	    // 数据库的配置，用户多worker协同消费一个logstream，以及持久化check point
+	    // 数据库的配置，用户多worker协同消费一个logstore，以及持久化check point
 		LogHubClientDbConfig dbConfig = new LogHubClientDbConfig(
-				$mysql_host, $mysql_port, $mysql_database, $mysql_user, $mysql_db,
+				$mysql_host, $mysql_port, $mysql_database, $mysql_user, $mysql_password,
 				// 提供两个数据库的表来保存基本信息
 				$mysql_worker_instance_table_name, $mysql_shard_lease_table_name); 
 
-        // 需要消费的logHub中的project和logstream
+        // 需要消费的logHub中的project和logstore
 		String lobhub_project =  ...
-		String loghub_logstream ...
+		String loghub_logstore ...
 		
-		// $loghub_consume_group是一个<$lobhub_project,$loghub_logstream>的消费分组
-		// 所有$loghub_consume_group相同的进程将协同一起消费一个logstream的数据
+		// $loghub_consume_group是一个<$lobhub_project,$loghub_logstore>的消费分组
+		// 所有$loghub_consume_group相同的进程将协同一起消费一个logstore的数据
 		String loghub_consume_group = ...
 		 // 每个进程的instance name必须不同
 		String instanceName = $your_instance_name;
@@ -37,7 +37,7 @@ LogHub client worker提供一个LogHub数据分布式消费框架，用户只需
         LogHubCursorPosition init_cursor = LogHubCursorPosition.END_CURSOR
         
 		LogHubConfig config = new LogHubConfig($loghub_consume_group, $instanceName,
-				$loghub_enpoint, $loghub_project, $loghub_logstream,
+				$loghub_enpoint, $loghub_project, $loghub_logstore,
 				$access_id, $access_key,
 				$init_cursor);    // 如果需要拉取特定时间点之后的数据，最后一个参数也可以填写成time_stamp（精确到秒）
 				                  // 如(int)(curTime - 3600)， 表示从一个小时之前开始拉数据
