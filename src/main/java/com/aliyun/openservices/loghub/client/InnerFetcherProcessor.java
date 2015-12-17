@@ -6,11 +6,11 @@ import com.aliyun.openservices.loghub.client.ILogHubCheckPointTracker;
 import com.aliyun.openservices.loghub.client.FetchedLogGroup;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubShardListener;
-import com.aliyun.openservices.sls.common.LogGroupData;
+import com.aliyun.openservices.log.common.LogGroupData;
 
 public class InnerFetcherProcessor implements ILogHubProcessor {
 	
-	private String mShardId;
+	private int mShardId;
 	private final ClientFetcher mFetcher;
 	
 	//because shutdown is asynchronous operation, shutdown callback may be called multiple times. this flag
@@ -22,7 +22,7 @@ public class InnerFetcherProcessor implements ILogHubProcessor {
 	}
 
 	@Override
-	public void initialize(String shardId) {
+	public void initialize(int shardId) {
 		mShardId = shardId;
 		
 		ILogHubShardListener listener = mFetcher.getShardListener();
@@ -37,8 +37,8 @@ public class InnerFetcherProcessor implements ILogHubProcessor {
 		if (logGroups.size() > 0)
 		{
 			//get latest cursor for current data saved inside default checkpoint tracker.
-			DefaultLogHubCHeckPointTracker tracker = 
-				(DefaultLogHubCHeckPointTracker)checkPointTracker;
+			DefaultLogHubCheckPointTracker tracker = 
+				(DefaultLogHubCheckPointTracker)checkPointTracker;
 		
 			FetchedLogGroup data = new FetchedLogGroup(mShardId, logGroups, tracker.getCursor());
 		

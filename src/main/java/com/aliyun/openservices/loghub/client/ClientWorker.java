@@ -1,75 +1,87 @@
 package com.aliyun.openservices.loghub.client;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
 
-import com.aliyun.openservices.sls.SLSClient;
+import com.aliyun.openservices.log.common.ConsumerGroup;
+import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubLeaseException;
+import com.aliyun.openservices.loghub.client.excpetions.LogHubClientWorkerException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
-import com.aliyun.openservices.loghub.client.lease.ILogHubLeaseManager;
-import com.aliyun.openservices.loghub.client.lease.LogHubLease;
-import com.aliyun.openservices.loghub.client.lease.LogHubLeaseCoordinator;
 
 
 public class ClientWorker implements Runnable {
 	
 	private final ILogHubProcessorFactory mLogHubProcessorFactory;
 	private final LogHubConfig mLogHubConfig;
-	private final ILogHubLeaseManager mLeaseManager;
-	private final LogHubLeaseCoordinator mLeaseCorordinator;
+	private final LogHubHeartBeat mLogHubHeartBeat;
 	private boolean mShutDown = false;
-	private final Map<String, LogHubConsumer> mShardConsumer = new HashMap<String, LogHubConsumer>();
+	private final Map<Integer, LogHubConsumer> mShardConsumer = new HashMap<Integer, LogHubConsumer>();
 	private final ExecutorService mExecutorService = Executors.newCachedThreadPool();
-	
+	private LogHubClientAdapter mLogHubClientAdapter;
 	private static final Logger logger = Logger.getLogger(ClientWorker.class);
 
-	public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config, ILogHubLeaseManager leaseManager) {
+	public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) throws LogHubClientWorkerException {
 		mLogHubProcessorFactory = factory;
 		mLogHubConfig = config;
-		mLeaseManager = leaseManager;
-		
-		SLSClient loghubClient = new SLSClient(
-				config.getLogHubEndPoint(), config.getAccessId(),
-				config.getAccessKey());
-		LogHubClientAdapter clientAdpater = new LogHubClientAdapter(
-				loghubClient, config.getProject(),
-				config.getLogStore());
-		mLeaseCorordinator = new LogHubLeaseCoordinator(clientAdpater,
-				mLeaseManager, config.getWorkerInstanceName(),
-				config.getLeaseDurtionTimeMillis());
+		mLogHubClientAdapter = new LogHubClientAdapter(
+				config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey(), config.getProject(),
+				config.getLogStore(), config.getConsumerGroupName(), config.getWorkerInstanceName());
+		try 
+		{
+			mLogHubClientAdapter.CreateConsumerGroup((int)(config.getHeartBeatIntervalMillis()*2/1000), config.isConsumeInOrder());
+		} 
+		catch (LogException e) 
+		{
+			if(e.GetErrorCode().compareToIgnoreCase("ConsumerGroupAlreadyExist") == 0)
+			{
+				try 
+				{
+					ConsumerGroup consumerGroup = mLogHubClientAdapter.GetConsumerGroup();
+					if(consumerGroup != null)
+					{
+						if(consumerGroup.isInOrder() != mLogHubConfig.isConsumeInOrder() || consumerGroup.getTimeout() != (int)(mLogHubConfig.getHeartBeatIntervalMillis()*2/1000))
+						{
+							throw new LogHubClientWorkerException("consumer group is not agreed");
+						}
+					}
+					else
+					{
+						throw new LogHubClientWorkerException("consumer group not exist");
+					}
+				} 
+				catch (LogException e1) 
+				{
+					throw new LogHubClientWorkerException("error occour when get consumer group");
+				}
+			}
+			else
+			{
+				throw new LogHubClientWorkerException("error occour when create consumer group");
+			}
+		}
+		mLogHubHeartBeat = new LogHubHeartBeat(mLogHubClientAdapter, config.getHeartBeatIntervalMillis());
 	}
 	
 	
-	public void run() {
-		try {
-			mLeaseManager.Initilize(mLogHubConfig.getConsumerGroupName(), mLogHubConfig.getWorkerInstanceName(),
-					mLogHubConfig.getProject(), mLogHubConfig.getLogStore());
-		} catch (LogHubLeaseException e) {
-			logger.error("Failed to init the loghub worker client env, exit", e);
-			return;
-		}
-		
-		mLeaseCorordinator.start();
+	public void run() {		
+		mLogHubHeartBeat.Start();
+		ArrayList<Integer> heldShards = new ArrayList<Integer>();
 		while (mShutDown == false) {
-			Map<String, LogHubLease> allLogHubLease = mLeaseCorordinator
-					.getAllHeldLease();
-			for (Map.Entry<String, LogHubLease> entry : allLogHubLease
-					.entrySet()) {
-				String shardId = entry.getKey();
-				LogHubLease lease = entry.getValue();
-				if (lease.isConsumerHoldLease()) {
-					LogHubConsumer consumer = getConsuemr(shardId);
-					consumer.consume();
-				}
+			mLogHubHeartBeat.GetHeldShards(heldShards);
+			for(int shard: heldShards)
+			{
+				LogHubConsumer consumer = getConsuemr(shard);
+				consumer.consume();
 			}
-			cleanConsumer(allLogHubLease.keySet());
+			
+			cleanConsumer(heldShards);
 			try {
 				Thread.sleep(mLogHubConfig.getDataFetchIntervalMillis());
 			} catch (InterruptedException e) {
@@ -80,41 +92,42 @@ public class ClientWorker implements Runnable {
 	public void shutdown()
 	{
 		this.mShutDown = true;
+		mLogHubHeartBeat.Stop();
 	}
 	
-	private void cleanConsumer(Set<String> ownedShard)
+	private void cleanConsumer(ArrayList<Integer> ownedShard)
 	{
-		Set<String> processingShard = new HashSet<String>(mShardConsumer.keySet());
-		for (String shardId : processingShard)
+		ArrayList<Integer> removeShards = new ArrayList<Integer>();
+		for (Entry<Integer, LogHubConsumer> shard : mShardConsumer.entrySet())
 		{
-			LogHubConsumer consumer = mShardConsumer.get(shardId);
-			if (ownedShard.contains(shardId) == false)
+			LogHubConsumer consumer = shard.getValue();
+			if (!ownedShard.contains(shard.getKey()))
 			{
 				consumer.shutdown();
-				logger.warn("try to shut down a consumer shard:" + shardId);
+				logger.warn("try to shut down a consumer shard:" + shard.getKey());
 			}
 			if (consumer.isShutdown())
 			{
-				mShardConsumer.remove(shardId);
-				logger.warn("remove a consumer shard:" + shardId);
+				mLogHubHeartBeat.RemoveHeartShard(shard.getKey());
+				removeShards.add(shard.getKey());
+				logger.warn("remove a consumer shard:" + shard.getKey());
 			}
+		}
+		for(int shard: removeShards)
+		{
+			mShardConsumer.remove(shard);
 		}
 	}
 	
-	private LogHubConsumer getConsuemr(String shardId)
+	private LogHubConsumer getConsuemr(final int shardId)
 	{
 		LogHubConsumer consumer = mShardConsumer.get(shardId);
 		if (consumer != null)
 		{
 			return consumer;
 		}
-		
-		SLSClient loghubClient = new SLSClient(
-				mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
-				mLogHubConfig.getAccessKey());
-		consumer = new LogHubConsumer(loghubClient, mLogHubConfig.getProject(),
-				mLogHubConfig.getLogStore(), shardId,
-				mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
+		consumer = new LogHubConsumer(mLogHubClientAdapter,shardId,
+				mLogHubConfig.getWorkerInstanceName(),
 				mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
 				mLogHubConfig.getCursorPosition(),
 				mLogHubConfig.GetCursorStartTime());
