@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -12,31 +13,26 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
-import com.aliyun.openservices.sls.SLSClient;
+import com.aliyun.openservices.log.common.ConsumerGroup;
+import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.loghub.client.FetchedLogGroup;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubLeaseException;
+import com.aliyun.openservices.loghub.client.excpetions.LogHubClientWorkerException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubShardListener;
-import com.aliyun.openservices.loghub.client.lease.ILogHubLeaseManager;
-import com.aliyun.openservices.loghub.client.lease.LogHubLease;
-import com.aliyun.openservices.loghub.client.lease.LogHubLeaseCoordinator;
 
 public class ClientFetcher {
 	
 	private final ILogHubProcessorFactory mLogHubProcessorFactory;
 	private final LogHubConfig mLogHubConfig;
-	private final ILogHubLeaseManager mLeaseManager;
-	private final LogHubLeaseCoordinator mLeaseCorordinator;
-	
-	private final Map<String, LogHubConsumer> mShardConsumer = 
-			new HashMap<String, LogHubConsumer>();
-
+	private final LogHubHeartBeat mLogHubHeartBeat;
+	private LogHubClientAdapter mLogHubClientAdapter;
+	private final Map<Integer, LogHubConsumer> mShardConsumer = new HashMap<Integer, LogHubConsumer>();
 	int _curShardIndex = 0;
-	private final List<String> mShardList = new ArrayList<String>();
-	private final Map<String, FetchedLogGroup> mCachedData 
-		= new HashMap<String, FetchedLogGroup>();
+	private final List<Integer> mShardList = new ArrayList<Integer>();
+	private final Map<Integer, FetchedLogGroup> mCachedData 
+		= new HashMap<Integer, FetchedLogGroup>();
 	
 	private final ExecutorService mExecutorService = Executors.newCachedThreadPool();
 	private final ScheduledExecutorService mShardListUpdateService = Executors.newScheduledThreadPool(1);
@@ -47,37 +43,53 @@ public class ClientFetcher {
 	
 	private static final Logger logger = Logger.getLogger(ClientFetcher.class);
 
-	public ClientFetcher(LogHubConfig config, ILogHubLeaseManager leaseManager) {
+	public ClientFetcher(LogHubConfig config) throws LogHubClientWorkerException {
 		mLogHubProcessorFactory = new InnerFetcherProcessorFactory(this);
 		mLogHubConfig = config;
 		
-		mLeaseManager = leaseManager;
-
-		SLSClient loghubClient = new SLSClient(
-				config.getLogHubEndPoint(), config.getAccessId(),
-				config.getAccessKey());
-		LogHubClientAdapter clientAdpater = new LogHubClientAdapter(
-				loghubClient, config.getProject(),
-				config.getLogStore());
-		mLeaseCorordinator = new LogHubLeaseCoordinator(clientAdpater,
-				mLeaseManager, config.getWorkerInstanceName(),
-				config.getLeaseDurtionTimeMillis());
+		mLogHubClientAdapter = new LogHubClientAdapter(
+				config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey(), config.getProject(),
+				config.getLogStore(), config.getConsumerGroupName(), config.getWorkerInstanceName());
+		try 
+		{
+			mLogHubClientAdapter.CreateConsumerGroup((int)(config.getHeartBeatIntervalMillis()*2/1000), config.isConsumeInOrder());
+		} 
+		catch (LogException e) 
+		{
+			if(e.GetErrorCode().compareToIgnoreCase("ConsumerGroupAlreadyExist") == 0)
+			{
+				try 
+				{
+					ConsumerGroup consumerGroup = mLogHubClientAdapter.GetConsumerGroup();
+					if(consumerGroup != null)
+					{
+						if(consumerGroup.isInOrder() != mLogHubConfig.isConsumeInOrder() || consumerGroup.getTimeout() != (int)(mLogHubConfig.getHeartBeatIntervalMillis()*2/1000))
+						{
+							throw new LogHubClientWorkerException("consumer group is not agreed");
+						}
+					}
+					else
+					{
+						throw new LogHubClientWorkerException("consumer group not exist");
+					}
+				} 
+				catch (LogException e1) 
+				{
+					throw new LogHubClientWorkerException("error occour when get consumer group");
+				}
+			}
+			else
+			{
+				throw new LogHubClientWorkerException("error occour when create consumer group");
+			}
+		}
+		mLogHubHeartBeat = new LogHubHeartBeat(mLogHubClientAdapter, config.getHeartBeatIntervalMillis());
 	}
 	
 	
 	
 	public void start() {
-
-		try {
-			mLeaseManager.Initilize(mLogHubConfig.getConsumerGroupName(), mLogHubConfig.getWorkerInstanceName(),
-					mLogHubConfig.getProject(), mLogHubConfig.getLogStore());
-		} catch (LogHubLeaseException e) {
-			logger.error("Failed to init the loghub worker client env, exit", e);
-			return;
-		}
-		
-		mLeaseCorordinator.start();	
-		
+		mLogHubHeartBeat.Start();
 		mShardListUpdateService.scheduleWithFixedDelay(new ShardListUpdator(), 0L,
 				mShardListUpdateIntervalInMills, TimeUnit.MILLISECONDS);	
 		
@@ -90,7 +102,7 @@ public class ClientFetcher {
 	 */
 	public void shutdown() {
 
-		mLeaseCorordinator.stop();
+		mLogHubHeartBeat.Stop();
 		mShardListUpdateService.shutdown();
 	}
 	
@@ -102,13 +114,6 @@ public class ClientFetcher {
 		return mLogHubShardListener;
 	}
 	
-	/*
-	public LogHubFetchData nextBlockIfNotFound()
-	{
-		
-	}
-	*/
-	
 	public FetchedLogGroup nextNoBlock()
 	{
 		FetchedLogGroup result = null;
@@ -118,7 +123,7 @@ public class ClientFetcher {
 		    for (int i = 0; i < mShardList.size(); i++) {	
 		    	// in case the number of fetcher decreased
 		    	_curShardIndex = _curShardIndex % mShardList.size();
-		    	String shardId = mShardList.get(_curShardIndex);
+		    	int shardId = mShardList.get(_curShardIndex);
 				result = mCachedData.get(shardId);
 				mCachedData.put(shardId, null);
 				
@@ -156,7 +161,7 @@ public class ClientFetcher {
 	/*
 	 * update cached data from internal processor (not used externally by end users)
 	 */
-	public void updateCachedData(String shardId, FetchedLogGroup data) {
+	public void updateCachedData(int shardId, FetchedLogGroup data) {
 		synchronized(mShardList) {
 			mCachedData.put(shardId, data);
 		}
@@ -165,7 +170,7 @@ public class ClientFetcher {
 	/*
 	 * clean cached data from internal processor (not used externally by end users)
 	 */	
-	public void cleanCachedData(String shardId) {
+	public void cleanCachedData(int shardId) {
 		synchronized(mShardList) {
 			mCachedData.remove(shardId);
 		}
@@ -174,44 +179,45 @@ public class ClientFetcher {
 	private class ShardListUpdator implements Runnable {	
 		public void run() {
 			try {
-					Map<String, LogHubLease> allLogHubLease = mLeaseCorordinator
-							.getAllHeldLease();
-					for (Map.Entry<String, LogHubLease> entry : allLogHubLease
-							.entrySet()) {
-						String shardId = entry.getKey();
-						LogHubLease lease = entry.getValue();
-						if (lease.isConsumerHoldLease()) {
-							getConsuemr(shardId); 
-						}
-					}					
-					cleanConsumer(allLogHubLease.keySet());
+				ArrayList<Integer> heldShards = new ArrayList<Integer>();
+				mLogHubHeartBeat.GetHeldShards(heldShards);
+				for(int shard: heldShards)
+				{
+					getConsuemr(shard);
+				}
+				cleanConsumer(heldShards);
 			} catch (Throwable t) {
 
 			}		
 		}
 	}	
 	
-	private void cleanConsumer(Set<String> ownedShard)
+	private void cleanConsumer(ArrayList<Integer> ownedShard)
 	{
 		synchronized(mShardList) {
-			Set<String> processingShard = mShardConsumer.keySet();
-			for (String shardId : processingShard)
+			ArrayList<Integer> removeShards = new ArrayList<Integer>();
+			for (Entry<Integer, LogHubConsumer> shard : mShardConsumer.entrySet())
 			{
-				LogHubConsumer consumer = mShardConsumer.get(shardId);
-				if (ownedShard.contains(shardId) == false)
+				LogHubConsumer consumer = shard.getValue();
+				if (!ownedShard.contains(shard.getKey()))
 				{
 					consumer.shutdown();
 				}
 				if (consumer.isShutdown())
 				{
-					mShardConsumer.remove(shardId);
-					mShardList.remove(shardId);
+					mLogHubHeartBeat.RemoveHeartShard(shard.getKey());
+					mShardConsumer.remove(shard.getKey());
+					mShardList.remove(shard.getKey());
 				}
+			}
+			for(int shard: removeShards)
+			{
+				mShardConsumer.remove(shard);
 			}
 		}
 	}
 	
-	private LogHubConsumer getConsuemr(String shardId)
+	private LogHubConsumer getConsuemr(int shardId)
 	{
 		synchronized(mShardList) {
 			LogHubConsumer consumer = mShardConsumer.get(shardId);
@@ -219,22 +225,13 @@ public class ClientFetcher {
 			{
 				return consumer;
 			}
-			
-			SLSClient loghubClient = new SLSClient(
-					mLogHubConfig.getLogHubEndPoint(), mLogHubConfig.getAccessId(),
-					mLogHubConfig.getAccessKey());
-			consumer = new LogHubConsumer(loghubClient,
-					mLogHubConfig.getProject(),
-					mLogHubConfig.getLogStore(), shardId,
-					mLogHubConfig.getWorkerInstanceName(), mLeaseManager,
+			consumer = new LogHubConsumer(mLogHubClientAdapter,shardId,
+					mLogHubConfig.getWorkerInstanceName(),
 					mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
-					mLogHubConfig.getCursorPosition(), mLogHubConfig.GetCursorStartTime());
+					mLogHubConfig.getCursorPosition(),
+					mLogHubConfig.GetCursorStartTime());
 			mShardConsumer.put(shardId, consumer);
 			mShardList.add(shardId);
-			
-			logger.info("new consumer is added for shard " + shardId);
-			
-			//trigger first consume operation to emit Initialize task.
 			consumer.consume();
 			return consumer;
 		}

@@ -2,7 +2,7 @@ package com.aliyun.openservices.loghub.client;
 
 import java.util.List;
 
-import com.aliyun.openservices.sls.common.LogGroupData;
+import com.aliyun.openservices.log.common.LogGroupData;
 
 public class FetchTaskResult extends TaskResult {
 

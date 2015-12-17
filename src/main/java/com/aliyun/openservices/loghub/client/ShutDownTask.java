@@ -8,11 +8,11 @@ import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 public class ShutDownTask implements ITask {
 
 	private ILogHubProcessor mProcessor;
-	private DefaultLogHubCHeckPointTracker mCheckPointTracker;
+	private DefaultLogHubCheckPointTracker mCheckPointTracker;
 	private static final Logger logger = Logger.getLogger(ShutDownTask.class);
 
 	public ShutDownTask(ILogHubProcessor processor,
-			DefaultLogHubCHeckPointTracker checkPointTracker) {
+			DefaultLogHubCheckPointTracker checkPointTracker) {
 		mProcessor = processor;
 		mCheckPointTracker = checkPointTracker;
 	}

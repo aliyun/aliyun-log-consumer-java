@@ -2,13 +2,13 @@ package com.aliyun.openservices.loghub.client.interfaces;
 
 import java.util.List;
 
-import com.aliyun.openservices.sls.common.LogGroupData;
+import com.aliyun.openservices.log.common.LogGroupData;
 
 import com.aliyun.openservices.loghub.client.ILogHubCheckPointTracker;
 
 public interface ILogHubProcessor {
 
-	public void initialize(String shardId);
+	public void initialize(int shardId);
 
 	/**
 	 * Process the data, and roll back if the return value is not NULL ""

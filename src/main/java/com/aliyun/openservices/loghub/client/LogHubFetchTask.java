@@ -5,28 +5,20 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.aliyun.openservices.sls.SLSClient;
-import com.aliyun.openservices.sls.common.LogGroupData;
-import com.aliyun.openservices.sls.common.SlsConsts.CursorMode;
-import com.aliyun.openservices.sls.exception.SlsException;
-import com.aliyun.openservices.sls.response.GetCursorResponse;
-import com.aliyun.openservices.sls.response.BatchGetLogResponse;
+import com.aliyun.openservices.log.common.Consts.CursorMode;
+import com.aliyun.openservices.log.common.LogGroupData;
+import com.aliyun.openservices.log.exception.LogException;
+import com.aliyun.openservices.log.response.BatchGetLogResponse;
 
 public class LogHubFetchTask implements ITask {
-	private SLSClient mLoghubClient;
-
-	private String mProject;
-	private String mLogStream;
-	private String mShardId;
+	private LogHubClientAdapter mLogHubClientAdapter;
+	private int mShardId;
 	private String mCursor;
 	private final int MAX_FETCH_LOGGROUP_SIZE = 1000;
 	private static final Logger logger = Logger.getLogger(LogHubFetchTask.class);
 
-	public LogHubFetchTask(SLSClient client, String project,
-			String logStream, String shardId, String cursor) {
-		mLoghubClient = client;
-		mProject = project;
-		mLogStream = logStream;
+	public LogHubFetchTask(LogHubClientAdapter logHubClientAdapter, int shardId, String cursor) {
+		mLogHubClientAdapter = logHubClientAdapter;
 		mShardId = shardId;
 		mCursor = cursor;
 	}
@@ -36,8 +28,8 @@ public class LogHubFetchTask implements ITask {
 		for (int retry = 0 ; retry < 2 ; retry++)
 		{
 			try {
-				BatchGetLogResponse response = mLoghubClient.BatchGetLog(mProject, mLogStream,
-						Integer.parseInt(mShardId), MAX_FETCH_LOGGROUP_SIZE, mCursor);
+				BatchGetLogResponse response = mLogHubClientAdapter.BatchGetLogs(
+						mShardId, MAX_FETCH_LOGGROUP_SIZE, mCursor);
 				List<LogGroupData> fetchedData = new ArrayList<LogGroupData>();
 
 				logger.debug("shard id = " + mShardId + " cursor = " + mCursor
@@ -66,8 +58,8 @@ public class LogHubFetchTask implements ITask {
 		
 			// only retry if the first request get "SLSInvalidCursor" exception
 			if (retry == 0
-					&& exception instanceof SlsException
-					&& ((SlsException) (exception)).GetErrorCode()
+					&& exception instanceof LogException
+					&& ((LogException) (exception)).GetErrorCode()
 							.toLowerCase().indexOf("invalidcursor") != -1) {
 				try {
 					freshCursor();
@@ -82,9 +74,7 @@ public class LogHubFetchTask implements ITask {
 		return new TaskResult(exception);
 	}
 
-	public void freshCursor() throws NumberFormatException, SlsException {
-		GetCursorResponse response = mLoghubClient.GetCursor(mProject,
-				mLogStream, Integer.parseInt(mShardId), CursorMode.END);
-		mCursor = response.GetCursor();
+	public void freshCursor() throws NumberFormatException, LogException {
+		mCursor =  mLogHubClientAdapter.GetCursor(mShardId, CursorMode.END);
 	}
 }

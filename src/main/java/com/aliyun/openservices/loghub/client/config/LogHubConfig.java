@@ -5,7 +5,6 @@ import java.io.Serializable;
 public class LogHubConfig implements Serializable {
 	private static final long serialVersionUID = -460559812263406428L;
 
-	public static final long DEFAULT_LEASE_DURATION_TIME_MS = 45 * 1000; // default 45 sec
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 500;
 	private String mConsumerGroupName;
 	private String mWorkerInstanceName;
@@ -16,14 +15,15 @@ public class LogHubConfig implements Serializable {
 	private String mAccessKey;
 	private LogHubCursorPosition mCursorPosition;
 	private int  mLoghubCursorStartTime = 0;
-	private long mLeaseDurationMillis;
 	private long mDataFetchIntervalMillis;
-
-	
+	private long mHeartBeatIntervalMillis;
+	private boolean mConsumeInOrder;
 	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
 			String project, String logStore,
 			String accessId, String accessKey,
-			LogHubCursorPosition cursorPosition)
+			LogHubCursorPosition cursorPosition,
+			long heartBeatIntervalMillis, 
+			boolean consumeInOrder)
 	{
 		mConsumerGroupName = consumerGroupName;
 		mWorkerInstanceName = workerInstanceName;
@@ -33,14 +33,17 @@ public class LogHubConfig implements Serializable {
 		mAccessId = accessId;
 		mAccessKey = accessKey;
 		mCursorPosition = cursorPosition;
-		mLeaseDurationMillis = DEFAULT_LEASE_DURATION_TIME_MS;
 		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+		mHeartBeatIntervalMillis = heartBeatIntervalMillis;
+		mConsumeInOrder = consumeInOrder;
 	}
 	
 	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
 			String project, String logStore,
 			String accessId, String accessKey,
-			int start_time)
+			int start_time,
+			long heartBeatIntervalMillis,
+			boolean consumeInOrder)
 	{
 		mConsumerGroupName = consumerGroupName;
 		mWorkerInstanceName = workerInstanceName;
@@ -51,10 +54,19 @@ public class LogHubConfig implements Serializable {
 		mAccessKey = accessKey;
 		mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
 		mLoghubCursorStartTime = start_time;
-		mLeaseDurationMillis = DEFAULT_LEASE_DURATION_TIME_MS;
 		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+		mHeartBeatIntervalMillis = heartBeatIntervalMillis;
+		mConsumeInOrder = consumeInOrder;
 	}
 	
+	public boolean isConsumeInOrder() {
+		return mConsumeInOrder;
+	}
+
+	public long getHeartBeatIntervalMillis() {
+		return mHeartBeatIntervalMillis;
+	}
+
 	public String getConsumerGroupName()
 	{
 		return mConsumerGroupName;
@@ -62,15 +74,6 @@ public class LogHubConfig implements Serializable {
 	public String getWorkerInstanceName()
 	{
 		return mWorkerInstanceName;
-	}
-	
-	public void setLeaseDurationTimeMillis(long durationMs)
-	{
-		this.mLeaseDurationMillis = durationMs;
-	}
-	public long getLeaseDurtionTimeMillis()
-	{
-		return mLeaseDurationMillis;
 	}
 	public void setDataFetchIntervalMillis(long fetchIntervalMs)
 	{

@@ -12,11 +12,11 @@ public interface ILogHubShardListener {
 	/**
 	 * @param shardId : id for new added shard.
 	 */
-	void ShardAdded(String shardId);
+	void ShardAdded(int shardId);
 	
 	/**
 	 * 
 	 * @param shardId : id for deleted shard.
 	 */
-	void ShardDeleted(String shardId);
+	void ShardDeleted(int shardId);
 }
