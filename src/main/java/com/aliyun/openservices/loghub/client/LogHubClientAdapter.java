@@ -19,6 +19,7 @@ public class LogHubClientAdapter {
 	private final String mStream;
 	private final String mConsumerGroup;
 	private final String mConsumer;
+	private final String mUserAgent = "consumer-group-java-0.2";
 	private static final Logger logger = Logger.getLogger(LogHubClientAdapter.class);
 	
 	public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String project, String stream,
@@ -26,6 +27,7 @@ public class LogHubClientAdapter {
 	{
 		super();
 		this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		this.mClient.setUserAgent(mUserAgent);
 		this.mProject = project;
 		this.mStream = stream;
 		this.mConsumerGroup = consumerGroup;
@@ -54,6 +56,7 @@ public class LogHubClientAdapter {
 		response.clear();
 		try {
 			response.addAll(mClient.HeartBeat(mProject, mStream, mConsumerGroup, mConsumer, shards).GetShards());
+			System.out.println("consumer: " + mConsumer + ", heart: " + shards + ", response: " + response);
 			return true;
 		} catch (LogException e) {
 			logger.warn(e.GetErrorCode() + ": " + e.GetErrorMessage());
