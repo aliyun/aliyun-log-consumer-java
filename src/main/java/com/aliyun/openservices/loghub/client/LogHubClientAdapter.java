@@ -19,7 +19,7 @@ public class LogHubClientAdapter {
 	private final String mStream;
 	private final String mConsumerGroup;
 	private final String mConsumer;
-	private final String mUserAgent = "consumer-group-java-0.2";
+	private final String mUserAgent;
 	private static final Logger logger = Logger.getLogger(LogHubClientAdapter.class);
 	
 	public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String project, String stream,
@@ -32,6 +32,7 @@ public class LogHubClientAdapter {
 		this.mStream = stream;
 		this.mConsumerGroup = consumerGroup;
 		this.mConsumer = consumer;
+		mUserAgent = "[consumer-group-java-0.2]" + consumerGroup;
 	}
 	
 	public void CreateConsumerGroup(final int timeoutInSec, final boolean inOrder) throws LogException
