@@ -11,6 +11,7 @@ loghub client library正是为了满足以上需求而设计的。
 ## 术语简介
 
 * consumer group
+
 是logstore的子资源，拥有相同consumer group 名字的消费者共同消费同一个logstore的所有数据，这些消费者之间不会重复消费数据，一个logstore下面可以最多创建5个consumer group，不可以重名，同一个logstore下面的consumer group之间消费数据不会互相影响。consumer group有两个很重要的属性：
 ```
 {
@@ -20,11 +21,14 @@ loghub client library正是为了满足以上需求而设计的。
 ```
 order属性表示是否按照写入时间顺序消费key相同的数据，timeout表示consumer group中消费者的超时时间，单位是秒，当一个消费者汇报心跳的时间间隔超过timeout，会被认为已经超时，服务端认为这个consumer此时已经下线了。
 * consumer
+
 消费者，每个consumer上会被分配若干个shard，consumer的职责就是要消费这些shard上的数据，同一个consumer group中的consumer必须不重名。
 
 * consumer heartbeat
+
 消费者心跳，consumer需要定期向服务端汇报一个心跳包，用于表明自己还处于存活状态。
 * checkpoint
+
 消费者定期将分配给自己的shard消费到的位置保存到服务端，这样当这个shard被分配给其它消费者时，从服务端可以获取shard的消费断点，接着从断点继续消费数据。
 
 ## 接口说明
@@ -123,6 +127,7 @@ List<Integer> HeartBeat(
 	* ILogHubProcessorFactory // 负责生产实现ILogHubProcessor接口实例。
 * 提供配置 
 * 启动一个或多个client worker
+
 ## 使用sample 
 
 ### main函数
