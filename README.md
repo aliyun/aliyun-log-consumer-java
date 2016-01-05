@@ -3,10 +3,10 @@
 ## 使用场景
 如果logstore中的数据量比较大，shard数量很多，单一进程消费数据的速度追赶不上数据产生的速度，这个时候就会考虑使用多个消费进程协同消费logstore中的数据，这样自然会有以下问题：
 1. 怎么保证多个进程之间消费的数据不会有重叠，比如shard 0的数据不能同时被进程A和B消费。
-2. 当消费进程退出或者一个新的消费进程加入，怎么做数据消费的负载均衡，比如有4个进程，每个进程消费2个shard，当其中一个进程消费完之后，需要将原本由其负责消费的2个shard均摊到其他的3个进程上，并且数据消费要从shard上一次的消费断点开始。
+2. 当消费进程退出或者一个新的消费进程加入，怎么做数据消费的负载均衡，比如有4个进程，每个进程消费2个shard，当其中一个进程退出之后，需要将原本由其负责消费的2个shard均摊到其他的3个进程上，并且数据消费要从shard上一次的消费断点开始。
 3. shard之间可能会有父子关系，比如shard 0 分裂成1和2，这个时候shard 0将不会再有数据写入，我们希望shard 0中的数据被消费完之后再消费shard 1和2中的数据，这样的场景概括起来就是希望key相同的数据能够按照写入的时间顺序被消费。当然，如果不关心key相同数据的消费顺序，shard 0、1、2可以同时消费。
 
-loghub client library正是为了满足以上需求而设计的。
+上面三点就是loghub client library的设计初衷，综合起来主要是消费的负载均衡、消费断点保存、按序消费。我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费等问题。
 
 ## 术语简介
 
@@ -32,7 +32,7 @@ order属性表示是否按照写入时间顺序消费key相同的数据，timeou
 消费者定期将分配给自己的shard消费到的位置保存到服务端，这样当这个shard被分配给其它消费者时，从服务端可以获取shard的消费断点，接着从断点继续消费数据。
 
 ## 接口说明
-loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library：
+loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library，这部分不影响您对loghub client library的使用，可以跳过：
 ```java
 /*
 	创建consumr group，inOrder表示是否希望key相同的数据能够按照写入的时间顺序被消费，
@@ -125,8 +125,8 @@ List<Integer> HeartBeat(
 * 实现loghub client library中的两个接口类：
 	* ILogHubProcessor // 每个shard对应一个实例，每个实例只消费特定shard的数据。
 	* ILogHubProcessorFactory // 负责生产实现ILogHubProcessor接口实例。
-* 提供配置 
-* 启动一个或多个client worker
+* 填写参数配置。 
+* 启动一个或多个client worker实例。
 
 ## 使用sample 
 
