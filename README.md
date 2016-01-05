@@ -281,7 +281,7 @@ public class LogHubConfig {
 ```
 * 确保实现的ILogHubProcessor process()接口每次都能顺利执行，并退出，这点很重要。
 * ILogHubCheckPointTracker的saveCheckPoint()接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则立刻持久化至服务端，false则每隔60秒同步一次到服务端。
-* LogHubConfig中配置的是子用户的accessKeyId、accessKey，需要在RAM中进行一下授权,详细内容请参考[API文档](https://help.aliyun.com/document_detail/sls/api/ram/overview.html?spm=5176.docsls/api/ram/resources.6.136.0FbVOy)：
+* LogHubConfig中配置的是子用户的accessKeyId、accessKey，需要在RAM中进行以下授权,详细内容请参考[API文档](https://help.aliyun.com/document_detail/sls/api/ram/overview.html?spm=5176.docsls/api/ram/resources.6.136.0FbVOy)：
 
 |Action|Resource|
 |--------------|--------------|
