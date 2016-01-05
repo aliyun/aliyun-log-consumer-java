@@ -2,11 +2,13 @@
 
 ## 使用场景
 如果logstore中的数据量比较大，shard数量很多，单一进程消费数据的速度追赶不上数据产生的速度，这个时候就会考虑使用多个消费进程协同消费logstore中的数据，这样自然会有以下问题：
-1. 怎么保证多个进程之间消费的数据不会有重叠，比如shard 0的数据不能同时被进程A和B消费。
-2. 当消费进程退出或者一个新的消费进程加入，怎么做数据消费的负载均衡，比如有4个进程，每个进程消费2个shard，当其中一个进程退出之后，需要将原本由其负责消费的2个shard均摊到其他的3个进程上，并且数据消费要从shard上一次的消费断点开始。
-3. shard之间可能会有父子关系，比如shard 0 分裂成1和2，这个时候shard 0将不会再有数据写入，我们希望shard 0中的数据被消费完之后再消费shard 1和2中的数据，这样的场景概括起来就是希望key相同的数据能够按照写入的时间顺序被消费。当然，如果不关心key相同数据的消费顺序，shard 0、1、2可以同时消费。
+* 怎么保证多个进程之间消费的数据不会有重叠，比如shard 0的数据不能同时被进程A和B消费。
+* 当消费进程退出或者一个新的消费进程加入，怎么做数据消费的负载均衡，比如有4个进程，每个进程消费2个shard，当其中一个进程退出之后，需要将原本由其负责消费的2个shard均摊到其他的3个进程上，并且数据消费要从shard上一次的消费断点开始。
+* shard之间可能会有父子关系，比如shard 0 分裂成1和2，这个时候shard 0将不会再有数据写入，我们希望shard 0中的数据被消费完之后再消费shard 1和2中的数据，这样的场景概括起来就是希望key相同的数据能够按照写入的时间顺序被消费。当然，如果不关心key相同数据的消费顺序，shard 0、1、2可以同时消费。
 
-上面三点就是loghub client library的设计初衷，综合起来主要是消费的负载均衡、消费断点保存、按序消费。我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费、消费异常处理等问题。
+上面三点就是loghub client library的设计初衷，综合起来主要是消费的负载均衡、消费断点保存、按序消费。
+
+**我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费、消费异常处理等问题**。
 
 ## 术语简介
 
@@ -265,7 +267,7 @@ public class LogHubConfig {
 </dependency>
 ```
 ## 常见问题&注意事项
-1. LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的consumer分摊消费logstore中的shard数据，同一个consumerGroupName中的consumer，通过workerInstance name进行区分。 
+* LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的consumer分摊消费logstore中的shard，同一个consumerGroupName中的consumer，通过workerInstance name进行区分。 
 ```
    假设logstore中有shard 0 ~ shard 3 这4个shard。
    有3个worker，其consumerGroupName和workerinstance name分别是 : 
@@ -277,5 +279,15 @@ public class LogHubConfig {
    worker 2  : <consumer_group_name_1 , worker_B>   : shard_2, shard_3
    worker 3  : <consumer_group_name_2 , worker_C>   : shard_0, shard_1, shard_2, shard_3  # group name不同的worker相互不影响
 ```
-2. 确保实现的process()接口每次都能顺利执行，并退出，这点很重要。
-3. ILogHubCheckPointTracker的saveCheckPoint（）接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则立刻持久化至服务端，false则每隔60秒同步一次到服务端。
+* 确保实现的ILogHubProcessor process()接口每次都能顺利执行，并退出，这点很重要。
+* ILogHubCheckPointTracker的saveCheckPoint()接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则立刻持久化至服务端，false则每隔60秒同步一次到服务端。
+* LogHubConfig中配置的是子用户的accessKeyId、accessKey，需要在RAM中进行一下授权,详细内容请参考[API文档](https://help.aliyun.com/document_detail/sls/api/ram/overview.html?spm=5176.docsls/api/ram/resources.6.136.0FbVOy)：
+
+|Action|Resource|
+|--------------|--------------|
+|log:GetCursorOrData|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**|
+|log:CreateConsumerGroup|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/*|
+|log:ListConsumerGroup|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/*|
+|log:ConsumerGroupUpdateCheckPoint|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/**${consumerGroupName}**|
+|log:ConsumerGroupHeartBeat|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/**${consumerGroupName}**|
+|log:GetConsumerGroupCheckPoint|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/**${consumerGroupName}**|
