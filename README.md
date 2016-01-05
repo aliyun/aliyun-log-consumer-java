@@ -229,7 +229,8 @@ public class SampleLogHubProcessorFactory implements ILogHubProcessorFactory
 ### 配置说明：
 
 ```
-public class LogHubConfig {
+public class LogHubConfig 
+{
     //worker默认的拉取数据的时间间隔
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 500;
 	//consumer group的名字
@@ -269,15 +270,15 @@ public class LogHubConfig {
 ## 常见问题&注意事项
 * LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的consumer分摊消费logstore中的shard，同一个consumerGroupName中的consumer，通过workerInstance name进行区分。 
 ```
-   假设logstore中有shard 0 ~ shard 3 这4个shard。
-   有3个worker，其consumerGroupName和workerinstance name分别是 : 
-   worker 1  : <consumer_group_name_1 , worker_A>
-   worker 2  : <consumer_group_name_1 , worker_B>
-   worker 3  : <consumer_group_name_2 , worker_C>
-   则，这些worker和shard的分配关系是：
-   worker 1  : <consumer_group_name_1 , worker_A>   : shard_0, shard_1
-   worker 2  : <consumer_group_name_1 , worker_B>   : shard_2, shard_3
-   worker 3  : <consumer_group_name_2 , worker_C>   : shard_0, shard_1, shard_2, shard_3  # group name不同的worker相互不影响
+假设logstore中有shard 0 ~ shard 3 这4个shard。
+有3个worker，其consumerGroupName和workerinstance name分别是 : 
+<consumer_group_name_1 , worker_A>，
+<consumer_group_name_1 , worker_B>，
+<consumer_group_name_2 , worker_C>
+则，这些worker和shard的分配关系是：
+<consumer_group_name_1 , worker_A>: shard_0, shard_1
+<consumer_group_name_1 , worker_B>: shard_2, shard_3
+<consumer_group_name_2 , worker_C>: shard_0, shard_1, shard_2, shard_3  # group name不同的worker相互不影响
 ```
 * 确保实现的ILogHubProcessor process()接口每次都能顺利执行，并退出，这点很重要。
 * ILogHubCheckPointTracker的saveCheckPoint()接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则立刻持久化至服务端，false则每隔60秒同步一次到服务端。
