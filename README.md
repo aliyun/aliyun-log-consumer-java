@@ -133,35 +133,45 @@ List<Integer> HeartBeat(
 ### main函数
 
 ```
-	public static void main(String args[]) {
+	public static void main(String args[]) 
+	{
 		LogHubConfig config = new LogHubConfig(...);
 				
 		ClientWorker worker = new ClientWorker(new SampleLogHubProcessorFactory(), config),
 		
 		Thread thread = new Thread(worker);
+		//thread运行之后，client worker会自动运行，ClientWorker扩展了Runnable接口。
 		thread.start();
+		//调用worker的shutdown函数，退出消费实例，关联的线程也会自动停止。
 		worker.shutdown();
+		//ClientWorker运行过程中会生成多个异步的Task，shutdown之后最好等待还在执行的Task安全退出，建议30s。
 		Thread.sleep(30 * 1000);
 	}
 
 ```
 ### ILogHubProcessor、ILogHubProcessorFactory 实现sample
-* 各个shard对应的消费实例类 ：
+* 各个shard对应的消费实例类，实际开发过程中用户主要需要关注数据消费逻辑，同一个ClientWorker实例是串行消费数据的，只会产生一个ILogHubProcessor实例，ClientWorker退出的时候会调用ILogHubProcessor的shutdown函数。
 ```
-public class SampleLogHubProcessor implements ILogHubProcessor {
+public class SampleLogHubProcessor implements ILogHubProcessor 
+{
 	private String mShardId;
-	private long mLastCheckTime = 0; // 记录上次持久化check point的时间
+	// 记录上次持久化check point的时间
+	private long mLastCheckTime = 0; 
 	
-	public void initialize(String shardId) {
+	public void initialize(String shardId) 
+	{
 		mShardId = shardId;
 	}
 
 	// 消费数据的主逻辑
 	public String process(List<LogGroup> logGroups,
-			ILogHubCheckPointTracker checkPointTracker) {
-		for (LogGroup group : logGroups) {
+			ILogHubCheckPointTracker checkPointTracker) 
+	{
+		for (LogGroup group : logGroups) 
+		{
 			List<LogItem> items = group.getAllLogs();
-			for (LogItem item : items) {
+			for (LogItem item : items) 
+			{
 			    // 打印loggroup中的数据
 				System.out.println("shard_id:" + mShardId + " " + item.toJSONString());
 			}
@@ -169,32 +179,44 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 		long curTime = System.currentTimeMillis();
 		// 每隔60秒，写一次check point到服务端，如果60秒内，worker crash，
 		// 新启动的worker会从上一个checkpoint其消费数据，有可能有重复数据
-		if (curTime - mLastCheckTime >  60 * 1000) {
-			try {
+		if (curTime - mLastCheckTime >  60 * 1000) 
+		{
+			try 
+			{
 				checkPointTracker.saveCheckPoint(true);
-			} catch (LogHubCheckPointException e) {
+			} 
+			catch (LogHubCheckPointException e) 
+			{
 				e.printStackTrace();
 			}
 			mLastCheckTime = curTime;
-		} else {
-			try {
+		} 
+		else 
+		{
+			try 
+			{
 				checkPointTracker.saveCheckPoint(false);
-			} catch (LogHubCheckPointException e) {
+			} 
+			catch (LogHubCheckPointException e) 
+			{
 				e.printStackTrace();
 			}
 		}
 		// 返回空表示正常处理数据， 如果需要回滚到上个check point的点进行重试的话，可以return checkPointTracker.getCheckpoint()
 		return null;  
 	}
-	
-	public void shutdown(ILogHubCheckPointTracker checkPointTracker) {
+	// 当worker退出的时候，会调用该函数，用户可以在此处做些清理工作。
+	public void shutdown(ILogHubCheckPointTracker checkPointTracker) 
+	{
+	    //将消费断点保存到服务端。
 	    checkPointTracker.saveCheckPoint(true);
 	}
 ```
 
 * 生成 ILogHubProcessor的工厂类 ：
 ```
-public class SampleLogHubProcessorFactory implements ILogHubProcessorFactory {
+public class SampleLogHubProcessorFactory implements ILogHubProcessorFactory 
+{
 	public ILogHubProcessor generatorProcessor()
 	{   
 	    // 生成一个消费实例
