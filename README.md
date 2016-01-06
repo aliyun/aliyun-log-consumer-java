@@ -13,7 +13,7 @@
 ## 术语简介
 loghub client library中主要有4个概念，分别是consumer group、consumer、heartbeat和checkpoint，它们之间的关系如下：
 
-![](pics/consumer_group_concepts.JPG)
+![](pics/consumer_group_concepts.jpg)
 
 * consumer group
 
