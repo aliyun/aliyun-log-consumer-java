@@ -11,6 +11,8 @@
 **我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费、消费异常处理等问题**。
 
 ## 术语简介
+loghub client library中主要有4个概念，分别是consumer group、consumer、heartbeat和checkpoint，它们之间的关系如下：
+![](pics/consumer_group_concepts.jpg)
 
 * consumer group
 
@@ -26,7 +28,7 @@ order属性表示是否按照写入时间顺序消费key相同的数据，timeou
 
 消费者，每个consumer上会被分配若干个shard，consumer的职责就是要消费这些shard上的数据，同一个consumer group中的consumer必须不重名。
 
-* consumer heartbeat
+* heartbeat
 
 消费者心跳，consumer需要定期向服务端汇报一个心跳包，用于表明自己还处于存活状态。
 * checkpoint
@@ -34,7 +36,7 @@ order属性表示是否按照写入时间顺序消费key相同的数据，timeou
 消费者定期将分配给自己的shard消费到的位置保存到服务端，这样当这个shard被分配给其它消费者时，从服务端可以获取shard的消费断点，接着从断点继续消费数据。
 
 ## 接口说明
-loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library，这部分不影响您对loghub client library的使用，可以跳过：
+loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library，这部分不影响您对loghub client library的使用，可以跳过。
 ```java
 /*
 	创建consumr group，inOrder表示是否希望key相同的数据能够按照写入的时间顺序被消费，
