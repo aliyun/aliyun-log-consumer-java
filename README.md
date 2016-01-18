@@ -1,17 +1,29 @@
 # loghub client library使用说明
 
 ## 使用场景
-如果logstore中的数据量比较大，shard数量很多，单一进程消费数据的速度追赶不上数据产生的速度，这个时候就会考虑使用多个消费进程协同消费logstore中的数据，这样自然会有以下问题：
-* 怎么保证多个进程之间消费的数据不会有重叠，比如shard 0的数据不能同时被进程A和B消费。
-* 当消费进程退出或者一个新的消费进程加入，怎么做数据消费的负载均衡，比如有4个进程，每个进程消费2个shard，当其中一个进程退出之后，需要将原本由其负责消费的2个shard均摊到其他的3个进程上，并且数据消费要从shard上一次的消费断点开始。
-* shard之间可能会有父子关系，比如shard 0 分裂成1和2，这个时候shard 0将不会再有数据写入，我们希望shard 0中的数据被消费完之后再消费shard 1和2中的数据，这样的场景概括起来就是希望key相同的数据能够按照写入的时间顺序被消费。当然，如果不关心key相同数据的消费顺序，shard 0、1、2可以同时消费。
+loghub client library是对LogHub消费者提供的高级模式，解决多个消费者同时消费logstore时自动分配shard问题。
+例如在storm、spark场景中多个消费者情况下，自动处理shard的负载均衡，消费者failover等逻辑。用户只需专注在自己业务逻辑上，而无需关心shard分配、CheckPoint、Failover等事宜。
 
-上面三点就是loghub client library的设计初衷，综合起来主要是消费的负载均衡、消费断点保存、按序消费。
+举一个例子而言，用户需要通过storm进行流计算，启动了A、B、C 3个消费实例。在有10个shard情况下，系统会自动为A、B、C分配3、3、4个Shard进行消费。
+* 当消费实例A宕机情况下，系统会把A未消费的3个Shard中数据自动均衡B、C上，当A恢复后，会重新均衡。
+* 当添加实例D、E情况下，系统会自动进行均衡，每个实例消费2个Shard。
+* 当Shard有Merge/Split等情况下，会根据最新的Shard信息，重新均衡。
+* 当read only状态的shard消费完之后，剩余的shard会重新做负载均衡。
+
+以上整个过程不会产生数据丢失、以及重复，用户只需在代码中做三件事情：
+
+初始化：
+1. 创建Consumer Group。
+2. 将实例名注册为Instance，并连接到Consumer Group中。
+
+运行中：
+3. 写处理日志的代码。
 
 **我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费、消费异常处理等问题**。
 
 ## 术语简介
 loghub client library中主要有4个概念，分别是consumer group、consumer、heartbeat和checkpoint，它们之间的关系如下：
+
 ![](pics/consumer_group_concepts.jpg)
 
 * consumer group
