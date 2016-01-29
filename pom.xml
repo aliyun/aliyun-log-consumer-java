@@ -43,8 +43,8 @@
 
 		<dependency>
 			<groupId>com.aliyun.openservices</groupId>
-			<artifactId>aliyun-sls-v0.6-inner-test</artifactId>
-			<version>0.1.9</version>
+			<artifactId>aliyun-sls-v0.6-inner</artifactId>
+			<version>0.2.0</version>
 		</dependency>
 
 		<dependency>
