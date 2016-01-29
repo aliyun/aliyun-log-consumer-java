@@ -1,16 +1,33 @@
 # loghub client library使用说明
 
 ## 使用场景
-如果logstore中的数据量比较大，shard数量很多，单一进程消费数据的速度追赶不上数据产生的速度，这个时候就会考虑使用多个消费进程协同消费logstore中的数据，这样自然会有以下问题：
-1. 怎么保证多个进程之间消费的数据不会有重叠，比如shard 0的数据不能同时被进程A和B消费。
-2. 当消费进程退出或者一个新的消费进程加入，怎么做数据消费的负载均衡，比如有4个进程，每个进程消费2个shard，当其中一个进程消费完之后，需要将原本由其负责消费的2个shard均摊到其他的3个进程上，并且数据消费要从shard上一次的消费断点开始。
-3. shard之间可能会有父子关系，比如shard 0 分裂成1和2，这个时候shard 0将不会再有数据写入，我们希望shard 0中的数据被消费完之后再消费shard 1和2中的数据，这样的场景概括起来就是希望key相同的数据能够按照写入的时间顺序被消费。当然，如果不关心key相同数据的消费顺序，shard 0、1、2可以同时消费。
+loghub client library是对LogHub消费者提供的高级模式，解决多个消费者同时消费logstore时自动分配shard问题。
+例如在storm、spark场景中多个消费者情况下，自动处理shard的负载均衡，消费者failover等逻辑。用户只需专注在自己业务逻辑上，而无需关心shard分配、CheckPoint、Failover等事宜。
 
-loghub client library正是为了满足以上需求而设计的。
+举一个例子而言，用户需要通过storm进行流计算，启动了A、B、C 3个消费实例。在有10个shard情况下，系统会自动为A、B、C分配3、3、4个Shard进行消费。
+* 当消费实例A宕机情况下，系统会把A未消费的3个Shard中数据自动均衡B、C上，当A恢复后，会重新均衡。
+* 当添加实例D、E情况下，系统会自动进行均衡，每个实例消费2个Shard。
+* 当Shard有Merge/Split等情况下，会根据最新的Shard信息，重新均衡。
+* 当read only状态的shard消费完之后，剩余的shard会重新做负载均衡。
+
+以上整个过程不会产生数据丢失、以及重复，用户只需在代码中做三件事情：
+
+初始化：
+1. 创建Consumer Group。
+2. 将实例名注册为Instance，并连接到Consumer Group中。
+
+运行中：
+3. 写处理日志的代码。
+
+**我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费、消费异常处理等问题**。
 
 ## 术语简介
+loghub client library中主要有4个概念，分别是consumer group、consumer、heartbeat和checkpoint，它们之间的关系如下：
+
+![](pics/consumer_group_concepts.jpg)
 
 * consumer group
+
 是logstore的子资源，拥有相同consumer group 名字的消费者共同消费同一个logstore的所有数据，这些消费者之间不会重复消费数据，一个logstore下面可以最多创建5个consumer group，不可以重名，同一个logstore下面的consumer group之间消费数据不会互相影响。consumer group有两个很重要的属性：
 ```
 {
@@ -20,15 +37,18 @@ loghub client library正是为了满足以上需求而设计的。
 ```
 order属性表示是否按照写入时间顺序消费key相同的数据，timeout表示consumer group中消费者的超时时间，单位是秒，当一个消费者汇报心跳的时间间隔超过timeout，会被认为已经超时，服务端认为这个consumer此时已经下线了。
 * consumer
+
 消费者，每个consumer上会被分配若干个shard，consumer的职责就是要消费这些shard上的数据，同一个consumer group中的consumer必须不重名。
 
-* consumer heartbeat
+* heartbeat
+
 消费者心跳，consumer需要定期向服务端汇报一个心跳包，用于表明自己还处于存活状态。
 * checkpoint
+
 消费者定期将分配给自己的shard消费到的位置保存到服务端，这样当这个shard被分配给其它消费者时，从服务端可以获取shard的消费断点，接着从断点继续消费数据。
 
 ## 接口说明
-loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library：
+loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library，这部分不影响您对loghub client library的使用，可以跳过。
 ```java
 /*
 	创建consumr group，inOrder表示是否希望key相同的数据能够按照写入的时间顺序被消费，
@@ -121,42 +141,53 @@ List<Integer> HeartBeat(
 * 实现loghub client library中的两个接口类：
 	* ILogHubProcessor // 每个shard对应一个实例，每个实例只消费特定shard的数据。
 	* ILogHubProcessorFactory // 负责生产实现ILogHubProcessor接口实例。
-* 提供配置 
-* 启动一个或多个client worker
+* 填写参数配置。 
+* 启动一个或多个client worker实例。
+
 ## 使用sample 
 
 ### main函数
 
 ```
-	public static void main(String args[]) {
+	public static void main(String args[]) 
+	{
 		LogHubConfig config = new LogHubConfig(...);
 				
 		ClientWorker worker = new ClientWorker(new SampleLogHubProcessorFactory(), config),
 		
 		Thread thread = new Thread(worker);
+		//thread运行之后，client worker会自动运行，ClientWorker扩展了Runnable接口。
 		thread.start();
+		//调用worker的shutdown函数，退出消费实例，关联的线程也会自动停止。
 		worker.shutdown();
+		//ClientWorker运行过程中会生成多个异步的Task，shutdown之后最好等待还在执行的Task安全退出，建议30s。
 		Thread.sleep(30 * 1000);
 	}
 
 ```
 ### ILogHubProcessor、ILogHubProcessorFactory 实现sample
-* 各个shard对应的消费实例类 ：
+* 各个shard对应的消费实例类，实际开发过程中用户主要需要关注数据消费逻辑，同一个ClientWorker实例是串行消费数据的，只会产生一个ILogHubProcessor实例，ClientWorker退出的时候会调用ILogHubProcessor的shutdown函数。
 ```
-public class SampleLogHubProcessor implements ILogHubProcessor {
+public class SampleLogHubProcessor implements ILogHubProcessor 
+{
 	private String mShardId;
-	private long mLastCheckTime = 0; // 记录上次持久化check point的时间
+	// 记录上次持久化check point的时间
+	private long mLastCheckTime = 0; 
 	
-	public void initialize(String shardId) {
+	public void initialize(String shardId) 
+	{
 		mShardId = shardId;
 	}
 
 	// 消费数据的主逻辑
 	public String process(List<LogGroup> logGroups,
-			ILogHubCheckPointTracker checkPointTracker) {
-		for (LogGroup group : logGroups) {
+			ILogHubCheckPointTracker checkPointTracker) 
+	{
+		for (LogGroup group : logGroups) 
+		{
 			List<LogItem> items = group.getAllLogs();
-			for (LogItem item : items) {
+			for (LogItem item : items) 
+			{
 			    // 打印loggroup中的数据
 				System.out.println("shard_id:" + mShardId + " " + item.toJSONString());
 			}
@@ -164,43 +195,56 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 		long curTime = System.currentTimeMillis();
 		// 每隔60秒，写一次check point到服务端，如果60秒内，worker crash，
 		// 新启动的worker会从上一个checkpoint其消费数据，有可能有重复数据
-		if (curTime - mLastCheckTime >  60 * 1000) {
-			try {
+		if (curTime - mLastCheckTime >  60 * 1000) 
+		{
+			try 
+			{
 				checkPointTracker.saveCheckPoint(true);
-			} catch (LogHubCheckPointException e) {
+			} 
+			catch (LogHubCheckPointException e) 
+			{
 				e.printStackTrace();
 			}
 			mLastCheckTime = curTime;
-		} else {
-			try {
+		} 
+		else 
+		{
+			try 
+			{
 				checkPointTracker.saveCheckPoint(false);
-			} catch (LogHubCheckPointException e) {
+			} 
+			catch (LogHubCheckPointException e) 
+			{
 				e.printStackTrace();
 			}
 		}
 		// 返回空表示正常处理数据， 如果需要回滚到上个check point的点进行重试的话，可以return checkPointTracker.getCheckpoint()
 		return null;  
 	}
-	
-	public void shutdown(ILogHubCheckPointTracker checkPointTracker) {
+	// 当worker退出的时候，会调用该函数，用户可以在此处做些清理工作。
+	public void shutdown(ILogHubCheckPointTracker checkPointTracker) 
+	{
+	    //将消费断点保存到服务端。
 	    checkPointTracker.saveCheckPoint(true);
 	}
 ```
 
 * 生成 ILogHubProcessor的工厂类 ：
 ```
-public class SampleLogHubProcessorFactory implements ILogHubProcessorFactory {
-	public ILogHubProcessor generatorProcessor()
-	{   
-	    // 生成一个消费实例
-		return new SampleLogHubProcessor();
-	}
+public class SampleLogHubProcessorFactory implements ILogHubProcessorFactory 
+{
+    public ILogHubProcessor generatorProcessor()
+    {   
+        // 生成一个消费实例
+    	return new SampleLogHubProcessor();
+    }
 }
 ```
 ### 配置说明：
 
 ```
-public class LogHubConfig {
+public class LogHubConfig 
+{
     //worker默认的拉取数据的时间间隔
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 500;
 	//consumer group的名字
@@ -238,17 +282,27 @@ public class LogHubConfig {
 </dependency>
 ```
 ## 常见问题&注意事项
-1. LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的consumer分摊消费logstore中的shard数据，同一个consumerGroupName中的consumer，通过workerInstance name进行区分。 
+* LogHubConfig 中 consumerGroupName表一个消费组，consumerGroupName相同的consumer分摊消费logstore中的shard，同一个consumerGroupName中的consumer，通过workerInstance name进行区分。 
 ```
-   假设logstore中有shard 0 ~ shard 3 这4个shard。
-   有3个worker，其consumerGroupName和workerinstance name分别是 : 
-   worker 1  : <consumer_group_name_1 , worker_A>
-   worker 2  : <consumer_group_name_1 , worker_B>
-   worker 3  : <consumer_group_name_2 , worker_C>
-   则，这些worker和shard的分配关系是：
-   worker 1  : <consumer_group_name_1 , worker_A>   : shard_0, shard_1
-   worker 2  : <consumer_group_name_1 , worker_B>   : shard_2, shard_3
-   worker 3  : <consumer_group_name_2 , worker_C>   : shard_0, shard_1, shard_2, shard_3  # group name不同的worker相互不影响
+假设logstore中有shard 0 ~ shard 3 这4个shard。
+有3个worker，其consumerGroupName和workerinstance name分别是 : 
+<consumer_group_name_1 , worker_A>，
+<consumer_group_name_1 , worker_B>，
+<consumer_group_name_2 , worker_C>
+则，这些worker和shard的分配关系是：
+<consumer_group_name_1 , worker_A>: shard_0, shard_1
+<consumer_group_name_1 , worker_B>: shard_2, shard_3
+<consumer_group_name_2 , worker_C>: shard_0, shard_1, shard_2, shard_3  # group name不同的worker相互不影响
 ```
-2. 确保实现的process（）接口每次都能顺利执行，并退出，这点很重要
-3. ILogHubCheckPointTracker的saveCheckPoint（）接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则立刻持久化至服务端，false则每隔60秒同步一次到服务端。
+* 确保实现的ILogHubProcessor process()接口每次都能顺利执行，并退出，这点很重要。
+* ILogHubCheckPointTracker的saveCheckPoint()接口，无论传递的参数是true，还是false，都表示当前处理的数据已经完成，参数为true，则立刻持久化至服务端，false则每隔60秒同步一次到服务端。
+* LogHubConfig中配置的是子用户的accessKeyId、accessKey，需要在RAM中进行以下授权,详细内容请参考[API文档](https://help.aliyun.com/document_detail/sls/api/ram/overview.html?spm=5176.docsls/api/ram/resources.6.136.0FbVOy)：
+
+|Action|Resource|
+|--------------|--------------|
+|log:GetCursorOrData|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**|
+|log:CreateConsumerGroup|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/*|
+|log:ListConsumerGroup|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/*|
+|log:ConsumerGroupUpdateCheckPoint|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/**${consumerGroupName}**|
+|log:ConsumerGroupHeartBeat|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/**${consumerGroupName}**|
+|log:GetConsumerGroupCheckPoint|acs:log:**${regionName}**:**${projectOwnerAliUid}**:project/**${projectName}**/logstore/**${logstoreName}**/consumergroup/**${consumerGroupName}**|
