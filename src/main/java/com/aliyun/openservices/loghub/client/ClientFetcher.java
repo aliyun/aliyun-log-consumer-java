@@ -207,6 +207,7 @@ public class ClientFetcher {
 				{
 					mLogHubHeartBeat.RemoveHeartShard(shard.getKey());
 					mShardConsumer.remove(shard.getKey());
+					removeShards.add(shard.getKey());
 					mShardList.remove(shard.getKey());
 				}
 			}
