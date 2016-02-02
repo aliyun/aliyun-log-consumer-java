@@ -142,7 +142,7 @@ public class ClientFetcher {
         return result;
 	}	
 	
-	public void saveCheckPoint(String shardId, String cursor, boolean persistent) 
+	public void saveCheckPoint(int shardId, String cursor, boolean persistent) 
 			throws LogHubCheckPointException {
 		
 		synchronized(mShardList) {
@@ -207,6 +207,7 @@ public class ClientFetcher {
 				{
 					mLogHubHeartBeat.RemoveHeartShard(shard.getKey());
 					mShardConsumer.remove(shard.getKey());
+					removeShards.add(shard.getKey());
 					mShardList.remove(shard.getKey());
 				}
 			}

@@ -57,7 +57,6 @@ public class LogHubClientAdapter {
 		response.clear();
 		try {
 			response.addAll(mClient.HeartBeat(mProject, mStream, mConsumerGroup, mConsumer, shards).GetShards());
-			System.out.println("consumer: " + mConsumer + ", heart: " + shards + ", response: " + response);
 			return true;
 		} catch (LogException e) {
 			logger.warn(e.GetErrorCode() + ": " + e.GetErrorMessage());
