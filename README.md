@@ -47,8 +47,11 @@ order属性表示是否按照写入时间顺序消费key相同的数据，timeou
 
 消费者定期将分配给自己的shard消费到的位置保存到服务端，这样当这个shard被分配给其它消费者时，从服务端可以获取shard的消费断点，接着从断点继续消费数据。
 
-## 接口说明
-loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library，这部分不影响您对loghub client library的使用，可以跳过。
+## 实现原理
+
+### 通信协议
+
+定义如下消费者和服务端的通信接口：
 ```java
 /*
 	创建consumr group，inOrder表示是否希望key相同的数据能够按照写入的时间顺序被消费，
@@ -136,6 +139,60 @@ List<Integer> HeartBeat(
 			)
 
 ```
+
+### 有限状态自动机
+
+服务端对consumer group中每个shard都会维护一个有限状态自动机，共有五种状态，分别是already_alloc、not_alloc、wait、transfer、over，每种状态的含义如下：
+
+> already_alloc：该shard已经被某个consumer持有并消费。
+
+> not_alloc：该shard可以消费，但是尚未被任何consumer持有。
+
+> wait：该shard当前不可以消费，需要等待其祖先shard消费完。
+
+> transfer：将该shard转交给另一个消费者消费的过渡状态。只有当当前消费者在Heartbeat中放弃消费该shard，才能将该shard转交出去，因此需要这个过渡状态。
+
+> over：该shard的数据已经消费完。
+
+wait状态需要重点说明下，假设某个时刻数据仓库所有shard的关系如下图：
+
+![shards](pics/shards.JPG)
+
+初始时有3个shard 0、1、2，每个shard下面的区间表示关联的hash值的集合，这里为了简单用数值型表示hash key，此时hash值为7的数据会被写入shard 0，随后0 split成3和4，shard 0变成read_only状态，shard 3和4变成read_write状态，这个时候hash值是7的数据不会再被写入shard 0，而是写入shard 4，再接着shard 4和5 merge成6之后，hash值为7的数据只会写入shard 6。
+
+如果要顺序消费hash值为7的数据，必须保证在shard 0被消费完之前shard 4不应该被任何消费者消费，同理，shard 6不应该在shard 4中数据消费完之前被消费，我们把shard 0、4认为是shard 6的祖先，shard 6称为shard 0和4的后代，某个shard可以被消费当且仅当其祖先shard中的数据被消费完。基于这个原因，引入wait状态表示该shard当前不可以被消费。
+
+状态转移图如下：
+
+![状态转移图](pics/states.JPG)
+
+图中每个状态用首字母缩写表示，每条边对应含义如下：
+
+> 1 表示shard的起始状态只能是wait或者not_alloc。
+
+> 2 表示该shard的祖先shard的数据已经被消费完，可以开始消费当前shard的数据了。
+
+> 3 表示该shard被分配给了某一个消费者。
+
+> 4 表示消费该shard的consumer心跳超时了，回收其持有的shard。
+
+> 5 表示持有该shard的消费者持有的shard总数太多，不满足任意两个消费者持有shard数量之差的绝对值小于等于1，所以将该shard转移给别的需要的消费者消费，这时会将等待消费的消费者(next consumer)和这个shard关联起来。
+
+> 6 表示收到持有该shard的consumer放弃消费的Heartbeat，并将该shard转移给关联的next consumer持有。发生该转移还有一种可能是该shard的next consumer超时，继续由持有该shard的消费者持有该shard。
+
+> 7 表示当强制更新over状态的shard的消费断点到某个非数据结束位置时，该shard恢复可消费状态。执行这种更新操作要特别当心，因为该shard的后代shard可能已经被消费了，很可能导致数据无法按照hash key的顺序消费。
+
+> 8 表示read_only状态的shard数据被消费完了。
+
+> 9 表示持有该shard的消费者Heartbeat超时，回收该shard到not_alloc状态。
+
+这里要注意以下几点：
+* shard 处于transfer状态时，服务端收到持有该shard的消费者的Heartbeat时，返回的确认shard集合中不会包含该shard，确认shard集合中只会包含持有者是该consumer并且shard状态是already_alloc的shard。
+* 消费者调用UpdateCheckpoint更新消费断点，如果是read_only状态的shard要检查该checkpoint是否是shard的结尾，如果是就需要将shard状态转移成over。
+* 5 标识的转移是保证任意两个消费者持有shard数量之差的绝对值小于等于1的基础，当发现有consumer持有的shard数量不满足该条件时，从shard持有数量多的消费者那里剥夺一些shard，分配给持有数量少的consumer，这个过程称为消费负载均衡。这些将要易手的shard需要设置成transfer状态，以等待持有者heartbeat中确认放弃，这主要是为了让持有者收到放弃消息时将消费断点保存到服务端，从而易手之后，新的consumer可以从服务端获取该shard的消费断点。
+* 新的shard加入时，只能由转移1进入，其状态为wait当该shard有祖先shard，并且其祖先没有消费完，否则状态为not_alloc。
+* 消费的负载均衡只会考虑not_alloc、already_alloc、transfer状态的shard，wait和over状态的shard由于不满足消费条件，所以不会被分配给任何consumer。
+
 ## 如何使用loghub client library
 
 * 实现loghub client library中的两个接口类：
