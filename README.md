@@ -12,11 +12,8 @@ loghub client library是对LogHub消费者提供的高级模式，解决多个�
 
 以上整个过程不会产生数据丢失、以及重复，用户只需在代码中做三件事情：
 
-初始化：
 1. 创建Consumer Group。
 2. 将实例名注册为Instance，并连接到Consumer Group中。
-
-运行中：
 3. 写处理日志的代码。
 
 **我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费、消费异常处理等问题**。
