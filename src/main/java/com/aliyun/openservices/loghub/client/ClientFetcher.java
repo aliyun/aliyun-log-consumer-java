@@ -65,7 +65,7 @@ public class ClientFetcher {
 					{
 						if(consumerGroup.isInOrder() != mLogHubConfig.isConsumeInOrder() || consumerGroup.getTimeout() != (int)(mLogHubConfig.getHeartBeatIntervalMillis()*2/1000))
 						{
-							throw new LogHubClientWorkerException("consumer group is not agreed");
+							throw new LogHubClientWorkerException("consumer group is not agreed, AlreadyExistedConsumerGroup: {\"consumeInOrder\": " + consumerGroup.isInOrder() + ", \"timeoutInSecond\": " + consumerGroup.getTimeout() + "}");
 						}
 					}
 					else
@@ -75,12 +75,12 @@ public class ClientFetcher {
 				} 
 				catch (LogException e1) 
 				{
-					throw new LogHubClientWorkerException("error occour when get consumer group");
+					throw new LogHubClientWorkerException("error occour when get consumer group, errorCode: " + e1.GetErrorCode() + ", errorMessage: " + e1.GetErrorMessage());
 				}
 			}
 			else
 			{
-				throw new LogHubClientWorkerException("error occour when create consumer group");
+				throw new LogHubClientWorkerException("error occour when create consumer group, errorCode: " + e.GetErrorCode() + ", errorMessage: " + e.GetErrorMessage());
 			}
 		}
 		mLogHubHeartBeat = new LogHubHeartBeat(mLogHubClientAdapter, config.getHeartBeatIntervalMillis());
