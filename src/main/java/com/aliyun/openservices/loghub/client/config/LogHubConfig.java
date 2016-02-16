@@ -5,7 +5,7 @@ import java.io.Serializable;
 public class LogHubConfig implements Serializable {
 	private static final long serialVersionUID = -460559812263406428L;
 
-	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 50;
+	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
 	private String mConsumerGroupName;
 	private String mWorkerInstanceName;
 	private String mLogHubEndPoint;
