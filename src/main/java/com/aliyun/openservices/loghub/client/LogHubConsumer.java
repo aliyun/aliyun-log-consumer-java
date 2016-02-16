@@ -13,7 +13,7 @@ public class LogHubConsumer {
 	enum ConsumerStatus {
 		INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
 	}
-
+	private final static int FETCH_INTERVAL_IN_MILL_SECOND = 500;
 	private int mShardId;
 	private String mInstanceName;
 	private LogHubClientAdapter mLogHubClientAdapter;
@@ -36,7 +36,7 @@ public class LogHubConsumer {
 	
 	private static final Logger logger = Logger.getLogger(LogHubConsumer.class);
 	private long mLastLogErrorTime = 0;
-
+	private long mLastFetchTime = 0;
 	public LogHubConsumer(LogHubClientAdapter logHubClientAdapter,int shardId, String instanceName,
 			ILogHubProcessor processor,
 			ExecutorService executorService,  LogHubCursorPosition cursorPosition, int cursorStartTime) {
@@ -109,17 +109,21 @@ public class LogHubConsumer {
 				mLastFetchedData = new FetchedLogGroup(mShardId,
 						fetchResult.getFetchedData(), fetchResult.getCursor());
 				mNextFetchCursor = fetchResult.getCursor();
-			}
-			sampleLogError(result);
-
-			// if no error happen, fetch the data directly ,other wise don't
-			// fetch data this time
-			if (result == null || result.getException() == null) {
 				LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
 				mFetchDataFeture = mExecutorService.submit(task);
-			} else {
+				mLastFetchTime = System.currentTimeMillis();
+			}
+			else if(System.currentTimeMillis() - mLastFetchTime > FETCH_INTERVAL_IN_MILL_SECOND)
+			{
+				mLastFetchTime = System.currentTimeMillis();
+				LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
+				mFetchDataFeture = mExecutorService.submit(task);
+			}
+			else
+			{
 				mFetchDataFeture = null;
 			}
+			sampleLogError(result);
 		}
 	}
 

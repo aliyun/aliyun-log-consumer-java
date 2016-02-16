@@ -80,13 +80,7 @@ public class ClientWorker implements Runnable {
 				LogHubConsumer consumer = getConsuemr(shard);
 				consumer.consume();
 			}
-			
 			cleanConsumer(heldShards);
-			try {
-				Thread.sleep(mLogHubConfig.getDataFetchIntervalMillis());
-			} catch (InterruptedException e) {
-
-			}
 		}
 	}
 	public void shutdown()

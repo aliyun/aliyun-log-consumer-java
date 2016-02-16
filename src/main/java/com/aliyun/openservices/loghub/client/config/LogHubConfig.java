@@ -5,7 +5,6 @@ import java.io.Serializable;
 public class LogHubConfig implements Serializable {
 	private static final long serialVersionUID = -460559812263406428L;
 
-	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
 	private String mConsumerGroupName;
 	private String mWorkerInstanceName;
 	private String mLogHubEndPoint;
@@ -15,7 +14,6 @@ public class LogHubConfig implements Serializable {
 	private String mAccessKey;
 	private LogHubCursorPosition mCursorPosition;
 	private int  mLoghubCursorStartTime = 0;
-	private long mDataFetchIntervalMillis;
 	private long mHeartBeatIntervalMillis;
 	private boolean mConsumeInOrder;
 	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
@@ -33,7 +31,6 @@ public class LogHubConfig implements Serializable {
 		mAccessId = accessId;
 		mAccessKey = accessKey;
 		mCursorPosition = cursorPosition;
-		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
 		mHeartBeatIntervalMillis = heartBeatIntervalMillis;
 		mConsumeInOrder = consumeInOrder;
 	}
@@ -54,7 +51,6 @@ public class LogHubConfig implements Serializable {
 		mAccessKey = accessKey;
 		mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
 		mLoghubCursorStartTime = start_time;
-		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
 		mHeartBeatIntervalMillis = heartBeatIntervalMillis;
 		mConsumeInOrder = consumeInOrder;
 	}
@@ -75,15 +71,7 @@ public class LogHubConfig implements Serializable {
 	{
 		return mWorkerInstanceName;
 	}
-	public void setDataFetchIntervalMillis(long fetchIntervalMs)
-	{
-		this.mDataFetchIntervalMillis = fetchIntervalMs;
-	}
-	public long getDataFetchIntervalMillis()
-	{
-		return this.mDataFetchIntervalMillis;
-	}
-
+	
 	public String getLogHubEndPoint()
 	{
 		return mLogHubEndPoint;
