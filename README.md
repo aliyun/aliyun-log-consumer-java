@@ -206,16 +206,16 @@ wait状态需要重点说明下，假设某个时刻数据仓库所有shard的�
 	public static void main(String args[]) 
 	{
 		LogHubConfig config = new LogHubConfig(...);
-				
-		ClientWorker worker = new ClientWorker(new SampleLogHubProcessorFactory(), config),
-		
-		Thread thread = new Thread(worker);
-		//thread运行之后，client worker会自动运行，ClientWorker扩展了Runnable接口。
-		thread.start();
-		//调用worker的shutdown函数，退出消费实例，关联的线程也会自动停止。
-		worker.shutdown();
-		//ClientWorker运行过程中会生成多个异步的Task，shutdown之后最好等待还在执行的Task安全退出，建议30s。
-		Thread.sleep(30 * 1000);
+
+        ClientWorker worker = new ClientWorker(new SampleLogHubProcessorFactory(), config);
+
+        Thread thread = new Thread(worker);
+        //thread运行之后，client worker会自动运行，ClientWorker扩展了Runnable接口。
+        thread.start();
+        //调用worker的shutdown函数，退出消费实例，关联的线程也会自动停止。
+        worker.shutdown();
+        //ClientWorker运行过程中会生成多个异步的Task，shutdown之后最好等待还在执行的Task安全退出，建议30s。
+        Thread.sleep(30 * 1000);
 	}
 
 ```
@@ -224,7 +224,7 @@ wait状态需要重点说明下，假设某个时刻数据仓库所有shard的�
 ```
 public class SampleLogHubProcessor implements ILogHubProcessor 
 {
-	private String mShardId;
+	private int mShardId;
 	// 记录上次持久化check point的时间
 	private long mLastCheckTime = 0; 
 	
@@ -234,16 +234,16 @@ public class SampleLogHubProcessor implements ILogHubProcessor
 	}
 
 	// 消费数据的主逻辑
-	public String process(List<LogGroup> logGroups,
+	public String process(List<LogGroupData> logGroups,
 			ILogHubCheckPointTracker checkPointTracker) 
 	{
-		for (LogGroup group : logGroups) 
+		for (LogGroupData group : logGroups) 
 		{
-			List<LogItem> items = group.getAllLogs();
+			List<LogItem> items = group.GetAllLogs();
 			for (LogItem item : items) 
 			{
 			    // 打印loggroup中的数据
-				System.out.println("shard_id:" + mShardId + " " + item.toJSONString());
+				System.out.println("shard_id:" + mShardId + " " + item.ToJsonString());
 			}
 		}
 		long curTime = System.currentTimeMillis();
@@ -279,8 +279,13 @@ public class SampleLogHubProcessor implements ILogHubProcessor
 	public void shutdown(ILogHubCheckPointTracker checkPointTracker) 
 	{
 	    //将消费断点保存到服务端。
-	    checkPointTracker.saveCheckPoint(true);
+	    try {
+			checkPointTracker.saveCheckPoint(true);
+		} catch (LogHubCheckPointException e) {
+			e.printStackTrace();
+		}
 	}
+}
 ```
 
 * 生成 ILogHubProcessor的工厂类 ：
