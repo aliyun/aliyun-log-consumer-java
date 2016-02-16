@@ -12,11 +12,8 @@ loghub client library是对LogHub消费者提供的高级模式，解决多个�
 
 以上整个过程不会产生数据丢失、以及重复，用户只需在代码中做三件事情：
 
-初始化：
 1. 创建Consumer Group。
 2. 将实例名注册为Instance，并连接到Consumer Group中。
-
-运行中：
 3. 写处理日志的代码。
 
 **我们强烈建议使用loghub client library进行数据消费，这样您只需要关心怎么处理数据，而不需要关注复杂的负载均衡、消费断点保存、按序消费、消费异常处理等问题**。
@@ -28,7 +25,7 @@ loghub client library中主要有4个概念，分别是consumer group、consumer
 
 * consumer group
 
-是logstore的子资源，拥有相同consumer group 名字的消费者共同消费同一个logstore的所有数据，这些消费者之间不会重复消费数据，一个logstore下面可以最多创建5个consumer group，不可以重名，同一个logstore下面的consumer group之间消费数据不会互相影响。consumer group有两个很重要的属性：
+    是logstore的子资源，拥有相同consumer group 名字的消费者共同消费同一个logstore的所有数据，这些消费者之间不会重复消费数据，一个logstore下面可以最多创建5个consumer group，不可以重名，同一个logstore下面的consumer group之间消费数据不会互相影响。consumer group有两个很重要的属性：
 ```
 {
 	"order":boolean,
@@ -38,14 +35,14 @@ loghub client library中主要有4个概念，分别是consumer group、consumer
 order属性表示是否按照写入时间顺序消费key相同的数据，timeout表示consumer group中消费者的超时时间，单位是秒，当一个消费者汇报心跳的时间间隔超过timeout，会被认为已经超时，服务端认为这个consumer此时已经下线了。
 * consumer
 
-消费者，每个consumer上会被分配若干个shard，consumer的职责就是要消费这些shard上的数据，同一个consumer group中的consumer必须不重名。
+    消费者，每个consumer上会被分配若干个shard，consumer的职责就是要消费这些shard上的数据，同一个consumer group中的consumer必须不重名。
 
 * heartbeat
 
-消费者心跳，consumer需要定期向服务端汇报一个心跳包，用于表明自己还处于存活状态。
+    消费者心跳，consumer需要定期向服务端汇报一个心跳包，用于表明自己还处于存活状态。
 * checkpoint
 
-消费者定期将分配给自己的shard消费到的位置保存到服务端，这样当这个shard被分配给其它消费者时，从服务端可以获取shard的消费断点，接着从断点继续消费数据。
+    消费者定期将分配给自己的shard消费到的位置保存到服务端，这样当这个shard被分配给其它消费者时，从服务端可以获取shard的消费断点，接着从断点继续消费数据。
 
 ## 接口说明
 loghub client library基于以下服务端提供的接口实现，目前只实现了java版本的loghub client library，这部分不影响您对loghub client library的使用，可以跳过。
@@ -174,7 +171,7 @@ public class SampleLogHubProcessor implements ILogHubProcessor
 	// 记录上次持久化check point的时间
 	private long mLastCheckTime = 0; 
 	
-	public void initialize(String shardId) 
+	public void initialize(int shardId) 
 	{
 		mShardId = shardId;
 	}
@@ -246,7 +243,7 @@ public class SampleLogHubProcessorFactory implements ILogHubProcessorFactory
 public class LogHubConfig 
 {
     //worker默认的拉取数据的时间间隔
-	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 500;
+	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
 	//consumer group的名字
 	private String mConsumerGroupName;
 	//consumer的名字，必须确保同一个consumer group下面的各个consumer不重名
@@ -263,11 +260,11 @@ public class LogHubConfig
 	private String mAccessKey;
 	//用于指出在服务端没有记录shard的checkpoint的情况下应该从什么位置消费shard，取值可以是[BEGIN_CURSOR, END_CURSOR, SPECIAL_TIMER_CURSOR]中的一个
 	private LogHubCursorPosition mCursorPosition;
-	//当mCursorPosition取值为SPECIAL_TIMER_CURSOR时，指定消费时间
+	//当mCursorPosition取值为SPECIAL_TIMER_CURSOR时，指定消费时间，单位是秒。
 	private int  mLoghubCursorStartTime = 0;
-	// 轮询获取loghub数据的时间间隔，间隔越小，抓取越快，单位是ms，默认是DEFAULT_DATA_FETCH_INTERVAL_MS
+	// 轮询获取loghub数据的时间间隔，间隔越小，抓取越快，单位是ms，默认是DEFAULT_DATA_FETCH_INTERVAL_MS,建议取值200ms以上
 	private long mDataFetchIntervalMillis;
-	// worker想服务端汇报心跳的时间间隔，单位是毫秒
+	// worker想服务端汇报心跳的时间间隔，单位是毫秒，建议取值10000ms以上。
 	private long mHeartBeatIntervalMillis;
 	//是否按序消费
 	private boolean mConsumeInOrder; 
@@ -278,7 +275,7 @@ public class LogHubConfig
 <dependency>
   <groupId>com.aliyun</groupId>
   <artifactId>sls-loghub-client-inner</artifactId>
-  <version>0.2.1</version>
+  <version>0.2.2</version>
 </dependency>
 ```
 ## 常见问题&注意事项
