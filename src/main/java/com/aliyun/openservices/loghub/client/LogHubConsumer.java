@@ -122,7 +122,7 @@ public class LogHubConsumer {
 			
 			if (result == null || result.getException() == null) 
 			{
-				if(mLastFetchCount != 0  || (mLastFetchCount == 0 && System.currentTimeMillis() - mLastFetchTime > FETCH_INTERVAL_IN_MILL_SECOND))
+				if(mLastFetchCount > 0 || System.currentTimeMillis() - mLastFetchTime > FETCH_INTERVAL_IN_MILL_SECOND)
 				{
 					mLastFetchTime = System.currentTimeMillis();
 					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
