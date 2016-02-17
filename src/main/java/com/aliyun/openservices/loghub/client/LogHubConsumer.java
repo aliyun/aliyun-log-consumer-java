@@ -105,12 +105,17 @@ public class LogHubConsumer {
 		if (mFetchDataFeture == null || mFetchDataFeture.isCancelled()
 				|| mFetchDataFeture.isDone()) {
 			TaskResult result = getTaskResult(mFetchDataFeture);
-			if (result != null && result.getException() == null) {
+			if (result != null && result.getException() == null) 
+			{
 				FetchTaskResult fetchResult = (FetchTaskResult) result;
 				mLastFetchedData = new FetchedLogGroup(mShardId,
 						fetchResult.getFetchedData(), fetchResult.getCursor());
 				mNextFetchCursor = fetchResult.getCursor();
 				mLastFetchCount = mLastFetchedData.mFetchedData.size();
+			}
+			else
+			{
+				mLastFetchCount = 0;
 			}
 			
 			sampleLogError(result);
@@ -119,9 +124,9 @@ public class LogHubConsumer {
 			{
 				if(mLastFetchCount != 0  || (mLastFetchCount == 0 && System.currentTimeMillis() - mLastFetchTime > FETCH_INTERVAL_IN_MILL_SECOND))
 				{
+					mLastFetchTime = System.currentTimeMillis();
 					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
 					mFetchDataFeture = mExecutorService.submit(task);
-					mLastFetchTime = System.currentTimeMillis();
 				}
 			}
 			else
