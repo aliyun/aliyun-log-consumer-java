@@ -13,7 +13,7 @@ public class LogHubConsumer {
 	enum ConsumerStatus {
 		INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
 	}
-	private final static int FETCH_INTERVAL_IN_MILL_SECOND = 500;
+	private final static int FETCH_INTERVAL_IN_MILL_SECOND = 200;
 	private int mShardId;
 	private String mInstanceName;
 	private LogHubClientAdapter mLogHubClientAdapter;
@@ -37,6 +37,7 @@ public class LogHubConsumer {
 	private static final Logger logger = Logger.getLogger(LogHubConsumer.class);
 	private long mLastLogErrorTime = 0;
 	private long mLastFetchTime = 0;
+	private int mLastFetchCount = 0;
 	public LogHubConsumer(LogHubClientAdapter logHubClientAdapter,int shardId, String instanceName,
 			ILogHubProcessor processor,
 			ExecutorService executorService,  LogHubCursorPosition cursorPosition, int cursorStartTime) {
@@ -109,21 +110,25 @@ public class LogHubConsumer {
 				mLastFetchedData = new FetchedLogGroup(mShardId,
 						fetchResult.getFetchedData(), fetchResult.getCursor());
 				mNextFetchCursor = fetchResult.getCursor();
-				LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
-				mFetchDataFeture = mExecutorService.submit(task);
-				mLastFetchTime = System.currentTimeMillis();
+				mLastFetchCount = mLastFetchedData.mFetchedData.size();
 			}
-			else if(System.currentTimeMillis() - mLastFetchTime > FETCH_INTERVAL_IN_MILL_SECOND)
+			
+			sampleLogError(result);
+			
+			if (result == null || result.getException() == null) 
 			{
-				mLastFetchTime = System.currentTimeMillis();
-				LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
-				mFetchDataFeture = mExecutorService.submit(task);
+				if(mLastFetchCount != 0  || (mLastFetchCount == 0 && System.currentTimeMillis() - mLastFetchTime > FETCH_INTERVAL_IN_MILL_SECOND))
+				{
+					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
+					mFetchDataFeture = mExecutorService.submit(task);
+					mLastFetchTime = System.currentTimeMillis();
+				}
 			}
 			else
 			{
 				mFetchDataFeture = null;
 			}
-			sampleLogError(result);
+			
 		}
 	}
 
