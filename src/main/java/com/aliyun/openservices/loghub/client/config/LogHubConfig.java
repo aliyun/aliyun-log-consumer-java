@@ -59,6 +59,14 @@ public class LogHubConfig implements Serializable {
 		mConsumeInOrder = consumeInOrder;
 	}
 	
+	public long getDataFetchIntervalMillis() {
+		return mDataFetchIntervalMillis;
+	}
+
+	public void setDataFetchIntervalMillis(long dataFetchIntervalMillis) {
+		this.mDataFetchIntervalMillis = dataFetchIntervalMillis;
+	}
+
 	public boolean isConsumeInOrder() {
 		return mConsumeInOrder;
 	}
@@ -75,15 +83,7 @@ public class LogHubConfig implements Serializable {
 	{
 		return mWorkerInstanceName;
 	}
-	public void setDataFetchIntervalMillis(long fetchIntervalMs)
-	{
-		this.mDataFetchIntervalMillis = fetchIntervalMs;
-	}
-	public long getDataFetchIntervalMillis()
-	{
-		return this.mDataFetchIntervalMillis;
-	}
-
+	
 	public String getLogHubEndPoint()
 	{
 		return mLogHubEndPoint;
