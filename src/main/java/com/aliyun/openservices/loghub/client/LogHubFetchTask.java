@@ -35,12 +35,13 @@ public class LogHubFetchTask implements ITask {
 				logger.debug("shard id = " + mShardId + " cursor = " + mCursor
 						+ " next cursor" + response.GetNextCursor() + " size:"
 						+ String.valueOf(response.GetCount()));
-				
+				int logsCount = 0;
 				for (int i = 0 ; i < response.GetCount(); i++)
 				{
 					LogGroupData group = response.GetLogGroup(i);
 					if (group != null)
 					{
+						logsCount += group.GetAllLogs().size();
 						fetchedData.add(group);
 					}
 				}
@@ -48,9 +49,9 @@ public class LogHubFetchTask implements ITask {
 				String cursor = response.GetNextCursor();
 				
 				if (cursor.isEmpty()) {
-					return new FetchTaskResult(fetchedData, mCursor);
+					return new FetchTaskResult(fetchedData, mCursor, response.GetRawSize(), logsCount);
 				} else {
-					return new FetchTaskResult(fetchedData, cursor);
+					return new FetchTaskResult(fetchedData, cursor, response.GetRawSize(), logsCount);
 				}
 			} catch (Exception e) {
 				exception = e;
