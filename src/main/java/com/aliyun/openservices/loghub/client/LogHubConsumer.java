@@ -13,7 +13,6 @@ public class LogHubConsumer {
 	enum ConsumerStatus {
 		INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
 	}
-	private final static int FETCH_INTERVAL_IN_MILL_SECOND = 200;
 	private int mShardId;
 	private String mInstanceName;
 	private LogHubClientAdapter mLogHubClientAdapter;
@@ -38,6 +37,7 @@ public class LogHubConsumer {
 	private long mLastLogErrorTime = 0;
 	private long mLastFetchTime = 0;
 	private int mLastFetchCount = 0;
+	private int mLastFetchRawSize = 0;
 	public LogHubConsumer(LogHubClientAdapter logHubClientAdapter,int shardId, String instanceName,
 			ILogHubProcessor processor,
 			ExecutorService executorService,  LogHubCursorPosition cursorPosition, int cursorStartTime) {
@@ -111,18 +111,28 @@ public class LogHubConsumer {
 				mLastFetchedData = new FetchedLogGroup(mShardId,
 						fetchResult.getFetchedData(), fetchResult.getCursor());
 				mNextFetchCursor = fetchResult.getCursor();
-				mLastFetchCount = mLastFetchedData.mFetchedData.size();
-			}
-			else
-			{
-				mLastFetchCount = 0;
+				mLastFetchCount = fetchResult.getLogsCount();
+				mLastFetchRawSize = fetchResult.getRawSize();
 			}
 			
 			sampleLogError(result);
 			
 			if (result == null || result.getException() == null) 
 			{
-				if(mLastFetchCount > 0 || System.currentTimeMillis() - mLastFetchTime > FETCH_INTERVAL_IN_MILL_SECOND)
+				boolean genFetchTask = true;
+				if(mLastFetchRawSize < 1024 * 1024 && mLastFetchCount < 100)
+				{
+					genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 500);
+				}
+				else if(mLastFetchRawSize < 2 * 1024 * 1024 && mLastFetchCount < 500)
+				{
+					genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 200);
+				}
+				else if(mLastFetchRawSize < 4 * 1024 * 1024 && mLastFetchCount < 1000)
+				{
+					genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 50);
+				}
+				if(genFetchTask)
 				{
 					mLastFetchTime = System.currentTimeMillis();
 					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
