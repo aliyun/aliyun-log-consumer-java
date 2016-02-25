@@ -111,7 +111,7 @@ public class LogHubConsumer {
 				mLastFetchedData = new FetchedLogGroup(mShardId,
 						fetchResult.getFetchedData(), fetchResult.getCursor());
 				mNextFetchCursor = fetchResult.getCursor();
-				mLastFetchCount = fetchResult.getLogsCount();
+				mLastFetchCount = mLastFetchedData.mFetchedData.size();
 				mLastFetchRawSize = fetchResult.getRawSize();
 			}
 			
