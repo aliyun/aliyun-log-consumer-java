@@ -1,6 +1,5 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -30,28 +29,17 @@ public class LogHubFetchTask implements ITask {
 			try {
 				BatchGetLogResponse response = mLogHubClientAdapter.BatchGetLogs(
 						mShardId, MAX_FETCH_LOGGROUP_SIZE, mCursor);
-				List<LogGroupData> fetchedData = new ArrayList<LogGroupData>();
-
+				List<LogGroupData> fetchedData = response.GetLogGroups();
 				logger.debug("shard id = " + mShardId + " cursor = " + mCursor
 						+ " next cursor" + response.GetNextCursor() + " size:"
 						+ String.valueOf(response.GetCount()));
-				int logsCount = 0;
-				for (int i = 0 ; i < response.GetCount(); i++)
-				{
-					LogGroupData group = response.GetLogGroup(i);
-					if (group != null)
-					{
-						logsCount += group.GetAllLogs().size();
-						fetchedData.add(group);
-					}
-				}
 				
 				String cursor = response.GetNextCursor();
 				
 				if (cursor.isEmpty()) {
-					return new FetchTaskResult(fetchedData, mCursor, response.GetRawSize(), logsCount);
+					return new FetchTaskResult(fetchedData, mCursor, response.GetRawSize());
 				} else {
-					return new FetchTaskResult(fetchedData, cursor, response.GetRawSize(), logsCount);
+					return new FetchTaskResult(fetchedData, cursor, response.GetRawSize());
 				}
 			} catch (Exception e) {
 				exception = e;

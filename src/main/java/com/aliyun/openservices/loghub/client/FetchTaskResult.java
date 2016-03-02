@@ -9,14 +9,12 @@ public class FetchTaskResult extends TaskResult {
 	private List<LogGroupData> mFetchData;
 	private String mCursor;
 	private int mRawSize;
-	private int mLogsCount;
 
-	public FetchTaskResult(List<LogGroupData> fetchData, String cursor, int rawSize, int logsCount) {
+	public FetchTaskResult(List<LogGroupData> fetchData, String cursor, int rawSize) {
 		super(null);
 		mFetchData = fetchData;
 		mCursor = cursor;
 		mRawSize = rawSize;
-		mLogsCount = logsCount;
 	}
 
 	public List<LogGroupData> getFetchedData() {
@@ -29,10 +27,6 @@ public class FetchTaskResult extends TaskResult {
 	public int getRawSize()
 	{
 		return mRawSize;
-	}
-	public int getLogsCount()
-	{
-		return mLogsCount;
 	}
 	public FetchTaskResult(Exception e) {
 		super(e);
