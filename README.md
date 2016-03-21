@@ -337,7 +337,7 @@ public class LogHubConfig
 <dependency>
   <groupId>com.aliyun</groupId>
   <artifactId>sls-loghub-client-inner</artifactId>
-  <version>0.2.2</version>
+  <version>0.2.6</version>
 </dependency>
 ```
 ## 常见问题&注意事项
