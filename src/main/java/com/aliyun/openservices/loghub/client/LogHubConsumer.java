@@ -138,6 +138,10 @@ public class LogHubConsumer {
 					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
 					mFetchDataFeture = mExecutorService.submit(task);
 				}
+				else
+				{
+					mFetchDataFeture = null;
+				}
 			}
 			else
 			{
