@@ -31,7 +31,7 @@ public class ClientWorker implements Runnable {
 		mLogHubProcessorFactory = factory;
 		mLogHubConfig = config;
 		mLogHubClientAdapter = new LogHubClientAdapter(
-				config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey(), config.getProject(),
+				config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken(), config.getProject(),
 				config.getLogStore(), config.getConsumerGroupName(), config.getWorkerInstanceName());
 		try 
 		{
