@@ -22,11 +22,18 @@ public class LogHubClientAdapter {
 	private final String mUserAgent;
 	private static final Logger logger = Logger.getLogger(LogHubClientAdapter.class);
 	
-	public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String project, String stream,
+	public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String stsToken, String project, String stream,
 			String consumerGroup, String consumer) 
 	{
 		super();
-		this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		if(stsToken == null)
+		{
+			this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		}
+		else
+		{
+			this.mClient = new Client(endPoint, accessKeyId, accessKey, stsToken);
+		}
 		this.mProject = project;
 		this.mStream = stream;
 		this.mConsumerGroup = consumerGroup;

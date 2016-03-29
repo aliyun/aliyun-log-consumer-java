@@ -18,6 +18,7 @@ public class LogHubConfig implements Serializable {
 	private long mDataFetchIntervalMillis;
 	private long mHeartBeatIntervalMillis;
 	private boolean mConsumeInOrder;
+	private String mStsToken = null;
 	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
 			String project, String logStore,
 			String accessId, String accessKey,
@@ -58,7 +59,36 @@ public class LogHubConfig implements Serializable {
 		mHeartBeatIntervalMillis = heartBeatIntervalMillis;
 		mConsumeInOrder = consumeInOrder;
 	}
+	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+			String project, String logStore,
+			String accessId, String accessKey,
+			LogHubCursorPosition cursorPosition,
+			long heartBeatIntervalMillis, 
+			boolean consumeInOrder, String stsToken)
+	{
+		this(consumerGroupName, workerInstanceName, loghubEndPoint, project, logStore, accessId, accessKey, cursorPosition, heartBeatIntervalMillis, consumeInOrder);
+		this.mStsToken = stsToken;
+	}
 	
+	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+			String project, String logStore,
+			String accessId, String accessKey,
+			int start_time,
+			long heartBeatIntervalMillis,
+			boolean consumeInOrder, String stsToken)
+	{
+		this(consumerGroupName, workerInstanceName, loghubEndPoint, project, logStore, accessId, accessKey, start_time, heartBeatIntervalMillis, consumeInOrder);
+		this.mStsToken = stsToken;
+	}
+	
+	public String getStsToken() {
+		return mStsToken;
+	}
+
+	public void setStsToken(String mStsToken) {
+		this.mStsToken = mStsToken;
+	}
+
 	public long getDataFetchIntervalMillis() {
 		return mDataFetchIntervalMillis;
 	}
