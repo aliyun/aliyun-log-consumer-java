@@ -29,13 +29,10 @@ public class LogHubClientAdapter {
 			String consumerGroup, String consumer) 
 	{
 		super();
-		if(stsToken == null)
+		this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		if(stsToken != null)
 		{
-			this.mClient = new Client(endPoint, accessKeyId, accessKey);
-		}
-		else
-		{
-			this.mClient = new Client(endPoint, accessKeyId, accessKey, stsToken);
+			this.mClient.SetSecurityToken(stsToken);
 		}
 		this.mProject = project;
 		this.mStream = stream;
@@ -47,13 +44,10 @@ public class LogHubClientAdapter {
 	public void SwitchClient(String endPoint, String accessKeyId, String accessKey, String stsToken)
 	{
 		mReadWrtlock.writeLock().lock();
-		if(stsToken == null)
+		this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		if(stsToken != null)
 		{
-			this.mClient = new Client(endPoint, accessKeyId, accessKey);
-		}
-		else
-		{
-			this.mClient = new Client(endPoint, accessKeyId, accessKey, stsToken);
+			this.mClient.SetSecurityToken(stsToken);
 		}
 		mReadWrtlock.writeLock().unlock();
 	}
