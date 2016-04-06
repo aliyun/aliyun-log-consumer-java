@@ -68,8 +68,14 @@ public class ClientWorker implements Runnable {
 		}
 		mLogHubHeartBeat = new LogHubHeartBeat(mLogHubClientAdapter, config.getHeartBeatIntervalMillis());
 	}
-	
-	
+	public void SwitchClient(String accessKeyId, String accessKey)
+	{
+		mLogHubClientAdapter.SwitchClient(mLogHubConfig.getLogHubEndPoint(), accessKeyId, accessKey, null);
+	}
+	public void SwitchClient(String accessKeyId, String accessKey, String stsToken)
+	{
+		mLogHubClientAdapter.SwitchClient(mLogHubConfig.getLogHubEndPoint(), accessKeyId, accessKey, stsToken);
+	}
 	public void run() {		
 		mLogHubHeartBeat.Start();
 		ArrayList<Integer> heldShards = new ArrayList<Integer>();
