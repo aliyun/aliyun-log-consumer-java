@@ -62,8 +62,6 @@ public class LogHubClientAdapter {
 		mReadWrtlock.readLock().lock();
 		try {
 			mClient.CreateConsumerGroup(mProject, mStream, new ConsumerGroup(mConsumerGroup, timeoutInSec, inOrder));
-		} catch (LogException e) {
-			throw e;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();
@@ -81,8 +79,6 @@ public class LogHubClientAdapter {
 					return consumerGroup;
 				}
 			}
-		} catch (LogException e) {
-			throw e;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();
@@ -111,8 +107,6 @@ public class LogHubClientAdapter {
 		mReadWrtlock.readLock().lock();
 		try {
 			mClient.UpdateCheckPoint(mProject, mStream, mConsumerGroup, consumer, shard, checkpoint);
-		} catch (LogException e) {
-			throw e;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();
@@ -124,8 +118,6 @@ public class LogHubClientAdapter {
 		ArrayList<ConsumerGroupShardCheckPoint> checkPoints = null;
 		try {
 			checkPoints = mClient.GetCheckPoint(mProject, mStream, mConsumerGroup, shard).GetCheckPoints();
-		} catch (LogException e) {
-			throw e;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();
@@ -144,8 +136,6 @@ public class LogHubClientAdapter {
 		mReadWrtlock.readLock().lock();
 		try {
 			return mClient.GetCursor(mProject, mStream, shard, mode).GetCursor();
-		} catch (LogException e) {
-			throw e;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();
@@ -156,8 +146,6 @@ public class LogHubClientAdapter {
 		mReadWrtlock.readLock().lock();
 		try {
 			return mClient.GetCursor(mProject, mStream, shard, time).GetCursor();
-		} catch (LogException e) {
-			throw e;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();
@@ -168,8 +156,6 @@ public class LogHubClientAdapter {
 		mReadWrtlock.readLock().lock();
 		try {
 			return mClient.BatchGetLog(mProject, mStream, shard, lines, cursor);
-		} catch (LogException e) {
-			throw e;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();
