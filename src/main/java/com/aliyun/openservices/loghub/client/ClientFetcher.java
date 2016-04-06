@@ -85,9 +85,14 @@ public class ClientFetcher {
 		}
 		mLogHubHeartBeat = new LogHubHeartBeat(mLogHubClientAdapter, config.getHeartBeatIntervalMillis());
 	}
-	
-	
-	
+	public void SwitchClient(String accessKeyId, String accessKey)
+	{
+		mLogHubClientAdapter.SwitchClient(mLogHubConfig.getLogHubEndPoint(), accessKeyId, accessKey, null);
+	}
+	public void SwitchClient(String accessKeyId, String accessKey, String stsToken)
+	{
+		mLogHubClientAdapter.SwitchClient(mLogHubConfig.getLogHubEndPoint(), accessKeyId, accessKey, stsToken);
+	}
 	public void start() {
 		mLogHubHeartBeat.Start();
 		mShardListUpdateService.scheduleWithFixedDelay(new ShardListUpdator(), 0L,

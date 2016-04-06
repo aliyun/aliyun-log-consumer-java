@@ -1,6 +1,8 @@
 package com.aliyun.openservices.loghub.client;
 
 import java.util.ArrayList;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.log4j.Logger;
 
@@ -14,7 +16,8 @@ import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointExceptio
 
 public class LogHubClientAdapter {
 
-	private final Client mClient;
+	private Client mClient;
+	private ReadWriteLock mReadWrtlock = new ReentrantReadWriteLock(); 
 	private final String mProject;
 	private final String mStream;
 	private final String mConsumerGroup;
@@ -41,26 +44,51 @@ public class LogHubClientAdapter {
 		this.mUserAgent = "[consumer-group-java]" + consumerGroup;
 		this.mClient.setUserAgent(mUserAgent);
 	}
-	
+	public void SwitchClient(String endPoint, String accessKeyId, String accessKey, String stsToken)
+	{
+		mReadWrtlock.writeLock().lock();
+		if(stsToken == null)
+		{
+			this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		}
+		else
+		{
+			this.mClient = new Client(endPoint, accessKeyId, accessKey, stsToken);
+		}
+		mReadWrtlock.writeLock().unlock();
+	}
 	public void CreateConsumerGroup(final int timeoutInSec, final boolean inOrder) throws LogException
 	{
-		mClient.CreateConsumerGroup(mProject, mStream, new ConsumerGroup(mConsumerGroup, timeoutInSec, inOrder));
+		mReadWrtlock.readLock().lock();
+		try {
+			mClient.CreateConsumerGroup(mProject, mStream, new ConsumerGroup(mConsumerGroup, timeoutInSec, inOrder));
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
 	}
 	
 	public ConsumerGroup GetConsumerGroup() throws LogException
 	{
-		for(ConsumerGroup consumerGroup: mClient.ListConsumerGroup(mProject, mStream).GetConsumerGroups())
-		{
-			if(consumerGroup.getConsumerGroupName().compareTo(mConsumerGroup) == 0)
+		mReadWrtlock.readLock().lock();
+		try {
+			for(ConsumerGroup consumerGroup: mClient.ListConsumerGroup(mProject, mStream).GetConsumerGroups())
 			{
-				return consumerGroup;
+				if(consumerGroup.getConsumerGroupName().compareTo(mConsumerGroup) == 0)
+				{
+					return consumerGroup;
+				}
 			}
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
 		}
 		return null;
 	}
 	
 	public boolean HeartBeat(ArrayList<Integer> shards, ArrayList<Integer> response)
 	{
+		mReadWrtlock.readLock().lock();
 		response.clear();
 		try {
 			response.addAll(mClient.HeartBeat(mProject, mStream, mConsumerGroup, mConsumer, shards).GetShards());
@@ -69,34 +97,68 @@ public class LogHubClientAdapter {
 		} catch (LogException e) {
 			logger.warn(e.GetErrorCode() + ": " + e.GetErrorMessage());
 		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
 		return false;
 	}
 	public void UpdateCheckPoint(final int shard, final String consumer, final String checkpoint) throws LogException
 	{
-		mClient.UpdateCheckPoint(mProject, mStream, mConsumerGroup, consumer, shard, checkpoint);
+		mReadWrtlock.readLock().lock();
+		try {
+			mClient.UpdateCheckPoint(mProject, mStream, mConsumerGroup, consumer, shard, checkpoint);
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
 	}
 	public String GetCheckPoint(final int shard) throws LogException, LogHubCheckPointException
 	{
-		ArrayList<ConsumerGroupShardCheckPoint> checkPoints = mClient.GetCheckPoint(mProject, mStream, mConsumerGroup, shard).GetCheckPoints();
-		if(checkPoints.size() > 0)
+		mReadWrtlock.readLock().lock();
+		ArrayList<ConsumerGroupShardCheckPoint> checkPoints = null;
+		try {
+			checkPoints = mClient.GetCheckPoint(mProject, mStream, mConsumerGroup, shard).GetCheckPoints();
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
+		if(checkPoints == null || checkPoints.size() == 0)
 		{
-			return checkPoints.get(0).getCheckPoint();
+			throw new LogHubCheckPointException("fail to get shard checkpoint");
 		}
 		else
 		{
-			throw new LogHubCheckPointException("fail to get shard checkpoint");
+			return checkPoints.get(0).getCheckPoint();
 		}
 	}
 	public String GetCursor(final int shard, CursorMode mode) throws LogException
 	{
-		return mClient.GetCursor(mProject, mStream, shard, mode).GetCursor();
+		mReadWrtlock.readLock().lock();
+		try {
+			return mClient.GetCursor(mProject, mStream, shard, mode).GetCursor();
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
 	}
 	public String GetCursor(final int shard, final long time) throws LogException
 	{
-		return mClient.GetCursor(mProject, mStream, shard, time).GetCursor();
+		mReadWrtlock.readLock().lock();
+		try {
+			return mClient.GetCursor(mProject, mStream, shard, time).GetCursor();
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
 	}
 	public BatchGetLogResponse BatchGetLogs(final int shard, final int lines, final String cursor) throws LogException
 	{
-		return mClient.BatchGetLog(mProject, mStream, shard, lines, cursor);
+		mReadWrtlock.readLock().lock();
+		try {
+			return mClient.BatchGetLog(mProject, mStream, shard, lines, cursor);
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
 	}
 }
