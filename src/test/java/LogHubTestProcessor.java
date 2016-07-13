@@ -2,7 +2,7 @@ import java.util.List;
 
 import com.aliyun.openservices.log.common.LogGroupData;
 import com.aliyun.openservices.loghub.client.ILogHubCheckPointTracker;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 
 

@@ -1,4 +1,4 @@
-package com.aliyun.openservices.loghub.client.excpetions;
+package com.aliyun.openservices.loghub.client.exceptions;
 
 public class LogHubCheckPointException extends Exception{
 

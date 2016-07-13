@@ -1,7 +1,7 @@
 import com.aliyun.openservices.loghub.client.ClientWorker;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubClientWorkerException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
 
 public class ClientWorkerTest {
 

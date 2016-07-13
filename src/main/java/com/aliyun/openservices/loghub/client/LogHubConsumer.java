@@ -6,7 +6,7 @@ import java.util.concurrent.Future;
 import org.apache.log4j.Logger;
 
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 
 public class LogHubConsumer {
