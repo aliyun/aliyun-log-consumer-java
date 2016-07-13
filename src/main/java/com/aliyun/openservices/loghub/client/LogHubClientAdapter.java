@@ -8,11 +8,13 @@ import org.apache.log4j.Logger;
 
 import com.aliyun.openservices.log.Client;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
+import com.aliyun.openservices.log.common.Logs.LogGroup;
 import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
+import com.aliyun.openservices.log.common.LogGroupData;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
 
 public class LogHubClientAdapter {
 
@@ -149,7 +151,8 @@ public class LogHubClientAdapter {
 	{
 		mReadWrtlock.readLock().lock();
 		try {
-			return mClient.BatchGetLog(mProject, mStream, shard, lines, cursor);
+			BatchGetLogResponse response = mClient.BatchGetLog(mProject, mStream, shard, lines, cursor);
+			return response;
 		}
 		finally{
 			mReadWrtlock.readLock().unlock();

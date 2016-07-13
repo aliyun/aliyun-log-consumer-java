@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
 import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubClientWorkerException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
 
 

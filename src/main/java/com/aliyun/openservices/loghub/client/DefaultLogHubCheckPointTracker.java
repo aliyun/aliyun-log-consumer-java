@@ -1,7 +1,7 @@
 package com.aliyun.openservices.loghub.client;
 
 import com.aliyun.openservices.log.exception.LogException;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
 
 public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker {
 	private String mCursor;

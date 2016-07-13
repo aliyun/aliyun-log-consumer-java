@@ -1,6 +1,6 @@
 package com.aliyun.openservices.loghub.client;
 
-import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
 
 /**
  * Provide an interface for the user to save a shard's check point to the

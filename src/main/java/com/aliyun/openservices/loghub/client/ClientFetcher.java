@@ -17,8 +17,8 @@ import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.loghub.client.FetchedLogGroup;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubCheckPointException;
-import com.aliyun.openservices.loghub.client.excpetions.LogHubClientWorkerException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubShardListener;
 
