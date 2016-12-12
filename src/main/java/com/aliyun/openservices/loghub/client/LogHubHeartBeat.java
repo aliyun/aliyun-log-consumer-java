@@ -27,7 +27,7 @@ public class LogHubHeartBeat {
 	}
 	public void Start()
 	{
-		threadpool = Executors.newScheduledThreadPool(1);
+		threadpool = Executors.newScheduledThreadPool(1, new LogThreadFactory());
 		threadpool.scheduleWithFixedDelay(new HeartBeatRunnable(), 0L,
 				mHeartBeatIntervalMillis, TimeUnit.MILLISECONDS);
 		running = true;

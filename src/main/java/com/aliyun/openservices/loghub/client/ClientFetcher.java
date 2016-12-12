@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
+import com.aliyun.openservices.log.common.Consts;
 import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.loghub.client.FetchedLogGroup;
@@ -34,7 +35,7 @@ public class ClientFetcher {
 	private final Map<Integer, FetchedLogGroup> mCachedData 
 		= new HashMap<Integer, FetchedLogGroup>();
 	
-	private final ExecutorService mExecutorService = Executors.newCachedThreadPool();
+	private final ExecutorService mExecutorService = Executors.newCachedThreadPool(new LogThreadFactory());
 	private final ScheduledExecutorService mShardListUpdateService = Executors.newScheduledThreadPool(1);
 	
 	private final long mShardListUpdateIntervalInMills = 500L;
@@ -46,7 +47,6 @@ public class ClientFetcher {
 	public ClientFetcher(LogHubConfig config) throws LogHubClientWorkerException {
 		mLogHubProcessorFactory = new InnerFetcherProcessorFactory(this);
 		mLogHubConfig = config;
-		
 		mLogHubClientAdapter = new LogHubClientAdapter(
 				config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken(), config.getProject(),
 				config.getLogStore(), config.getConsumerGroupName(), config.getWorkerInstanceName());
