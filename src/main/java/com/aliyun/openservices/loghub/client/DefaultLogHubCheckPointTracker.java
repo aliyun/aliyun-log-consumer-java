@@ -70,7 +70,7 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
 				mLastPersistentCheckPoint = toPersistent;
 			} catch (LogException e) {
 				throw new LogHubCheckPointException(
-						"Failed to persistent the cursor to outside system, " + mInstanceName + ", " + mShardId + ", " + toPersistent, e);
+						"fail to persistent the cursor to outside system, " + mInstanceName + ", " + mShardId + ", " + toPersistent, e);
 			}
 		}
 	}

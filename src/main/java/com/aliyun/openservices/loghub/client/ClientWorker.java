@@ -109,13 +109,13 @@ public class ClientWorker implements Runnable {
 			if (!ownedShard.contains(shard.getKey()))
 			{
 				consumer.shutdown();
-				logger.warn("try to shut down a consumer shard:" + shard.getKey());
+				logger.info("try to shut down a consumer shard:" + shard.getKey());
 			}
 			if (consumer.isShutdown())
 			{
 				mLogHubHeartBeat.RemoveHeartShard(shard.getKey());
 				removeShards.add(shard.getKey());
-				logger.warn("remove a consumer shard:" + shard.getKey());
+				logger.info("remove a consumer shard:" + shard.getKey());
 			}
 		}
 		for(int shard: removeShards)
@@ -137,7 +137,7 @@ public class ClientWorker implements Runnable {
 				mLogHubConfig.getCursorPosition(),
 				mLogHubConfig.GetCursorStartTime());
 		mShardConsumer.put(shardId, consumer);
-		logger.warn("create a consumer shard:" + shardId);
+		logger.info("create a consumer shard:" + shardId);
 		return consumer;
 	}
 }

@@ -176,7 +176,7 @@ public class LogHubConsumer {
 		if (mFetchDataFeture != null) {
 			mFetchDataFeture.cancel(true);
 			getTaskResult(mFetchDataFeture);
-			logger.warn("Cancel a fetch task, shard id:" + mShardId);
+			logger.info("Cancel a fetch task, shard id:" + mShardId);
 			mFetchDataFeture = null;
 		}
 	}

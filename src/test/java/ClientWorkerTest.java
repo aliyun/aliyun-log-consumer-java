@@ -11,27 +11,27 @@ public class ClientWorkerTest {
 				"consumer_group_client_worker_test", "consumer_0",
 				"cn-hangzhou-failover-intranet.sls.aliyuncs.com",
 				"ali-cn-failover-sls-admin", "sls_operation_log",
-				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=",
+				"", "",
 				LogHubCursorPosition.BEGIN_CURSOR, 20 * 1000, false), config2 = new LogHubConfig(
 				"consumer_group_client_worker_test", "consumer_1",
 				"cn-hangzhou-failover-intranet.sls.aliyuncs.com",
 				"ali-cn-failover-sls-admin", "sls_operation_log",
-				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=",
+				"", "",
 				LogHubCursorPosition.BEGIN_CURSOR, 20 * 1000, false), config3 = new LogHubConfig(
 				"consumer_group_client_worker_test", "consumer_2",
 				"cn-hangzhou-failover-intranet.sls.aliyuncs.com",
 				"ali-cn-failover-sls-admin", "sls_operation_log",
-				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=",
+				"", "",
 				LogHubCursorPosition.BEGIN_CURSOR, 20 * 1000, false), config4 = new LogHubConfig(
 				"consumer_group_client_worker_test", "consumer_3",
 				"cn-hangzhou-failover-intranet.sls.aliyuncs.com",
 				"ali-cn-failover-sls-admin", "sls_operation_log",
-				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=",
+				"", "",
 				LogHubCursorPosition.BEGIN_CURSOR, 20 * 1000, false), config5 = new LogHubConfig(
 				"consumer_group_client_worker_test", "consumer_4",
 				"cn-hangzhou-failover-intranet.sls.aliyuncs.com",
 				"ali-cn-failover-sls-admin", "sls_operation_log",
-				"94to3z418yupi6ikawqqd370", "DFk3ONbf81veUFpMg7FtY0BLB2w=",
+				"","",
 				LogHubCursorPosition.BEGIN_CURSOR, 20 * 1000, false);
 
 		ClientWorker worker1 = new ClientWorker(
