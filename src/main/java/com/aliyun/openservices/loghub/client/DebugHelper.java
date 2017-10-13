@@ -12,6 +12,10 @@ public class DebugHelper
 	public static boolean InitCheckPoint(LogHubConfig config)
 	{
 		Client client = new Client(config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey());
+		if (config.isDirectModeEnabled())
+		{
+			client.EnableDirectMode();
+		}
 		if(config.getStsToken() != null && !config.getStsToken().isEmpty())
 		{
 			client.SetSecurityToken(config.getStsToken());

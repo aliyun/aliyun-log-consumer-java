@@ -19,12 +19,14 @@ public class LogHubConfig implements Serializable {
 	private long mHeartBeatIntervalMillis;
 	private boolean mConsumeInOrder;
 	private String mStsToken = null;
+	private boolean mUseDirectMode = false;
 	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
 			String project, String logStore,
 			String accessId, String accessKey,
 			LogHubCursorPosition cursorPosition,
 			long heartBeatIntervalMillis, 
-			boolean consumeInOrder)
+			boolean consumeInOrder,
+			boolean userDirectMode)
 	{
 		mConsumerGroupName = consumerGroupName;
 		mWorkerInstanceName = workerInstanceName;
@@ -37,6 +39,18 @@ public class LogHubConfig implements Serializable {
 		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
 		mHeartBeatIntervalMillis = heartBeatIntervalMillis;
 		mConsumeInOrder = consumeInOrder;
+		this.mUseDirectMode = userDirectMode;
+	}
+	
+	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+			String project, String logStore,
+			String accessId, String accessKey,
+			LogHubCursorPosition cursorPosition,
+			long heartBeatIntervalMillis, 
+			boolean consumeInOrder)
+	{
+		this(consumerGroupName, workerInstanceName, loghubEndPoint, project, logStore, accessId, accessKey,
+				cursorPosition, heartBeatIntervalMillis, consumeInOrder, false);
 	}
 	
 	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
@@ -143,5 +157,18 @@ public class LogHubConfig implements Serializable {
 	public int GetCursorStartTime()
 	{
 		return mLoghubCursorStartTime;
+	}
+	
+	public void EnableDirectMode()
+	{
+		this.mUseDirectMode = true;
+	}
+	public void DisableDirectMode()
+	{
+		this.mUseDirectMode = false;
+	}
+	public boolean isDirectModeEnabled()
+	{
+		return this.mUseDirectMode;
 	}
 }

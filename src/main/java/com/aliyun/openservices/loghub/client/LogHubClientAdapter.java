@@ -8,10 +8,8 @@ import org.apache.log4j.Logger;
 
 import com.aliyun.openservices.log.Client;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
-import com.aliyun.openservices.log.common.Logs.LogGroup;
 import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
-import com.aliyun.openservices.log.common.LogGroupData;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
@@ -25,13 +23,19 @@ public class LogHubClientAdapter {
 	private final String mConsumerGroup;
 	private final String mConsumer;
 	private final String mUserAgent;
+	private final boolean mUseDirectMode;
 	private static final Logger logger = Logger.getLogger(LogHubClientAdapter.class);
 	
 	public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String stsToken, String project, String stream,
-			String consumerGroup, String consumer) 
+			String consumerGroup, String consumer, boolean useDirectMode) 
 	{
 		super();
+		this.mUseDirectMode = useDirectMode;
 		this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		if (this.mUseDirectMode)
+		{
+			this.mClient.EnableDirectMode();
+		}
 		if(stsToken != null)
 		{
 			this.mClient.SetSecurityToken(stsToken);
@@ -45,8 +49,13 @@ public class LogHubClientAdapter {
 	}
 	public void SwitchClient(String endPoint, String accessKeyId, String accessKey, String stsToken)
 	{
+		System.out.println("Switch");
 		mReadWrtlock.writeLock().lock();
 		this.mClient = new Client(endPoint, accessKeyId, accessKey);
+		if (this.mUseDirectMode)
+		{
+			this.mClient.EnableDirectMode();
+		}
 		if(stsToken != null)
 		{
 			this.mClient.SetSecurityToken(stsToken);
