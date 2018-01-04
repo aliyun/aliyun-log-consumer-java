@@ -72,6 +72,16 @@ public class LogHubClientAdapter {
 			mReadWrtlock.readLock().unlock();
 		}
 	}
+	public void UpdateConsumerGroup(final int timeoutInSec, final boolean inOrder) throws LogException
+	{
+		mReadWrtlock.readLock().lock();
+		try {
+			mClient.UpdateConsumerGroup(mProject, mStream, mConsumerGroup, inOrder, timeoutInSec);
+		}
+		finally{
+			mReadWrtlock.readLock().unlock();
+		}
+	}
 	
 	public ConsumerGroup GetConsumerGroup() throws LogException
 	{

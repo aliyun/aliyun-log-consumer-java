@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="loghub-client-lib-javadoc:jar">
+    <output-path>$USER_HOME$/Desktop/clientlib</output-path>
+    <root id="archive" name="loghub-client-lib-javadoc_jar.jar">
+      <element id="dir-copy" path="$USER_HOME$/Desktop/clientlib/javadoc" />
+    </root>
+  </artifact>
+</component>

@@ -41,7 +41,7 @@ public class ClientFetcher {
 	private final long mShardListUpdateIntervalInMills = 500L;
 	
 	private ILogHubShardListener mLogHubShardListener = null;
-	
+
 	private static final Logger logger = Logger.getLogger(ClientFetcher.class);
 
 	public ClientFetcher(LogHubConfig config) throws LogHubClientWorkerException {
@@ -58,24 +58,10 @@ public class ClientFetcher {
 		{
 			if(e.GetErrorCode().compareToIgnoreCase("ConsumerGroupAlreadyExist") == 0)
 			{
-				try 
-				{
-					ConsumerGroup consumerGroup = mLogHubClientAdapter.GetConsumerGroup();
-					if(consumerGroup != null)
-					{
-						if(consumerGroup.isInOrder() != mLogHubConfig.isConsumeInOrder() || consumerGroup.getTimeout() != (int)(mLogHubConfig.getHeartBeatIntervalMillis()*2/1000))
-						{
-							throw new LogHubClientWorkerException("consumer group is not agreed, AlreadyExistedConsumerGroup: {\"consumeInOrder\": " + consumerGroup.isInOrder() + ", \"timeoutInSecond\": " + consumerGroup.getTimeout() + "}");
-						}
-					}
-					else
-					{
-						throw new LogHubClientWorkerException("consumer group not exist");
-					}
-				} 
-				catch (LogException e1) 
-				{
-					throw new LogHubClientWorkerException("error occour when get consumer group, errorCode: " + e1.GetErrorCode() + ", errorMessage: " + e1.GetErrorMessage());
+				try {
+					mLogHubClientAdapter.UpdateConsumerGroup((int)(config.getHeartBeatIntervalMillis()*2/1000), config.isConsumeInOrder());
+				} catch (LogException e1) {
+					throw new LogHubClientWorkerException("error occour when update consumer group, errorCode: " + e1.GetErrorCode() + ", errorMessage: " + e1.GetErrorMessage());
 				}
 			}
 			else
@@ -105,8 +91,16 @@ public class ClientFetcher {
 	 * not be saved back in time). And lease coordinator's stop give enough time to save 
 	 * checkpoint at the same time.
 	 */
-	public void shutdown() {
-
+	public void shutdown()
+	{
+		for(LogHubConsumer consumer: mShardConsumer.values()){
+			consumer.shutdown();
+		}
+		mExecutorService.shutdown();
+		try {
+			mExecutorService.awaitTermination(30, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+		}
 		mLogHubHeartBeat.Stop();
 		mShardListUpdateService.shutdown();
 	}

@@ -28,7 +28,7 @@ public class ShutDownTask implements ITask {
 		try {
 			mCheckPointTracker.flushCheckPoint();
 		} catch (Exception e) {
-			logger.error("Failed to flush check point", e);
+			logger.warn("Failed to flush check point", e);
 		}
 
 		return new TaskResult(exception);

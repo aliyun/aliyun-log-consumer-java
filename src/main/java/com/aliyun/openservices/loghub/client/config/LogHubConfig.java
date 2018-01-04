@@ -2,10 +2,15 @@ package com.aliyun.openservices.loghub.client.config;
 
 import java.io.Serializable;
 
-public class LogHubConfig implements Serializable {
-	private static final long serialVersionUID = -460559812263406428L;
 
+
+
+
+public class LogHubConfig implements Serializable {
+	public static enum ConsumePosition {BEGIN_CURSOR, END_CURSOR};
+	private static final long serialVersionUID = -460559812263406428L;
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
+
 	private String mConsumerGroupName;
 	private String mWorkerInstanceName;
 	private String mLogHubEndPoint;
@@ -16,11 +21,53 @@ public class LogHubConfig implements Serializable {
 	private LogHubCursorPosition mCursorPosition;
 	private int  mLoghubCursorStartTime = 0;
 	private long mDataFetchIntervalMillis;
-	private long mHeartBeatIntervalMillis;
-	private boolean mConsumeInOrder;
+	private long mHeartBeatIntervalMillis = 20000;
+	private boolean mConsumeInOrder = false;
 	private String mStsToken = null;
 	private boolean mUseDirectMode = false;
-	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
+						String project, String logStore,
+						String accessId, String accessKey,
+						ConsumePosition position
+						)
+	{
+		mConsumerGroupName = consumerGroupName;
+		mWorkerInstanceName = consumerName;
+		mLogHubEndPoint = loghubEndPoint;
+		mProject = project;
+		mLogStore = logStore;
+		mAccessId = accessId;
+		mAccessKey = accessKey;
+		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+		mHeartBeatIntervalMillis = 30000;
+		mConsumeInOrder = false;
+		mUseDirectMode = false;
+		if(position == ConsumePosition.BEGIN_CURSOR) mCursorPosition = LogHubCursorPosition.BEGIN_CURSOR;
+		else if(position == ConsumePosition.END_CURSOR) mCursorPosition = LogHubCursorPosition.END_CURSOR;
+	}
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
+						String project, String logStore,
+						String accessId, String accessKey,
+						int consumerStartTimeInSeconds
+	)
+	{
+		mConsumerGroupName = consumerGroupName;
+		mWorkerInstanceName = consumerName;
+		mLogHubEndPoint = loghubEndPoint;
+		mProject = project;
+		mLogStore = logStore;
+		mAccessId = accessId;
+		mAccessKey = accessKey;
+		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+		mHeartBeatIntervalMillis = 30000;
+		mConsumeInOrder = false;
+		mUseDirectMode = false;
+		mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
+		mLoghubCursorStartTime = consumerStartTimeInSeconds;
+	}
+
+	@Deprecated
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
 			String project, String logStore,
 			String accessId, String accessKey,
 			LogHubCursorPosition cursorPosition,
@@ -29,7 +76,7 @@ public class LogHubConfig implements Serializable {
 			boolean userDirectMode)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = workerInstanceName;
+		mWorkerInstanceName = consumerName;
 		mLogHubEndPoint = loghubEndPoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -41,19 +88,19 @@ public class LogHubConfig implements Serializable {
 		mConsumeInOrder = consumeInOrder;
 		this.mUseDirectMode = userDirectMode;
 	}
-	
-	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+	@Deprecated
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
 			String project, String logStore,
 			String accessId, String accessKey,
 			LogHubCursorPosition cursorPosition,
 			long heartBeatIntervalMillis, 
 			boolean consumeInOrder)
 	{
-		this(consumerGroupName, workerInstanceName, loghubEndPoint, project, logStore, accessId, accessKey,
+		this(consumerGroupName, consumerName, loghubEndPoint, project, logStore, accessId, accessKey,
 				cursorPosition, heartBeatIntervalMillis, consumeInOrder, false);
 	}
-	
-	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+	@Deprecated
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
 			String project, String logStore,
 			String accessId, String accessKey,
 			int start_time,
@@ -61,7 +108,7 @@ public class LogHubConfig implements Serializable {
 			boolean consumeInOrder)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = workerInstanceName;
+		mWorkerInstanceName = consumerName;
 		mLogHubEndPoint = loghubEndPoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -73,25 +120,26 @@ public class LogHubConfig implements Serializable {
 		mHeartBeatIntervalMillis = heartBeatIntervalMillis;
 		mConsumeInOrder = consumeInOrder;
 	}
-	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+	@Deprecated
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
 			String project, String logStore,
 			String accessId, String accessKey,
 			LogHubCursorPosition cursorPosition,
 			long heartBeatIntervalMillis, 
 			boolean consumeInOrder, String stsToken)
 	{
-		this(consumerGroupName, workerInstanceName, loghubEndPoint, project, logStore, accessId, accessKey, cursorPosition, heartBeatIntervalMillis, consumeInOrder);
+		this(consumerGroupName, consumerName, loghubEndPoint, project, logStore, accessId, accessKey, cursorPosition, heartBeatIntervalMillis, consumeInOrder);
 		this.mStsToken = stsToken;
 	}
-	
-	public LogHubConfig(String consumerGroupName, String workerInstanceName, String loghubEndPoint, 
+	@Deprecated
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
 			String project, String logStore,
 			String accessId, String accessKey,
 			int start_time,
 			long heartBeatIntervalMillis,
 			boolean consumeInOrder, String stsToken)
 	{
-		this(consumerGroupName, workerInstanceName, loghubEndPoint, project, logStore, accessId, accessKey, start_time, heartBeatIntervalMillis, consumeInOrder);
+		this(consumerGroupName, consumerName, loghubEndPoint, project, logStore, accessId, accessKey, start_time, heartBeatIntervalMillis, consumeInOrder);
 		this.mStsToken = stsToken;
 	}
 	
@@ -114,15 +162,18 @@ public class LogHubConfig implements Serializable {
 	public boolean isConsumeInOrder() {
 		return mConsumeInOrder;
 	}
-
+	public void setConsumeInOrder(boolean order) { mConsumeInOrder = order; }
 	public long getHeartBeatIntervalMillis() {
 		return mHeartBeatIntervalMillis;
 	}
-
+	public void setHeartBeatIntervalMillis(long heartBeatIntervalMillis) { this.mHeartBeatIntervalMillis = heartBeatIntervalMillis; }
 	public String getConsumerGroupName()
 	{
 		return mConsumerGroupName;
 	}
+	public String getConsumerName() { return mWorkerInstanceName; }
+
+	@Deprecated
 	public String getWorkerInstanceName()
 	{
 		return mWorkerInstanceName;
@@ -158,15 +209,19 @@ public class LogHubConfig implements Serializable {
 	{
 		return mLoghubCursorStartTime;
 	}
-	
+
+	@Deprecated
 	public void EnableDirectMode()
 	{
 		this.mUseDirectMode = true;
 	}
+	@Deprecated
 	public void DisableDirectMode()
 	{
 		this.mUseDirectMode = false;
 	}
+
+	public void SetDirectMode(boolean enable) { this.mUseDirectMode = enable; }
 	public boolean isDirectModeEnabled()
 	{
 		return this.mUseDirectMode;

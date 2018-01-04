@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -16,7 +17,8 @@ import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerExcept
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
 
 
-public class ClientWorker implements Runnable {
+public class ClientWorker implements Runnable
+{
 	
 	private final ILogHubProcessorFactory mLogHubProcessorFactory;
 	private final LogHubConfig mLogHubConfig;
@@ -26,6 +28,7 @@ public class ClientWorker implements Runnable {
 	private final ExecutorService mExecutorService = Executors.newCachedThreadPool(new LogThreadFactory());
 	private LogHubClientAdapter mLogHubClientAdapter;
 	private static final Logger logger = Logger.getLogger(ClientWorker.class);
+	private boolean mMainLoopExit = false;
 
 	public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) throws LogHubClientWorkerException {
 		mLogHubProcessorFactory = factory;
@@ -41,24 +44,10 @@ public class ClientWorker implements Runnable {
 		{
 			if(e.GetErrorCode().compareToIgnoreCase("ConsumerGroupAlreadyExist") == 0)
 			{
-				try 
-				{
-					ConsumerGroup consumerGroup = mLogHubClientAdapter.GetConsumerGroup();
-					if(consumerGroup != null)
-					{
-						if(consumerGroup.isInOrder() != mLogHubConfig.isConsumeInOrder() || consumerGroup.getTimeout() != (int)(mLogHubConfig.getHeartBeatIntervalMillis()*2/1000))
-						{
-							throw new LogHubClientWorkerException("consumer group is not agreed, AlreadyExistedConsumerGroup: {\"consumeInOrder\": " + consumerGroup.isInOrder() + ", \"timeoutInMillSecond\": " + consumerGroup.getTimeout() + "}");
-						}
-					}
-					else
-					{
-						throw new LogHubClientWorkerException("consumer group not exist");
-					}
-				} 
-				catch (LogException e1) 
-				{
-					throw new LogHubClientWorkerException("error occour when get consumer group, errorCode: " + e1.GetErrorCode() + ", errorMessage: " + e1.GetErrorMessage());
+				try {
+					mLogHubClientAdapter.UpdateConsumerGroup((int)(config.getHeartBeatIntervalMillis()*2/1000), config.isConsumeInOrder());
+				} catch (LogException e1) {
+					throw new LogHubClientWorkerException("error occour when update consumer group, errorCode: " + e1.GetErrorCode() + ", errorMessage: " + e1.GetErrorMessage());
 				}
 			}
 			else
@@ -93,10 +82,26 @@ public class ClientWorker implements Runnable {
 				
 			}
 		}
+		mMainLoopExit = true;
 	}
 	public void shutdown()
 	{
 		this.mShutDown = true;
+		int times = 0 ;
+		while(!mMainLoopExit && times++ < 20) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+		}
+		for(LogHubConsumer consumer: mShardConsumer.values()){
+			consumer.shutdown();
+		}
+		mExecutorService.shutdown();
+		try {
+			mExecutorService.awaitTermination(30, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+		}
 		mLogHubHeartBeat.Stop();
 	}
 	
@@ -132,7 +137,7 @@ public class ClientWorker implements Runnable {
 			return consumer;
 		}
 		consumer = new LogHubConsumer(mLogHubClientAdapter,shardId,
-				mLogHubConfig.getWorkerInstanceName(),
+				mLogHubConfig.getConsumerName(),
 				mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
 				mLogHubConfig.getCursorPosition(),
 				mLogHubConfig.GetCursorStartTime());
