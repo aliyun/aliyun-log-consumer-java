@@ -229,7 +229,8 @@ public class ClientFetcher {
 					mLogHubConfig.getWorkerInstanceName(),
 					mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
 					mLogHubConfig.getCursorPosition(),
-					mLogHubConfig.GetCursorStartTime());
+					mLogHubConfig.GetCursorStartTime(),
+					mLogHubConfig.getMaxFetchLogGroupSize());
 			mShardConsumer.put(shardId, consumer);
 			mShardList.add(shardId);
 			consumer.consume();
