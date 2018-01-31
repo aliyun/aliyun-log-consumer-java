@@ -25,6 +25,8 @@ public class LogHubConfig implements Serializable {
 	private boolean mConsumeInOrder = false;
 	private String mStsToken = null;
 	private boolean mUseDirectMode = false;
+	private int mMaxFetchLogGroupSize = 1000;
+
 	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
 						String project, String logStore,
 						String accessId, String accessKey,
@@ -64,6 +66,51 @@ public class LogHubConfig implements Serializable {
 		mUseDirectMode = false;
 		mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
 		mLoghubCursorStartTime = consumerStartTimeInSeconds;
+	}
+
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
+						String project, String logStore,
+						String accessId, String accessKey,
+						ConsumePosition position,
+						int maxFetchLogGroupSize
+	)
+	{
+		mConsumerGroupName = consumerGroupName;
+		mWorkerInstanceName = consumerName;
+		mLogHubEndPoint = loghubEndPoint;
+		mProject = project;
+		mLogStore = logStore;
+		mAccessId = accessId;
+		mAccessKey = accessKey;
+		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+		mHeartBeatIntervalMillis = 30000;
+		mConsumeInOrder = false;
+		mUseDirectMode = false;
+		if(position == ConsumePosition.BEGIN_CURSOR) mCursorPosition = LogHubCursorPosition.BEGIN_CURSOR;
+		else if(position == ConsumePosition.END_CURSOR) mCursorPosition = LogHubCursorPosition.END_CURSOR;
+		mMaxFetchLogGroupSize = maxFetchLogGroupSize;
+	}
+	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
+						String project, String logStore,
+						String accessId, String accessKey,
+						int consumerStartTimeInSeconds,
+						int maxFetchLogGroupSize
+	)
+	{
+		mConsumerGroupName = consumerGroupName;
+		mWorkerInstanceName = consumerName;
+		mLogHubEndPoint = loghubEndPoint;
+		mProject = project;
+		mLogStore = logStore;
+		mAccessId = accessId;
+		mAccessKey = accessKey;
+		mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
+		mHeartBeatIntervalMillis = 30000;
+		mConsumeInOrder = false;
+		mUseDirectMode = false;
+		mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
+		mLoghubCursorStartTime = consumerStartTimeInSeconds;
+		mMaxFetchLogGroupSize = maxFetchLogGroupSize;
 	}
 
 	@Deprecated
@@ -225,5 +272,13 @@ public class LogHubConfig implements Serializable {
 	public boolean isDirectModeEnabled()
 	{
 		return this.mUseDirectMode;
+	}
+
+	public int getMaxFetchLogGroupSize() {
+		return mMaxFetchLogGroupSize;
+	}
+
+	public void setMaxFetchLogGroupSize(int maxFetchLogGroupSize) {
+		this.mMaxFetchLogGroupSize = maxFetchLogGroupSize;
 	}
 }
