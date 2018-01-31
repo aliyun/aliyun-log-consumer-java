@@ -30,3 +30,6 @@ target/
 # macos
 .DS_Store
 
+# Local test files
+LocalMain.java
+LocalLogHubProcessor.java
