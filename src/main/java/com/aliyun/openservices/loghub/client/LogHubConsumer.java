@@ -20,6 +20,7 @@ public class LogHubConsumer {
 	private ILogHubProcessor mProcessor;
 	private LogHubCursorPosition mCursorPosition;
 	private int mCursorStartTime = 0;
+	private int mMaxFetchLogGroupSize;
 	
 	private ConsumerStatus mCurStatus = ConsumerStatus.INITIALIZING;
 
@@ -40,7 +41,7 @@ public class LogHubConsumer {
 	private int mLastFetchRawSize = 0;
 	public LogHubConsumer(LogHubClientAdapter logHubClientAdapter,int shardId, String instanceName,
 			ILogHubProcessor processor,
-			ExecutorService executorService,  LogHubCursorPosition cursorPosition, int cursorStartTime) {
+			ExecutorService executorService,  LogHubCursorPosition cursorPosition, int cursorStartTime, int maxFetchLogGroupSize) {
 		mLogHubClientAdapter = logHubClientAdapter;
 		mShardId = shardId;
 		mInstanceName = instanceName;
@@ -50,7 +51,7 @@ public class LogHubConsumer {
 		mCheckPointTracker = new DefaultLogHubCheckPointTracker(logHubClientAdapter,
 				mInstanceName, mShardId);
 		mExecutorService = executorService;
-
+		mMaxFetchLogGroupSize = maxFetchLogGroupSize;
 	}
 
 	public void consume() {
@@ -87,7 +88,7 @@ public class LogHubConsumer {
 				{
 					ProcessTaskResult process_task_result = (ProcessTaskResult)(result);
 					String roll_back_checkpoint = process_task_result.getRollBackCheckpoint();
-					if (roll_back_checkpoint != null && roll_back_checkpoint.isEmpty() == false)
+					if (roll_back_checkpoint != null && !roll_back_checkpoint.isEmpty())
 					{
 						mLastFetchedData = null;
 						CancelCurrentFetch();
@@ -135,7 +136,7 @@ public class LogHubConsumer {
 				if(genFetchTask)
 				{
 					mLastFetchTime = System.currentTimeMillis();
-					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor);
+					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor, mMaxFetchLogGroupSize);
 					mFetchDataFeture = mExecutorService.submit(task);
 				}
 				else
