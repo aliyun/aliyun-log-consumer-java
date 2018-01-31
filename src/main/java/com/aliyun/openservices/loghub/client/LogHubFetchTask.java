@@ -13,13 +13,14 @@ public class LogHubFetchTask implements ITask {
 	private LogHubClientAdapter mLogHubClientAdapter;
 	private int mShardId;
 	private String mCursor;
-	private final int MAX_FETCH_LOGGROUP_SIZE = 1000;
+	private int mMaxFetchLogGroupSize;
 	private static final Logger logger = Logger.getLogger(LogHubFetchTask.class);
 
-	public LogHubFetchTask(LogHubClientAdapter logHubClientAdapter, int shardId, String cursor) {
+	public LogHubFetchTask(LogHubClientAdapter logHubClientAdapter, int shardId, String cursor, int maxFetchLogGroupSize) {
 		mLogHubClientAdapter = logHubClientAdapter;
 		mShardId = shardId;
 		mCursor = cursor;
+		mMaxFetchLogGroupSize = maxFetchLogGroupSize;
 	}
 
 	public TaskResult call() {
@@ -28,7 +29,7 @@ public class LogHubFetchTask implements ITask {
 		{
 			try {
 				BatchGetLogResponse response = mLogHubClientAdapter.BatchGetLogs(
-						mShardId, MAX_FETCH_LOGGROUP_SIZE, mCursor);
+						mShardId, mMaxFetchLogGroupSize, mCursor);
 				List<LogGroupData> fetchedData = response.GetLogGroups();
 				logger.debug("shard id = " + mShardId + " cursor = " + mCursor
 						+ " next cursor" + response.GetNextCursor() + " size:"
