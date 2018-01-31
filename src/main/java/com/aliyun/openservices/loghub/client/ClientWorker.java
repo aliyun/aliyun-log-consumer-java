@@ -140,7 +140,8 @@ public class ClientWorker implements Runnable
 				mLogHubConfig.getConsumerName(),
 				mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
 				mLogHubConfig.getCursorPosition(),
-				mLogHubConfig.GetCursorStartTime());
+				mLogHubConfig.GetCursorStartTime(),
+				mLogHubConfig.getMaxFetchLogGroupSize());
 		mShardConsumer.put(shardId, consumer);
 		logger.info("create a consumer shard:" + shardId);
 		return consumer;
