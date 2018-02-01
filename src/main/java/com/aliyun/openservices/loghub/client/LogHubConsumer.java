@@ -121,15 +121,15 @@ public class LogHubConsumer {
 			if (result == null || result.getException() == null) 
 			{
 				boolean genFetchTask = true;
-				if(mLastFetchRawSize < 1024 * 1024 && mLastFetchCount < 100)
+				if(mLastFetchRawSize < 1024 * 1024 && mLastFetchCount < 100 && mLastFetchCount < mMaxFetchLogGroupSize)
 				{
 					genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 500);
 				}
-				else if(mLastFetchRawSize < 2 * 1024 * 1024 && mLastFetchCount < 500)
+				else if(mLastFetchRawSize < 2 * 1024 * 1024 && mLastFetchCount < 500 && mLastFetchCount < mMaxFetchLogGroupSize)
 				{
 					genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 200);
 				}
-				else if(mLastFetchRawSize < 4 * 1024 * 1024 && mLastFetchCount < 1000)
+				else if(mLastFetchRawSize < 4 * 1024 * 1024 && mLastFetchCount < 1000 && mLastFetchCount < mMaxFetchLogGroupSize)
 				{
 					genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 50);
 				}
