@@ -49,7 +49,6 @@ public class LogHubClientAdapter {
 	}
 	public void SwitchClient(String endPoint, String accessKeyId, String accessKey, String stsToken)
 	{
-		System.out.println("Switch");
 		mReadWrtlock.writeLock().lock();
 		this.mClient = new Client(endPoint, accessKeyId, accessKey);
 		if (this.mUseDirectMode)
