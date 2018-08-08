@@ -52,7 +52,7 @@
         <dependency>
             <groupId>com.aliyun.openservices</groupId>
             <artifactId>aliyun-log</artifactId>
-            <version>0.6.11</version>
+            <version>0.6.19</version>
         </dependency>
     </dependencies>
 
