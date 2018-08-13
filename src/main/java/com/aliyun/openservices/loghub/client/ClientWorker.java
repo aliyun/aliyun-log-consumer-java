@@ -72,7 +72,7 @@ public class ClientWorker implements Runnable
 			mLogHubHeartBeat.GetHeldShards(heldShards);
 			for(int shard: heldShards)
 			{
-				LogHubConsumer consumer = getConsuemr(shard);
+				LogHubConsumer consumer = getConsumer(shard);
 				consumer.consume();
 			}
 			cleanConsumer(heldShards);
@@ -129,7 +129,7 @@ public class ClientWorker implements Runnable
 		}
 	}
 	
-	private LogHubConsumer getConsuemr(final int shardId)
+	private LogHubConsumer getConsumer(final int shardId)
 	{
 		LogHubConsumer consumer = mShardConsumer.get(shardId);
 		if (consumer != null)

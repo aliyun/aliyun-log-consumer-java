@@ -10,7 +10,7 @@ public class InitializeTask implements ITask {
 	private ILogHubProcessor mProcessor;
 	private int mShardId;
 	private LogHubCursorPosition mCursorPosition;
-	private long mCursorStartTime = 0;
+	private long mCursorStartTime;
 
 	public InitializeTask(ILogHubProcessor processor, LogHubClientAdapter logHubClientAdapter,
 			int shardId,

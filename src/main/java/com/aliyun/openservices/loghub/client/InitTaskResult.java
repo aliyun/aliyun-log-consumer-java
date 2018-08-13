@@ -3,7 +3,7 @@ package com.aliyun.openservices.loghub.client;
 public class InitTaskResult extends TaskResult {
 
 	private String mCursor;
-	private boolean mCursorPersistent = false;
+	private boolean mCursorPersistent;
 
 	public InitTaskResult(String cursor , boolean cursor_persistent) {
 		super(null);

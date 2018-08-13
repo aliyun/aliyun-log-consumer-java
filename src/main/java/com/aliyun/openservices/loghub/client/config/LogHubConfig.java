@@ -3,11 +3,8 @@ package com.aliyun.openservices.loghub.client.config;
 import java.io.Serializable;
 
 
-
-
-
 public class LogHubConfig implements Serializable {
-	public static enum ConsumePosition {BEGIN_CURSOR, END_CURSOR};
+	public enum ConsumePosition {BEGIN_CURSOR, END_CURSOR};
 	private static final long serialVersionUID = -460559812263406428L;
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
 
@@ -27,15 +24,16 @@ public class LogHubConfig implements Serializable {
 	private boolean mUseDirectMode = false;
 	private int mMaxFetchLogGroupSize = 1000;
 
-	public LogHubConfig(String consumerGroupName, String consumerName, String loghubEndPoint,
+	public LogHubConfig(String consumerGroupName,
+	                    String consumerName,
+	                    String endpoint,
 						String project, String logStore,
 						String accessId, String accessKey,
-						ConsumePosition position
-						)
+						ConsumePosition position)
 	{
 		mConsumerGroupName = consumerGroupName;
 		mWorkerInstanceName = consumerName;
-		mLogHubEndPoint = loghubEndPoint;
+		mLogHubEndPoint = endpoint;
 		mProject = project;
 		mLogStore = logStore;
 		mAccessId = accessId;

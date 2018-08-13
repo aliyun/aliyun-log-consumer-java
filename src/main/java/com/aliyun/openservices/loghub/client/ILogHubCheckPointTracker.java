@@ -23,11 +23,11 @@ public interface ILogHubCheckPointTracker {
 	 *            if it is set to true, save the check point to outside system,
 	 *            other wise save it to memory
 	 */
-	public void saveCheckPoint(boolean persistent) throws LogHubCheckPointException;
+	void saveCheckPoint(boolean persistent) throws LogHubCheckPointException;
 	
 	/**
 	 * Get the last saved check point
 	 * @return the last saved checkpoint
 	 */
-	public String getCheckPoint();
+	String getCheckPoint();
 }

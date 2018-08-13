@@ -30,7 +30,7 @@ public class ClientFetcher {
 	private final LogHubHeartBeat mLogHubHeartBeat;
 	private LogHubClientAdapter mLogHubClientAdapter;
 	private final Map<Integer, LogHubConsumer> mShardConsumer = new HashMap<Integer, LogHubConsumer>();
-	int _curShardIndex = 0;
+	private int _curShardIndex = 0;
 	private final List<Integer> mShardList = new ArrayList<Integer>();
 	private final Map<Integer, FetchedLogGroup> mCachedData 
 		= new HashMap<Integer, FetchedLogGroup>();
@@ -182,7 +182,7 @@ public class ClientFetcher {
 				mLogHubHeartBeat.GetHeldShards(heldShards);
 				for(int shard: heldShards)
 				{
-					getConsuemr(shard);
+					getConsumer(shard);
 				}
 				cleanConsumer(heldShards);
 			} catch (Throwable t) {
@@ -217,7 +217,7 @@ public class ClientFetcher {
 		}
 	}
 	
-	private LogHubConsumer getConsuemr(int shardId)
+	private LogHubConsumer getConsumer(int shardId)
 	{
 		synchronized(mShardList) {
 			LogHubConsumer consumer = mShardConsumer.get(shardId);
