@@ -131,9 +131,7 @@ List<Integer> HeartBeat(
             String logStore,
             String consumerGroup,
             String consumer,
-            ArrayList<Integer> shards
-            )
-
+            ArrayList<Integer> shards);
 ```
 
 ### 有限状态自动机
