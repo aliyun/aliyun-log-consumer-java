@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -12,21 +13,21 @@
     <version>0.6.17-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>LogHub Client Library for Java</name>
+    <name>Aliyun LOG Java Consumer</name>
     <url>http://www.aliyun.com</url>
-    <description>The LogHub client Library</description>
+    <description>Aliyun LOG Java Consumer</description>
     <licenses>
         <license>
-            <name />
-            <url />
+            <name/>
+            <url/>
             <distribution>repo</distribution>
             <comments>Copyright (C) Alibaba Cloud Computing. All rights reserved.</comments>
         </license>
     </licenses>
     <scm>
-        <url>http://gitlab.alibaba-inc.com/sls/loghub-client-libs</url>
-        <connection>scm:git:http://gitlab.alibaba-inc.com/sls/loghub-client-libs.git</connection>
-        <developerConnection>scm:git:http://gitlab.alibaba-inc.com/sls/loghub-client-libs.git
+        <url>https://github.com/aliyun/aliyun-log-consumer-java</url>
+        <connection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</connection>
+        <developerConnection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git
         </developerConnection>
     </scm>
     <developers>
