@@ -35,7 +35,7 @@ public class ClientWorker implements Runnable
 		mLogHubConfig = config;
 		mLogHubClientAdapter = new LogHubClientAdapter(
 				config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken(), config.getProject(),
-				config.getLogStore(), config.getConsumerGroupName(), config.getWorkerInstanceName(), config.isDirectModeEnabled());
+				config.getLogStore(), config.getConsumerGroupName(), config.getConsumerName(), config.isDirectModeEnabled());
 		try 
 		{
 			mLogHubClientAdapter.CreateConsumerGroup((int)(config.getHeartBeatIntervalMillis()*2/1000), config.isConsumeInOrder());

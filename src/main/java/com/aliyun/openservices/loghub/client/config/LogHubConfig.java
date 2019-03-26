@@ -217,12 +217,6 @@ public class LogHubConfig implements Serializable {
 		return mConsumerGroupName;
 	}
 	public String getConsumerName() { return mWorkerInstanceName; }
-
-	@Deprecated
-	public String getWorkerInstanceName()
-	{
-		return mWorkerInstanceName;
-	}
 	
 	public String getLogHubEndPoint()
 	{

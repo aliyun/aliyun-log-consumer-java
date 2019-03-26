@@ -49,7 +49,7 @@ public class ClientFetcher {
 		mLogHubConfig = config;
 		mLogHubClientAdapter = new LogHubClientAdapter(
 				config.getLogHubEndPoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken(), config.getProject(),
-				config.getLogStore(), config.getConsumerGroupName(), config.getWorkerInstanceName(), config.isDirectModeEnabled());
+				config.getLogStore(), config.getConsumerGroupName(), config.getConsumerName(), config.isDirectModeEnabled());
 		try 
 		{
 			mLogHubClientAdapter.CreateConsumerGroup((int)(config.getHeartBeatIntervalMillis()*2/1000), config.isConsumeInOrder());
@@ -226,7 +226,7 @@ public class ClientFetcher {
 				return consumer;
 			}
 			consumer = new LogHubConsumer(mLogHubClientAdapter,shardId,
-					mLogHubConfig.getWorkerInstanceName(),
+					mLogHubConfig.getConsumerName(),
 					mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
 					mLogHubConfig.getCursorPosition(),
 					mLogHubConfig.GetCursorStartTime(),
