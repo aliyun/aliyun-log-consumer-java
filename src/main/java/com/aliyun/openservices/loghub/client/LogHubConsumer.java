@@ -84,15 +84,13 @@ public class LogHubConsumer {
 						mCheckPointTracker.setInPeristentCheckPoint(mNextFetchCursor);
 					}
 				}
-				else if (result instanceof ProcessTaskResult)
-				{
-					ProcessTaskResult process_task_result = (ProcessTaskResult)(result);
-					String roll_back_checkpoint = process_task_result.getRollBackCheckpoint();
-					if (roll_back_checkpoint != null && !roll_back_checkpoint.isEmpty())
-					{
+				else if (result instanceof ProcessTaskResult) {
+					ProcessTaskResult processTaskResult = (ProcessTaskResult)(result);
+					String checkpoint = processTaskResult.getRollBackCheckpoint();
+					if (checkpoint != null && !checkpoint.isEmpty()) {
 						mLastFetchedData = null;
 						CancelCurrentFetch();
-						mNextFetchCursor = roll_back_checkpoint;
+						mNextFetchCursor = checkpoint;
 					}
 				}
 			}

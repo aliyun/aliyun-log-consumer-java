@@ -58,7 +58,7 @@ public class LogHubHeartBeat {
 	}
 	synchronized public void RemoveHeartShard(final int shard)
 	{
-		mHeartShards.remove((Integer)shard);
+		mHeartShards.remove(shard);
 	}
 	synchronized protected void HeartBeat()
 	{
