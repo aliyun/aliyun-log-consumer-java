@@ -26,7 +26,7 @@ public class LogHubConsumer {
 
 	private ITask mCurrentTask;
 	private Future<TaskResult> mTaskFuture;
-	private Future<TaskResult> mFetchDataFeture;
+	private Future<TaskResult> mFetchDataFuture;
 
 	private ExecutorService mExecutorService;
 	private String mNextFetchCursor;
@@ -101,9 +101,9 @@ public class LogHubConsumer {
 	}
 
 	private void fetchData() {
-		if (mFetchDataFeture == null || mFetchDataFeture.isCancelled()
-				|| mFetchDataFeture.isDone()) {
-			TaskResult result = getTaskResult(mFetchDataFeture);
+		if (mFetchDataFuture == null || mFetchDataFuture.isCancelled()
+				|| mFetchDataFuture.isDone()) {
+			TaskResult result = getTaskResult(mFetchDataFuture);
 			if (result != null && result.getException() == null) 
 			{
 				FetchTaskResult fetchResult = (FetchTaskResult) result;
@@ -135,16 +135,16 @@ public class LogHubConsumer {
 				{
 					mLastFetchTime = System.currentTimeMillis();
 					LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter,mShardId, mNextFetchCursor, mMaxFetchLogGroupSize);
-					mFetchDataFeture = mExecutorService.submit(task);
+					mFetchDataFuture = mExecutorService.submit(task);
 				}
 				else
 				{
-					mFetchDataFeture = null;
+					mFetchDataFuture = null;
 				}
 			}
 			else
 			{
-				mFetchDataFeture = null;
+				mFetchDataFuture = null;
 			}
 			
 		}
@@ -172,11 +172,11 @@ public class LogHubConsumer {
 	}
 	private void CancelCurrentFetch()
 	{
-		if (mFetchDataFeture != null) {
-			mFetchDataFeture.cancel(true);
-			getTaskResult(mFetchDataFeture);
+		if (mFetchDataFuture != null) {
+			mFetchDataFuture.cancel(true);
+			getTaskResult(mFetchDataFuture);
 			logger.info("Cancel a fetch task, shard id:" + mShardId);
-			mFetchDataFeture = null;
+			mFetchDataFuture = null;
 		}
 	}
 	
