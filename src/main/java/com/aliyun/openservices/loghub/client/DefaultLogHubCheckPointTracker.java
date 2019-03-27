@@ -9,16 +9,16 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
 	private String mLastPersistentCheckPoint = "";
 
 	private LogHubClientAdapter mLogHubClientAdapter;
-	private String mInstanceName;
+	private String consumerName;
 	private int mShardId;
 	private long mLastCheckTime;
 	// flush the check point every 60 seconds by default
 	private static long DEFAULT_FLUSH_CHECK_POINT_TERVAL_NANOS = 60 * 1000L * 1000 * 1000L;
 
 	public DefaultLogHubCheckPointTracker(LogHubClientAdapter logHubClientAdapter,
-			String instanceName, int shardId) {
+			String consumerName, int shardId) {
 		mLogHubClientAdapter = logHubClientAdapter;
-		mInstanceName = instanceName;
+		this.consumerName = consumerName;
 		mShardId = shardId;
 		mLastCheckTime = System.nanoTime();
 	}
@@ -46,7 +46,7 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
 		mTempCheckPoint = cursor;
 	}
 	
-	public void setInPeristentCheckPoint(String cursor)
+	public void setInPersistentCheckPoint(String cursor)
 	{
 		mLastPersistentCheckPoint = cursor;
 	}
@@ -63,14 +63,13 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
 	public void flushCheckPoint() throws LogHubCheckPointException {
 		String toPersistent = mTempCheckPoint;
 
-		if (toPersistent != null
-				&& toPersistent.equals(mLastPersistentCheckPoint) == false) {
+		if (toPersistent != null && !toPersistent.equals(mLastPersistentCheckPoint)) {
 			try {
-				mLogHubClientAdapter.UpdateCheckPoint(mShardId, mInstanceName, toPersistent);
+				mLogHubClientAdapter.UpdateCheckPoint(mShardId, consumerName, toPersistent);
 				mLastPersistentCheckPoint = toPersistent;
 			} catch (LogException e) {
 				throw new LogHubCheckPointException(
-						"fail to persistent the cursor to outside system, " + mInstanceName + ", " + mShardId + ", " + toPersistent, e);
+						"fail to persistent the cursor to outside system, " + consumerName + ", " + mShardId + ", " + toPersistent, e);
 			}
 		}
 	}

@@ -14,7 +14,6 @@ public class LogHubConsumer {
 		INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
 	}
 	private int mShardId;
-	private String mInstanceName;
 	private LogHubClientAdapter mLogHubClientAdapter;
 	private DefaultLogHubCheckPointTracker mCheckPointTracker;
 	private ILogHubProcessor mProcessor;
@@ -39,17 +38,16 @@ public class LogHubConsumer {
 	private long mLastFetchTime = 0;
 	private int mLastFetchCount = 0;
 	private int mLastFetchRawSize = 0;
-	public LogHubConsumer(LogHubClientAdapter logHubClientAdapter,int shardId, String instanceName,
+	public LogHubConsumer(LogHubClientAdapter logHubClientAdapter,int shardId, String consumerName,
 			ILogHubProcessor processor,
 			ExecutorService executorService,  LogHubCursorPosition cursorPosition, int cursorStartTime, int maxFetchLogGroupSize) {
 		mLogHubClientAdapter = logHubClientAdapter;
 		mShardId = shardId;
-		mInstanceName = instanceName;
 		mCursorPosition = cursorPosition;
 		mCursorStartTime = cursorStartTime;
 		mProcessor = processor;
 		mCheckPointTracker = new DefaultLogHubCheckPointTracker(logHubClientAdapter,
-				mInstanceName, mShardId);
+				consumerName, mShardId);
 		mExecutorService = executorService;
 		mMaxFetchLogGroupSize = maxFetchLogGroupSize;
 	}
@@ -81,7 +79,7 @@ public class LogHubConsumer {
 					mCheckPointTracker.setInMemoryCheckPoint(mNextFetchCursor);
 					if(initResult.isCursorPersistent())
 					{
-						mCheckPointTracker.setInPeristentCheckPoint(mNextFetchCursor);
+						mCheckPointTracker.setInPersistentCheckPoint(mNextFetchCursor);
 					}
 				}
 				else if (result instanceof ProcessTaskResult) {

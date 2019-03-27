@@ -9,7 +9,7 @@ public class LogHubConfig implements Serializable {
 	public static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
 
 	private String mConsumerGroupName;
-	private String mWorkerInstanceName;
+	private String consumerName;
 	private String mLogHubEndPoint;
 	private String mProject;
 	private String mLogStore;
@@ -32,7 +32,7 @@ public class LogHubConfig implements Serializable {
 						ConsumePosition position)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = consumerName;
+		this.consumerName = consumerName;
 		mLogHubEndPoint = endpoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -52,7 +52,7 @@ public class LogHubConfig implements Serializable {
 	)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = consumerName;
+		this.consumerName = consumerName;
 		mLogHubEndPoint = loghubEndPoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -74,7 +74,7 @@ public class LogHubConfig implements Serializable {
 	)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = consumerName;
+		this.consumerName = consumerName;
 		mLogHubEndPoint = loghubEndPoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -96,7 +96,7 @@ public class LogHubConfig implements Serializable {
 	)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = consumerName;
+		this.consumerName = consumerName;
 		mLogHubEndPoint = loghubEndPoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -121,7 +121,7 @@ public class LogHubConfig implements Serializable {
 			boolean userDirectMode)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = consumerName;
+		this.consumerName = consumerName;
 		mLogHubEndPoint = loghubEndPoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -153,7 +153,7 @@ public class LogHubConfig implements Serializable {
 			boolean consumeInOrder)
 	{
 		mConsumerGroupName = consumerGroupName;
-		mWorkerInstanceName = consumerName;
+		this.consumerName = consumerName;
 		mLogHubEndPoint = loghubEndPoint;
 		mProject = project;
 		mLogStore = logStore;
@@ -216,7 +216,7 @@ public class LogHubConfig implements Serializable {
 	{
 		return mConsumerGroupName;
 	}
-	public String getConsumerName() { return mWorkerInstanceName; }
+	public String getConsumerName() { return consumerName; }
 	
 	public String getLogHubEndPoint()
 	{
