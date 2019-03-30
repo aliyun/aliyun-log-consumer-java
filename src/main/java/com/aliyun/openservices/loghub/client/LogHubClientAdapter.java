@@ -22,14 +22,12 @@ public class LogHubClientAdapter {
 	private final String mStream;
 	private final String mConsumerGroup;
 	private final String mConsumer;
-	private final String mUserAgent;
 	private final boolean mUseDirectMode;
 	private static final Logger logger = Logger.getLogger(LogHubClientAdapter.class);
-	
+
 	public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String stsToken, String project, String stream,
 			String consumerGroup, String consumer, boolean useDirectMode) 
 	{
-		super();
 		this.mUseDirectMode = useDirectMode;
 		this.mClient = new Client(endPoint, accessKeyId, accessKey);
 		if (this.mUseDirectMode)
@@ -44,8 +42,7 @@ public class LogHubClientAdapter {
 		this.mStream = stream;
 		this.mConsumerGroup = consumerGroup;
 		this.mConsumer = consumer;
-		this.mUserAgent = "consumergroup-java-" + consumerGroup;
-		this.mClient.setUserAgent(mUserAgent);
+		this.mClient.setUserAgent("consumergroup-java-" + consumerGroup);
 	}
 	public void SwitchClient(String endPoint, String accessKeyId, String accessKey, String stsToken)
 	{
@@ -80,24 +77,6 @@ public class LogHubClientAdapter {
 		finally{
 			mReadWrtlock.readLock().unlock();
 		}
-	}
-	
-	public ConsumerGroup GetConsumerGroup() throws LogException
-	{
-		mReadWrtlock.readLock().lock();
-		try {
-			for(ConsumerGroup consumerGroup: mClient.ListConsumerGroup(mProject, mStream).GetConsumerGroups())
-			{
-				if(consumerGroup.getConsumerGroupName().compareTo(mConsumerGroup) == 0)
-				{
-					return consumerGroup;
-				}
-			}
-		}
-		finally{
-			mReadWrtlock.readLock().unlock();
-		}
-		return null;
 	}
 	
 	public boolean HeartBeat(ArrayList<Integer> shards, ArrayList<Integer> response)
