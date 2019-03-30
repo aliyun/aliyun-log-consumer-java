@@ -9,80 +9,69 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 public class LogHubHeartBeat {
-	private ScheduledExecutorService threadpool;
-	private LogHubClientAdapter mLogHubClientAdapter;
-	private boolean running = false;
-	private final long mHeartBeatIntervalMillis;
-	private ArrayList<Integer> mHeldShards;
-	private HashSet<Integer> mHeartShards;
-	private static final Logger logger = Logger.getLogger(LogHubHeartBeat.class);
-	private static final long STOP_WAIT_TIME_MILLIS = 2000L;
-	public LogHubHeartBeat(LogHubClientAdapter logHubClientAdapter,
-			long heartBeatIntervalMillis) {
-		super();
-		this.mLogHubClientAdapter = logHubClientAdapter;
-		this.mHeartBeatIntervalMillis = heartBeatIntervalMillis;
-		mHeldShards = new ArrayList<Integer>();
-		mHeartShards = new HashSet<Integer>();
-	}
-	public void Start()
-	{
-		threadpool = Executors.newScheduledThreadPool(1, new LogThreadFactory());
-		threadpool.scheduleWithFixedDelay(new HeartBeatRunnable(), 0L,
-				mHeartBeatIntervalMillis, TimeUnit.MILLISECONDS);
-		running = true;
-	}
-	/**
-	 * Stops background threads.
-	 */
-	public void Stop() {
-		if (threadpool != null) {
-			threadpool.shutdown();
-			try {
-				if (threadpool.awaitTermination(STOP_WAIT_TIME_MILLIS,
-						TimeUnit.MILLISECONDS)) {
-				} else {
-					threadpool.shutdownNow();
+    private static final Logger LOG = Logger.getLogger(LogHubHeartBeat.class);
+    private static final long STOP_TIMEOUT_MILLIS = 2000L;
 
-				}
-			} catch (InterruptedException e) {
+    private ScheduledExecutorService executorService;
+    private LogHubClientAdapter mLogHubClientAdapter;
+    private final long mHeartBeatIntervalMillis;
+    private ArrayList<Integer> mHeldShards;
+    private HashSet<Integer> mHeartShards;
 
-			}
-		}
-		running = false;
-	}
-	synchronized public void GetHeldShards(ArrayList<Integer> shards)
-	{
-		shards.clear();
-		shards.addAll(mHeldShards);
-	}
-	synchronized public void RemoveHeartShard(final int shard)
-	{
-		mHeartShards.remove(shard);
-	}
-	synchronized protected void HeartBeat()
-	{
-		if(mLogHubClientAdapter.HeartBeat(new ArrayList<Integer>(mHeartShards), mHeldShards))
-		{
-			mHeartShards.addAll(mHeldShards);
-		}
-	}
-	private class HeartBeatRunnable implements Runnable
-	{
-		@Override
-		public void run() {
-			try {
-				HeartBeat();
-			}
-			catch (Throwable t) {
-			}
-		}	
-	}
-	
-	/**
-	 * @return true if this LeaseCoordinator is running
-	 */
-	public boolean isRunning() {
-		return running;
-	}
+    public LogHubHeartBeat(LogHubClientAdapter logHubClientAdapter,
+                           long heartBeatIntervalMillis) {
+        super();
+        this.mLogHubClientAdapter = logHubClientAdapter;
+        this.mHeartBeatIntervalMillis = heartBeatIntervalMillis;
+        mHeldShards = new ArrayList<Integer>();
+        mHeartShards = new HashSet<Integer>();
+    }
+
+    public void Start() {
+        executorService = Executors.newScheduledThreadPool(1, new LogThreadFactory());
+        executorService.scheduleWithFixedDelay(new HeartBeatRunnable(), 0L,
+                mHeartBeatIntervalMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Stops background threads.
+     */
+    public void Stop() {
+        if (executorService != null) {
+            executorService.shutdown();
+            try {
+                if (!executorService.awaitTermination(STOP_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                    executorService.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                // swallow it as we're exiting
+            }
+        }
+    }
+
+    public synchronized void GetHeldShards(ArrayList<Integer> shards) {
+        shards.clear();
+        shards.addAll(mHeldShards);
+    }
+
+    public synchronized void RemoveHeartShard(final int shard) {
+        mHeartShards.remove(shard);
+    }
+
+    private synchronized void HeartBeat() {
+        if (mLogHubClientAdapter.HeartBeat(new ArrayList<Integer>(mHeartShards), mHeldShards)) {
+            mHeartShards.addAll(mHeldShards);
+        }
+    }
+
+    private class HeartBeatRunnable implements Runnable {
+        @Override
+        public void run() {
+            try {
+                HeartBeat();
+            } catch (Throwable t) {
+                LOG.warn("Heartbeat failed", t);
+            }
+        }
+    }
 }
