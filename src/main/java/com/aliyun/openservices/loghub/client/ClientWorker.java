@@ -24,7 +24,7 @@ public class ClientWorker implements Runnable {
 	private final ExecutorService executorService = Executors.newCachedThreadPool(new LogThreadFactory());
 	private LogHubClientAdapter logHubClientAdapter;
 	private static final Logger logger = Logger.getLogger(ClientWorker.class);
-	private boolean mainLoopExit = false;
+	private volatile boolean mainLoopExit = false;
 
 	public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) throws LogHubClientWorkerException {
 		processorFactory = factory;
@@ -62,10 +62,10 @@ public class ClientWorker implements Runnable {
 		logHubClientAdapter.SwitchClient(logHubConfig.getLogHubEndPoint(), accessKeyId, accessKey, stsToken);
 	}
 	public void run() {		
-		logHubHeartBeat.Start();
+		logHubHeartBeat.start();
 		ArrayList<Integer> heldShards = new ArrayList<Integer>();
 		while (!shutDown) {
-			logHubHeartBeat.GetHeldShards(heldShards);
+			logHubHeartBeat.getHeldShards(heldShards);
 			for(int shard: heldShards)
 			{
 				LogHubConsumer consumer = getConsumer(shard);
@@ -98,7 +98,7 @@ public class ClientWorker implements Runnable {
 			executorService.awaitTermination(30, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 		}
-		logHubHeartBeat.Stop();
+		logHubHeartBeat.stop();
 	}
 	
 	private void cleanConsumer(ArrayList<Integer> ownedShard)
@@ -114,7 +114,7 @@ public class ClientWorker implements Runnable {
 			}
 			if (consumer.isShutdown())
 			{
-				logHubHeartBeat.RemoveHeartShard(shard.getKey());
+				logHubHeartBeat.removeHeartShard(shard.getKey());
 				removeShards.add(shard.getKey());
 				logger.info("remove a consumer shard:" + shard.getKey());
 			}
