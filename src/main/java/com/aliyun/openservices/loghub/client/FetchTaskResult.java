@@ -1,35 +1,31 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.List;
-
 import com.aliyun.openservices.log.common.LogGroupData;
+
+import java.util.List;
 
 public class FetchTaskResult extends TaskResult {
 
-	private List<LogGroupData> mFetchData;
-	private String mCursor;
-	private int mRawSize;
+    private List<LogGroupData> fetchData;
+    private String cursor;
+    private int rawSize;
 
-	public FetchTaskResult(List<LogGroupData> fetchData, String cursor, int rawSize) {
-		super(null);
-		mFetchData = fetchData;
-		mCursor = cursor;
-		mRawSize = rawSize;
-	}
+    public FetchTaskResult(List<LogGroupData> fetchData, String cursor, int rawSize) {
+        super(null);
+        this.fetchData = fetchData;
+        this.cursor = cursor;
+        this.rawSize = rawSize;
+    }
 
-	public List<LogGroupData> getFetchedData() {
-		return mFetchData;
-	}
+    public List<LogGroupData> getFetchedData() {
+        return fetchData;
+    }
 
-	public String getCursor() {
-		return mCursor;
-	}
-	public int getRawSize()
-	{
-		return mRawSize;
-	}
-	public FetchTaskResult(Exception e) {
-		super(e);
-	}
-	
+    public String getCursor() {
+        return cursor;
+    }
+
+    public int getRawSize() {
+        return rawSize;
+    }
 }

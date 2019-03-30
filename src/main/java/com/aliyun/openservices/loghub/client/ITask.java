@@ -4,5 +4,5 @@ import java.util.concurrent.Callable;
 
 
 interface ITask extends Callable<TaskResult> {
-	TaskResult call();
+    TaskResult call();
 }

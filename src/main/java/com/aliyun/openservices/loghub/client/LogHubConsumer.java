@@ -108,7 +108,7 @@ public class LogHubConsumer {
 				mLastFetchedData = new FetchedLogGroup(mShardId,
 						fetchResult.getFetchedData(), fetchResult.getCursor());
 				mNextFetchCursor = fetchResult.getCursor();
-				mLastFetchCount = mLastFetchedData.mFetchedData.size();
+				mLastFetchCount = mLastFetchedData.getFetchedData().size();
 				mLastFetchRawSize = fetchResult.getRawSize();
 			}
 			
@@ -184,9 +184,9 @@ public class LogHubConsumer {
 			nextTask = new InitializeTask(mProcessor,mLogHubClientAdapter, mShardId, mCursorPosition , mCursorStartTime);
 		} else if (this.mCurStatus.equals(ConsumerStatus.PROCESSING)) {
 			if (mLastFetchedData != null) {
-				mCheckPointTracker.setCursor(mLastFetchedData.mEndCursor);
+				mCheckPointTracker.setCursor(mLastFetchedData.getEndCursor());
 				nextTask = new ProcessTask(mProcessor,
-						mLastFetchedData.mFetchedData, mCheckPointTracker);
+						mLastFetchedData.getFetchedData(), mCheckPointTracker);
 				mLastFetchedData = null;
 			}
 		} else if (this.mCurStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
