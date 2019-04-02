@@ -42,7 +42,7 @@ public class LogHubHeartBeat {
                     executorService.shutdownNow();
                 }
             } catch (InterruptedException e) {
-                // swallow it as we're exiting
+                Thread.currentThread().interrupt();
             }
         }
     }
