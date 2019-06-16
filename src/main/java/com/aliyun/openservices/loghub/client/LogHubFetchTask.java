@@ -10,61 +10,56 @@ import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
 
 public class LogHubFetchTask implements ITask {
-	private LogHubClientAdapter mLogHubClientAdapter;
-	private int mShardId;
-	private String mCursor;
-	private int mMaxFetchLogGroupSize;
-	private static final Logger logger = Logger.getLogger(LogHubFetchTask.class);
+    private LogHubClientAdapter logHubClientAdapter;
+    private int shardId;
+    private String cursor;
+    private int maxFetchLogGroupSize;
+    private static final Logger LOG = Logger.getLogger(LogHubFetchTask.class);
 
-	public LogHubFetchTask(LogHubClientAdapter logHubClientAdapter, int shardId, String cursor, int maxFetchLogGroupSize) {
-		mLogHubClientAdapter = logHubClientAdapter;
-		mShardId = shardId;
-		mCursor = cursor;
-		mMaxFetchLogGroupSize = maxFetchLogGroupSize;
-	}
+    public LogHubFetchTask(LogHubClientAdapter logHubClientAdapter, int shardId, String cursor, int maxFetchLogGroupSize) {
+        this.logHubClientAdapter = logHubClientAdapter;
+        this.shardId = shardId;
+        this.cursor = cursor;
+        this.maxFetchLogGroupSize = maxFetchLogGroupSize;
+    }
 
-	public TaskResult call() {
-		Exception exception = null;
-		for (int retry = 0 ; retry < 2 ; retry++)
-		{
-			try {
-				BatchGetLogResponse response = mLogHubClientAdapter.BatchGetLogs(
-						mShardId, mMaxFetchLogGroupSize, mCursor);
-				List<LogGroupData> fetchedData = response.GetLogGroups();
-				logger.debug("shard id = " + mShardId + " cursor = " + mCursor
-						+ " next cursor" + response.GetNextCursor() + " size:"
-						+ String.valueOf(response.GetCount()));
-				
-				String cursor = response.GetNextCursor();
-				
-				if (cursor.isEmpty()) {
-					return new FetchTaskResult(fetchedData, mCursor, response.GetRawSize());
-				} else {
-					return new FetchTaskResult(fetchedData, cursor, response.GetRawSize());
-				}
-			} catch (Exception e) {
-				exception = e;
-			}
-		
-			// only retry if the first request get "SLSInvalidCursor" exception
-			if (retry == 0
-					&& exception instanceof LogException
-					&& ((LogException) (exception)).GetErrorCode()
-							.toLowerCase().indexOf("invalidcursor") != -1) {
-				try {
-					freshCursor();
-				} catch (Exception e) {
-					return new TaskResult(exception);
-				}
-				continue;
-			} else {
-				break;
-			}
-		}
-		return new TaskResult(exception);
-	}
+    public TaskResult call() {
+        Exception exception = null;
+        boolean retry = false;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                BatchGetLogResponse response = logHubClientAdapter.BatchGetLogs(
+                        shardId, maxFetchLogGroupSize, cursor);
+                List<LogGroupData> fetchedData = response.GetLogGroups();
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("shard id = " + shardId + " cursor = " + cursor
+                            + " next cursor" + response.GetNextCursor() + " size:"
+                            + response.GetCount());
+                }
+                String cursor = response.GetNextCursor();
+                return new FetchTaskResult(fetchedData, cursor, response.GetRawSize());
+            } catch (LogException lex) {
+                if (attempt == 0 && lex.GetErrorCode().toLowerCase().contains("invalidcursor")) {
+                    retry = true;
+                }
+                exception = lex;
+            } catch (Exception e) {
+                exception = e;
+            }
+            if (retry) {
+                try {
+                    refreshCursor();
+                } catch (Exception e) {
+                    LOG.warn("Could not refresh cursor", e);
+                    break;
+                }
+                retry = false;
+            }
+        }
+        return new TaskResult(exception);
+    }
 
-	public void freshCursor() throws NumberFormatException, LogException {
-		mCursor =  mLogHubClientAdapter.GetCursor(mShardId, CursorMode.END);
-	}
+    private void refreshCursor() throws LogException {
+        cursor = logHubClientAdapter.GetCursor(shardId, CursorMode.END);
+    }
 }
