@@ -36,8 +36,11 @@ public class LogHubFetchTask implements ITask {
                             + " next cursor" + response.GetNextCursor() + " size:"
                             + response.GetCount());
                 }
-                String cursor = response.GetNextCursor();
-                return new FetchTaskResult(fetchedData, cursor, response.GetRawSize());
+                String nextCursor = response.GetNextCursor();
+                if (nextCursor.isEmpty()) {
+                    nextCursor = cursor;
+                }
+                return new FetchTaskResult(fetchedData, nextCursor, response.GetRawSize());
             } catch (LogException lex) {
                 if (attempt == 0 && lex.GetErrorCode().toLowerCase().contains("invalidcursor")) {
                     retry = true;
