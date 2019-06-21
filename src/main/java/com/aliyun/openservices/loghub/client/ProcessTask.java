@@ -7,26 +7,25 @@ import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
 
 public class ProcessTask implements ITask {
 
-	private ILogHubProcessor mProcessor;
-	private List<LogGroupData> mLogGroup;
-	private DefaultLogHubCheckPointTracker mCheckPointTracker;
+    private ILogHubProcessor processor;
+    private List<LogGroupData> chunk;
+    private DefaultLogHubCheckPointTracker checkPointTracker;
 
-	public ProcessTask(ILogHubProcessor processor, List<LogGroupData> logGroups,
-			DefaultLogHubCheckPointTracker checkPointTracker) {
-		mProcessor = processor;
-		mLogGroup = logGroups;
-		mCheckPointTracker = checkPointTracker;
+    public ProcessTask(ILogHubProcessor processor, List<LogGroupData> logGroups,
+                       DefaultLogHubCheckPointTracker checkPointTracker) {
+        this.processor = processor;
+        this.chunk = logGroups;
+        this.checkPointTracker = checkPointTracker;
+    }
 
-	}
-
-	public TaskResult call() {
-		String checkpoint = null;
-		try {
-			checkpoint = mProcessor.process(mLogGroup, mCheckPointTracker);
-			mCheckPointTracker.flushCheck();
-		} catch (Exception e) {
-			return new TaskResult(e);
-		}
-		return new ProcessTaskResult(checkpoint);
-	}
+    public TaskResult call() {
+        String checkpoint;
+        try {
+            checkpoint = processor.process(chunk, checkPointTracker);
+            checkPointTracker.flushCheck();
+        } catch (Exception e) {
+            return new TaskResult(e);
+        }
+        return new ProcessTaskResult(checkpoint);
+    }
 }
