@@ -1,15 +1,17 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
-import org.apache.log4j.Logger;
-
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class LogHubConsumer {
+    private static final Logger LOG = LoggerFactory.getLogger(LogHubConsumer.class);
+
     enum ConsumerStatus {
         INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
     }
@@ -34,7 +36,6 @@ public class LogHubConsumer {
 
     private FetchedLogGroup mLastFetchedData;
 
-    private static final Logger logger = Logger.getLogger(LogHubConsumer.class);
     private long mLastLogErrorTime = 0;
     private long mLastFetchTime = 0;
     private int mLastFetchCount = 0;
@@ -140,7 +141,7 @@ public class LogHubConsumer {
         if (result != null && result.getException() != null) {
             long curTime = System.currentTimeMillis();
             if (curTime - mLastLogErrorTime > 5 * 1000) {
-                logger.warn(result.getException());
+                LOG.warn("", result.getException());
                 mLastLogErrorTime = curTime;
             }
         }
@@ -161,7 +162,7 @@ public class LogHubConsumer {
         if (mFetchDataFuture != null) {
             mFetchDataFuture.cancel(true);
             getTaskResult(mFetchDataFuture);
-            logger.info("Cancel a fetch task, shard id:" + mShardId);
+            LOG.info("Cancel a fetch task, shard id: {}", mShardId);
             mFetchDataFuture = null;
         }
     }

@@ -6,5 +6,7 @@ package com.aliyun.openservices.loghub.client.config;
  * 
  */
 public enum LogHubCursorPosition {
-	BEGIN_CURSOR, END_CURSOR, SPECIAL_TIMER_CURSOR
+	BEGIN_CURSOR,
+	END_CURSOR,
+	SPECIAL_TIMER_CURSOR
 }

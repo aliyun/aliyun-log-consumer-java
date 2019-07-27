@@ -1,11 +1,5 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.ArrayList;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.log4j.Logger;
-
 import com.aliyun.openservices.log.Client;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
 import com.aliyun.openservices.log.common.ConsumerGroup;
@@ -13,17 +7,24 @@ import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LogHubClientAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(LogHubClientAdapter.class);
 
     private Client client;
+    // TODO It's unreasonable here
     private ReadWriteLock readWrtlock = new ReentrantReadWriteLock();
     private final String project;
     private final String logstore;
     private final String consumerGroup;
     private final String consumer;
     private final boolean useDirectMode;
-    private static final Logger logger = Logger.getLogger(LogHubClientAdapter.class);
 
     public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String stsToken, String project, String logstore,
                                String consumerGroup, String consumer, boolean useDirectMode) {
@@ -33,12 +34,13 @@ public class LogHubClientAdapter {
             this.client.EnableDirectMode();
         }
         if (stsToken != null) {
-            this.client.SetSecurityToken(stsToken);
+            this.client.setSecurityToken(stsToken);
         }
         this.project = project;
         this.logstore = logstore;
         this.consumerGroup = consumerGroup;
         this.consumer = consumer;
+        // TODO Make UserAgent configurable
         this.client.setUserAgent("consumergroup-java-" + consumerGroup);
     }
 
@@ -49,7 +51,7 @@ public class LogHubClientAdapter {
             this.client.EnableDirectMode();
         }
         if (stsToken != null) {
-            this.client.SetSecurityToken(stsToken);
+            this.client.setSecurityToken(stsToken);
         }
         readWrtlock.writeLock().unlock();
     }
@@ -79,7 +81,7 @@ public class LogHubClientAdapter {
             response.addAll(client.HeartBeat(project, logstore, consumerGroup, consumer, shards).GetShards());
             return true;
         } catch (LogException e) {
-            logger.warn(e.GetErrorCode() + ": " + e.GetErrorMessage());
+            LOG.warn("Error while sending heartbeat", e);
         } finally {
             readWrtlock.readLock().unlock();
         }

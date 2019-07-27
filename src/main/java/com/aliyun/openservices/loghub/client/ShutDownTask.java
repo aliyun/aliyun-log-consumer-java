@@ -1,12 +1,12 @@
 package com.aliyun.openservices.loghub.client;
 
 
-import org.apache.log4j.Logger;
-
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShutDownTask implements ITask {
-    private static final Logger LOG = Logger.getLogger(ShutDownTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ShutDownTask.class);
 
     private ILogHubProcessor processor;
     private DefaultLogHubCheckPointTracker checkPointTracker;

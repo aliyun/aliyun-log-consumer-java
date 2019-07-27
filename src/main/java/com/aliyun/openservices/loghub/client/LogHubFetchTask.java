@@ -1,20 +1,20 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import com.aliyun.openservices.log.common.Consts.CursorMode;
 import com.aliyun.openservices.log.common.LogGroupData;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class LogHubFetchTask implements ITask {
     private LogHubClientAdapter logHubClientAdapter;
     private int shardId;
     private String cursor;
     private int maxFetchLogGroupSize;
-    private static final Logger LOG = Logger.getLogger(LogHubFetchTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LogHubFetchTask.class);
 
     public LogHubFetchTask(LogHubClientAdapter logHubClientAdapter, int shardId, String cursor, int maxFetchLogGroupSize) {
         this.logHubClientAdapter = logHubClientAdapter;
@@ -32,9 +32,8 @@ public class LogHubFetchTask implements ITask {
                         shardId, maxFetchLogGroupSize, cursor);
                 List<LogGroupData> fetchedData = response.GetLogGroups();
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("shard id = " + shardId + " cursor = " + cursor
-                            + " next cursor" + response.GetNextCursor() + " size:"
-                            + response.GetCount());
+                    LOG.debug("shard {}, cursor {}, next cursor {}, response size: {}", shardId, cursor,
+                            response.GetNextCursor(), response.GetCount());
                 }
                 String nextCursor = response.GetNextCursor();
                 if (nextCursor.isEmpty()) {
@@ -50,6 +49,7 @@ public class LogHubFetchTask implements ITask {
                 exception = e;
             }
             if (retry) {
+                // TODO Why we need this?
                 try {
                     refreshCursor();
                 } catch (Exception e) {
