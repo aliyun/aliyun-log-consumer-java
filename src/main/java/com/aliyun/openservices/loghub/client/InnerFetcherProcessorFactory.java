@@ -11,8 +11,7 @@ public class InnerFetcherProcessorFactory implements ILogHubProcessorFactory {
         mFetcher = fetcher;
     }
 
-    public ILogHubProcessor generatorProcessor()
-    {
+    public ILogHubProcessor generatorProcessor() {
         return new InnerFetcherProcessor(mFetcher);
     }
 
