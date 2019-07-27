@@ -1,15 +1,16 @@
 package com.aliyun.openservices.loghub.client;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.Logger;
-
 public class LogHubHeartBeat {
-    private static final Logger LOG = Logger.getLogger(LogHubHeartBeat.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LogHubHeartBeat.class);
     private static final long STOP_TIMEOUT_MILLIS = 2000L;
 
     private ScheduledExecutorService executorService;

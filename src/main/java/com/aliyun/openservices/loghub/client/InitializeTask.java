@@ -3,10 +3,11 @@ package com.aliyun.openservices.loghub.client;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InitializeTask implements ITask {
-    private static final Logger LOG = Logger.getLogger(InitializeTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(InitializeTask.class);
 
     private LogHubClientAdapter mLogHubClientAdapter;
     private ILogHubProcessor mProcessor;
