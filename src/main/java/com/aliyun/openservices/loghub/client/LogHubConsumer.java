@@ -88,7 +88,7 @@ public class LogHubConsumer {
                     String checkpoint = processTaskResult.getRollBackCheckpoint();
                     if (checkpoint != null && !checkpoint.isEmpty()) {
                         mLastFetchedData = null;
-                        CancelCurrentFetch();
+                        cancelCurrentFetch();
                         mNextFetchCursor = checkpoint;
                     }
                 }
@@ -152,13 +152,13 @@ public class LogHubConsumer {
             try {
                 return future.get();
             } catch (Exception e) {
+                LOG.error("Error while executing task", e.getCause());
             }
         }
         return null;
-
     }
 
-    private void CancelCurrentFetch() {
+    private void cancelCurrentFetch() {
         if (mFetchDataFuture != null) {
             mFetchDataFuture.cancel(true);
             getTaskResult(mFetchDataFuture);
@@ -180,7 +180,7 @@ public class LogHubConsumer {
             }
         } else if (this.mCurStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
             nextTask = new ShutDownTask(mProcessor, mCheckPointTracker);
-            CancelCurrentFetch();
+            cancelCurrentFetch();
         }
         if (nextTask != null) {
             mCurrentTask = nextTask;

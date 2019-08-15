@@ -6,11 +6,12 @@ import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
-import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
+import com.aliyun.openservices.log.response.ConsumerGroupCheckPointResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -97,19 +98,20 @@ public class LogHubClientAdapter {
         }
     }
 
-    public String GetCheckPoint(final int shard) throws LogException, LogHubCheckPointException {
+    public String GetCheckPoint(final int shard) throws LogException {
         readWrtlock.readLock().lock();
-        ArrayList<ConsumerGroupShardCheckPoint> checkPoints = null;
+        ConsumerGroupCheckPointResponse response;
         try {
-            checkPoints = client.GetCheckPoint(project, logstore, consumerGroup, shard).GetCheckPoints();
+            response = client.GetCheckPoint(project, logstore, consumerGroup, shard);
         } finally {
             readWrtlock.readLock().unlock();
         }
-        if (checkPoints == null || checkPoints.size() == 0) {
-            throw new LogHubCheckPointException("fail to get shard checkpoint");
-        } else {
-            return checkPoints.get(0).getCheckPoint();
+        // TODO move this to SDK
+        List<ConsumerGroupShardCheckPoint> checkpoints = response.getCheckPoints();
+        if (checkpoints == null || checkpoints.isEmpty()) {
+            throw new LogException("CheckpointNotExist", "Checkpoint not found for shard " + shard, response.GetRequestId());
         }
+        return checkpoints.get(0).getCheckPoint();
     }
 
     public String GetCursor(final int shard, CursorMode mode) throws LogException {
