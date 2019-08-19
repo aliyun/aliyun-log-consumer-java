@@ -39,9 +39,7 @@ public class ClientFetcher {
     public ClientFetcher(LogHubConfig config) throws LogHubClientWorkerException {
         mLogHubProcessorFactory = new InnerFetcherProcessorFactory(this);
         mLogHubConfig = config;
-        mLogHubClientAdapter = new LogHubClientAdapter(
-                config.getEndpoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken(), config.getProject(),
-                config.getLogStore(), config.getConsumerGroupName(), config.getConsumerName(), config.isDirectModeEnabled());
+        mLogHubClientAdapter = new LogHubClientAdapter(config);
         try {
             mLogHubClientAdapter.CreateConsumerGroup((int) (config.getHeartBeatIntervalMillis() * 2 / 1000), config.isConsumeInOrder());
         } catch (LogException e) {
@@ -199,12 +197,11 @@ public class ClientFetcher {
             if (consumer != null) {
                 return consumer;
             }
-            consumer = new LogHubConsumer(mLogHubClientAdapter, shardId,
-                    mLogHubConfig.getConsumerName(),
-                    mLogHubProcessorFactory.generatorProcessor(), mExecutorService,
-                    mLogHubConfig.getCursorPosition(),
-                    mLogHubConfig.GetCursorStartTime(),
-                    mLogHubConfig.getMaxFetchLogGroupSize());
+            consumer = new LogHubConsumer(mLogHubClientAdapter,
+                    shardId,
+                    mLogHubProcessorFactory.generatorProcessor(),
+                    mExecutorService,
+                    mLogHubConfig);
             mShardConsumer.put(shardId, consumer);
             mShardList.add(shardId);
             consumer.consume();

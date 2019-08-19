@@ -12,6 +12,8 @@ public class LogHubConfig implements Serializable {
     }
 
     private static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
+    // flush the check point every 60 seconds by default
+    private static final long DEFAULT_COMMIT_INTERVAL_MS = 60 * 1000L;
 
     private String mConsumerGroupName;
     private String consumerName;
@@ -27,6 +29,8 @@ public class LogHubConfig implements Serializable {
     private boolean mConsumeInOrder;
     private String mStsToken = null;
     private boolean directModeEnabled = false;
+    private boolean autoCommitEnabled = true;
+    private long autoCommitIntervalMs = DEFAULT_COMMIT_INTERVAL_MS;
     private int mMaxFetchLogGroupSize = 1000;
     private String userAgent;
 
@@ -279,5 +283,21 @@ public class LogHubConfig implements Serializable {
 
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
+    }
+
+    public boolean isAutoCommitEnabled() {
+        return autoCommitEnabled;
+    }
+
+    public void setAutoCommitEnabled(boolean autoCommitEnabled) {
+        this.autoCommitEnabled = autoCommitEnabled;
+    }
+
+    public long getAutoCommitIntervalMs() {
+        return autoCommitIntervalMs;
+    }
+
+    public void setAutoCommitIntervalMs(long autoCommitIntervalMs) {
+        this.autoCommitIntervalMs = autoCommitIntervalMs;
     }
 }

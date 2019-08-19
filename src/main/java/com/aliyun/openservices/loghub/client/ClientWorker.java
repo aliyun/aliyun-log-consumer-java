@@ -120,12 +120,11 @@ public class ClientWorker implements Runnable {
         if (consumer != null) {
             return consumer;
         }
-        consumer = new LogHubConsumer(logHubClientAdapter, shardId,
-                logHubConfig.getConsumerName(),
-                processorFactory.generatorProcessor(), executorService,
-                logHubConfig.getCursorPosition(),
-                logHubConfig.GetCursorStartTime(),
-                logHubConfig.getMaxFetchLogGroupSize());
+        consumer = new LogHubConsumer(logHubClientAdapter,
+                shardId,
+                processorFactory.generatorProcessor(),
+                executorService,
+                logHubConfig);
         shardConsumer.put(shardId, consumer);
         LOG.info("create a consumer shard: {}", shardId);
         return consumer;

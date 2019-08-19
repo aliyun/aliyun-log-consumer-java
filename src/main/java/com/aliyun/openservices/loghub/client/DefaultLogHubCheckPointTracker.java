@@ -1,26 +1,33 @@
 package com.aliyun.openservices.loghub.client;
 
 import com.aliyun.openservices.log.exception.LogException;
+import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker {
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultLogHubCheckPointTracker.class);
+
     private String mCursor;
     private String mTempCheckPoint = "";
     private String mLastPersistentCheckPoint = "";
-
-    private LogHubClientAdapter mLogHubClientAdapter;
+    private LogHubClientAdapter loghubClient;
     private String consumerName;
     private int mShardId;
     private long mLastCheckTime;
-    // flush the check point every 60 seconds by default
-    private static final long DEFAULT_FLUSH_CHECK_POINT_INTERVAL_NANOS = 60 * 1000L * 1000 * 1000L;
+    private boolean autoCommitEnabled;
+    private long autoCommitInterval;
 
-    public DefaultLogHubCheckPointTracker(LogHubClientAdapter logHubClientAdapter,
-                                          String consumerName, int shardId) {
-        mLogHubClientAdapter = logHubClientAdapter;
-        this.consumerName = consumerName;
-        mShardId = shardId;
-        mLastCheckTime = System.nanoTime();
+    public DefaultLogHubCheckPointTracker(LogHubClientAdapter loghubClient,
+                                          LogHubConfig config,
+                                          int shardId) {
+        this.loghubClient = loghubClient;
+        this.consumerName = config.getConsumerName();
+        this.mShardId = shardId;
+        this.mLastCheckTime = System.currentTimeMillis();
+        this.autoCommitEnabled = config.isAutoCommitEnabled();
+        this.autoCommitInterval = config.getAutoCommitIntervalMs();
     }
 
     public void setCursor(String cursor) {
@@ -59,7 +66,7 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
         String toPersistent = mTempCheckPoint;
         if (toPersistent != null && !toPersistent.equals(mLastPersistentCheckPoint)) {
             try {
-                mLogHubClientAdapter.UpdateCheckPoint(mShardId, consumerName, toPersistent);
+                loghubClient.UpdateCheckPoint(mShardId, consumerName, toPersistent);
                 mLastPersistentCheckPoint = toPersistent;
             } catch (LogException e) {
                 throw new LogHubCheckPointException(
@@ -69,11 +76,15 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
     }
 
     public void flushCheck() {
-        long curTime = System.nanoTime();
-        if (curTime > mLastCheckTime + DEFAULT_FLUSH_CHECK_POINT_INTERVAL_NANOS) {
+        if (!autoCommitEnabled) {
+            return;
+        }
+        long curTime = System.currentTimeMillis();
+        if (curTime > mLastCheckTime + autoCommitInterval) {
             try {
                 flushCheckPoint();
             } catch (LogHubCheckPointException e) {
+                LOG.error("Error while flushing checkpoint", e);
             }
             mLastCheckTime = curTime;
         }
