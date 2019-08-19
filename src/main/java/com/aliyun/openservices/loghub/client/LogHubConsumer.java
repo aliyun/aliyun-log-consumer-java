@@ -1,5 +1,6 @@
 package com.aliyun.openservices.loghub.client;
 
+import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessor;
@@ -41,18 +42,19 @@ public class LogHubConsumer {
     private int mLastFetchCount = 0;
     private int mLastFetchRawSize = 0;
 
-    public LogHubConsumer(LogHubClientAdapter logHubClientAdapter, int shardId, String consumerName,
+    public LogHubConsumer(LogHubClientAdapter loghubClient,
+                          int shardId,
                           ILogHubProcessor processor,
-                          ExecutorService executorService, LogHubCursorPosition cursorPosition, int cursorStartTime, int maxFetchLogGroupSize) {
-        mLogHubClientAdapter = logHubClientAdapter;
+                          ExecutorService executorService,
+                          LogHubConfig config) {
+        mLogHubClientAdapter = loghubClient;
         mShardId = shardId;
-        mCursorPosition = cursorPosition;
-        mCursorStartTime = cursorStartTime;
+        mCursorPosition = config.getCursorPosition();
+        mCursorStartTime = config.GetCursorStartTime();
         mProcessor = processor;
-        mCheckPointTracker = new DefaultLogHubCheckPointTracker(logHubClientAdapter,
-                consumerName, mShardId);
+        mCheckPointTracker = new DefaultLogHubCheckPointTracker(loghubClient, config, mShardId);
         mExecutorService = executorService;
-        mMaxFetchLogGroupSize = maxFetchLogGroupSize;
+        mMaxFetchLogGroupSize = config.getMaxFetchLogGroupSize();
     }
 
     public void consume() {
