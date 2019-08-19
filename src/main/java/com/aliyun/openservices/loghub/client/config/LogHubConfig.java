@@ -28,6 +28,7 @@ public class LogHubConfig implements Serializable {
     private String mStsToken = null;
     private boolean directModeEnabled = false;
     private int mMaxFetchLogGroupSize = 1000;
+    private String userAgent;
 
     public LogHubConfig(String consumerGroupName,
                         String consumerName,
@@ -270,5 +271,13 @@ public class LogHubConfig implements Serializable {
 
     public void setMaxFetchLogGroupSize(int maxFetchLogGroupSize) {
         this.mMaxFetchLogGroupSize = maxFetchLogGroupSize;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
     }
 }

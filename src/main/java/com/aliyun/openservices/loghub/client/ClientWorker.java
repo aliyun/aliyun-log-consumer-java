@@ -32,9 +32,7 @@ public class ClientWorker implements Runnable {
     public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) throws LogHubClientWorkerException {
         processorFactory = factory;
         logHubConfig = config;
-        logHubClientAdapter = new LogHubClientAdapter(
-                config.getEndpoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken(), config.getProject(),
-                config.getLogStore(), config.getConsumerGroupName(), config.getConsumerName(), config.isDirectModeEnabled());
+        logHubClientAdapter = new LogHubClientAdapter(config);
         try {
             logHubClientAdapter.CreateConsumerGroup((int) (config.getHeartBeatIntervalMillis() * 2 / 1000), config.isConsumeInOrder());
         } catch (LogException e) {

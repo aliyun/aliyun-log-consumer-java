@@ -7,6 +7,7 @@ import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
 import com.aliyun.openservices.log.response.ConsumerGroupCheckPointResponse;
+import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,6 @@ public class LogHubClientAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(LogHubClientAdapter.class);
 
     private Client client;
-    // TODO It's unreasonable here
     private ReadWriteLock readWrtlock = new ReentrantReadWriteLock();
     private final String project;
     private final String logstore;
@@ -27,22 +27,26 @@ public class LogHubClientAdapter {
     private final String consumer;
     private final boolean useDirectMode;
 
-    public LogHubClientAdapter(String endPoint, String accessKeyId, String accessKey, String stsToken, String project, String logstore,
-                               String consumerGroup, String consumer, boolean useDirectMode) {
-        this.useDirectMode = useDirectMode;
-        this.client = new Client(endPoint, accessKeyId, accessKey);
+    private static final String DEFAULT_USER_AGENT = "loghub-client-library-java-0.6.17";
+
+    LogHubClientAdapter(final LogHubConfig config) {
+        this.useDirectMode = config.isDirectModeEnabled();
+        this.client = new Client(config.getEndpoint(), config.getAccessId(), config.getAccessKey());
         if (this.useDirectMode) {
             this.client.EnableDirectMode();
         }
-        if (stsToken != null) {
-            this.client.setSecurityToken(stsToken);
+        if (config.getStsToken() != null) {
+            this.client.setSecurityToken(config.getStsToken());
         }
-        this.project = project;
-        this.logstore = logstore;
-        this.consumerGroup = consumerGroup;
-        this.consumer = consumer;
-        // TODO Make UserAgent configurable
-        this.client.setUserAgent("consumergroup-java-" + consumerGroup);
+        this.project = config.getProject();
+        this.logstore = config.getLogStore();
+        this.consumerGroup = config.getConsumerGroupName();
+        this.consumer = config.getConsumerName();
+        if (config.getUserAgent() != null) {
+            client.setUserAgent(config.getUserAgent());
+        } else {
+            client.setUserAgent(DEFAULT_USER_AGENT);
+        }
     }
 
     public void SwitchClient(String endPoint, String accessKeyId, String accessKey, String stsToken) {

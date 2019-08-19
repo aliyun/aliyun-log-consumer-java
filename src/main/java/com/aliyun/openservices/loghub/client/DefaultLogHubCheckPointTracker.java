@@ -13,7 +13,7 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
     private int mShardId;
     private long mLastCheckTime;
     // flush the check point every 60 seconds by default
-    private static long DEFAULT_FLUSH_CHECK_POINT_INTERVAL_NANOS = 60 * 1000L * 1000 * 1000L;
+    private static final long DEFAULT_FLUSH_CHECK_POINT_INTERVAL_NANOS = 60 * 1000L * 1000 * 1000L;
 
     public DefaultLogHubCheckPointTracker(LogHubClientAdapter logHubClientAdapter,
                                           String consumerName, int shardId) {
@@ -33,9 +33,7 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
 
     public void saveCheckPoint(boolean persistent)
             throws LogHubCheckPointException {
-
         mTempCheckPoint = mCursor;
-
         if (persistent) {
             flushCheckPoint();
         }
@@ -51,9 +49,7 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
 
     public void saveCheckPoint(String cursor, boolean persistent)
             throws LogHubCheckPointException {
-
         mTempCheckPoint = cursor;
-
         if (persistent) {
             flushCheckPoint();
         }
@@ -61,7 +57,6 @@ public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker 
 
     public void flushCheckPoint() throws LogHubCheckPointException {
         String toPersistent = mTempCheckPoint;
-
         if (toPersistent != null && !toPersistent.equals(mLastPersistentCheckPoint)) {
             try {
                 mLogHubClientAdapter.UpdateCheckPoint(mShardId, consumerName, toPersistent);
