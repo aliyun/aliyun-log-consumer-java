@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -10,7 +9,7 @@
 
     <groupId>com.aliyun.openservices</groupId>
     <artifactId>loghub-client-lib</artifactId>
-    <version>0.6.17-SNAPSHOT</version>
+    <version>0.6.17</version>
     <packaging>jar</packaging>
 
     <name>Aliyun LOG Java Consumer</name>
@@ -18,8 +17,8 @@
     <description>Aliyun LOG Java Consumer</description>
     <licenses>
         <license>
-            <name/>
-            <url/>
+            <name />
+            <url />
             <distribution>repo</distribution>
             <comments>Copyright (C) Alibaba Cloud Computing. All rights reserved.</comments>
         </license>
