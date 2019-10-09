@@ -62,9 +62,9 @@ public class LogHubHeartBeat {
         if (client.HeartBeat(new ArrayList<Integer>(heartShards), heldShards)) {
             this.lastHeartBeatSuccessTime = System.currentTimeMillis();
             heartShards.addAll(heldShards);
-        }else {
-            long currentTime = System.currentTimeMillis()- this.lastHeartBeatSuccessTime;
-            if(currentTime > STOP_TIMEOUT_MILLIS + heartBeatIntervalMillis){
+        } else {
+            long currentTime = System.currentTimeMillis() - this.lastHeartBeatSuccessTime;
+            if (currentTime > STOP_TIMEOUT_MILLIS + heartBeatIntervalMillis) {
                 heldShards.clear();
                 LOG.warn("Heart beat timeout, automatic reset consumer held shards");
             }
