@@ -8,6 +8,7 @@ import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
 import com.aliyun.openservices.log.response.ConsumerGroupCheckPointResponse;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
+import com.aliyun.openservices.loghub.client.utils.VersionInfoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,7 @@ public class LogHubClientAdapter {
     private final String consumer;
     private final boolean useDirectMode;
 
-    private static final String DEFAULT_USER_AGENT = "loghub-client-library-java-0.6.17";
+    private static final String DEFAULT_USER_AGENT = VersionInfoUtils.getDefaultUserAgent();
 
     LogHubClientAdapter(final LogHubConfig config) {
         this.useDirectMode = config.isDirectModeEnabled();
