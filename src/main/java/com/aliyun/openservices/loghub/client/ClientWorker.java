@@ -26,35 +26,36 @@ public class ClientWorker implements Runnable {
     private boolean shutDown = false;
     private final Map<Integer, LogHubConsumer> shardConsumer = new HashMap<Integer, LogHubConsumer>();
     private final ExecutorService executorService = Executors.newCachedThreadPool(new LogThreadFactory());
-    private LogHubClientAdapter logHubClientAdapter;
+    private LogHubClientAdapter loghubClient;
     private volatile boolean mainLoopExit = false;
 
     public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) throws LogHubClientWorkerException {
         processorFactory = factory;
         logHubConfig = config;
-        logHubClientAdapter = new LogHubClientAdapter(config);
+        loghubClient = new LogHubClientAdapter(config);
+        int timeout = (int) (config.getHeartBeatIntervalMillis() * 2 / 1000);
         try {
-            logHubClientAdapter.CreateConsumerGroup((int) (config.getHeartBeatIntervalMillis() * 2 / 1000), config.isConsumeInOrder());
+            loghubClient.CreateConsumerGroup(timeout, config.isConsumeInOrder());
         } catch (LogException e) {
             if ("ConsumerGroupAlreadyExist".equals(e.GetErrorCode())) {
                 try {
-                    logHubClientAdapter.UpdateConsumerGroup((int) (config.getHeartBeatIntervalMillis() * 2 / 1000), config.isConsumeInOrder());
-                } catch (LogException e1) {
-                    throw new LogHubClientWorkerException("error occurs when update consumer group, errorCode: " + e1.GetErrorCode() + ", errorMessage: " + e1.GetErrorMessage());
+                    loghubClient.UpdateConsumerGroup(timeout, config.isConsumeInOrder());
+                } catch (LogException ex) {
+                    throw new LogHubClientWorkerException("error occurs when update consumer group, errorCode: " + ex.GetErrorCode() + ", errorMessage: " + ex.GetErrorMessage());
                 }
             } else {
                 throw new LogHubClientWorkerException("error occurs when create consumer group, errorCode: " + e.GetErrorCode() + ", errorMessage: " + e.GetErrorMessage());
             }
         }
-        logHubHeartBeat = new LogHubHeartBeat(logHubClientAdapter, config.getHeartBeatIntervalMillis());
+        logHubHeartBeat = new LogHubHeartBeat(loghubClient, config.getHeartBeatIntervalMillis());
     }
 
     public void SwitchClient(String accessKeyId, String accessKey) {
-        logHubClientAdapter.SwitchClient(logHubConfig.getEndpoint(), accessKeyId, accessKey, null);
+        loghubClient.SwitchClient(logHubConfig.getEndpoint(), accessKeyId, accessKey, null);
     }
 
     public void SwitchClient(String accessKeyId, String accessKey, String stsToken) {
-        logHubClientAdapter.SwitchClient(logHubConfig.getEndpoint(), accessKeyId, accessKey, stsToken);
+        loghubClient.SwitchClient(logHubConfig.getEndpoint(), accessKeyId, accessKey, stsToken);
     }
 
     public void run() {
@@ -120,7 +121,7 @@ public class ClientWorker implements Runnable {
         if (consumer != null) {
             return consumer;
         }
-        consumer = new LogHubConsumer(logHubClientAdapter,
+        consumer = new LogHubConsumer(loghubClient,
                 shardId,
                 processorFactory.generatorProcessor(),
                 executorService,

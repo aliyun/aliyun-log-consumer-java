@@ -10,14 +10,14 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 public class LogHubFetchTask implements ITask {
-    private LogHubClientAdapter logHubClientAdapter;
-    private int shardId;
+    private LogHubClientAdapter loghubClient;
     private String cursor;
+    private int shardId;
     private int maxFetchLogGroupSize;
     private static final Logger LOG = LoggerFactory.getLogger(LogHubFetchTask.class);
 
-    public LogHubFetchTask(LogHubClientAdapter logHubClientAdapter, int shardId, String cursor, int maxFetchLogGroupSize) {
-        this.logHubClientAdapter = logHubClientAdapter;
+    public LogHubFetchTask(LogHubClientAdapter loghubClient, int shardId, String cursor, int maxFetchLogGroupSize) {
+        this.loghubClient = loghubClient;
         this.shardId = shardId;
         this.cursor = cursor;
         this.maxFetchLogGroupSize = maxFetchLogGroupSize;
@@ -28,7 +28,7 @@ public class LogHubFetchTask implements ITask {
         boolean retry = false;
         for (int attempt = 0; attempt < 2; attempt++) {
             try {
-                BatchGetLogResponse response = logHubClientAdapter.BatchGetLogs(
+                BatchGetLogResponse response = loghubClient.BatchGetLogs(
                         shardId, maxFetchLogGroupSize, cursor);
                 List<LogGroupData> fetchedData = response.GetLogGroups();
                 if (LOG.isDebugEnabled()) {
@@ -63,6 +63,6 @@ public class LogHubFetchTask implements ITask {
     }
 
     private void refreshCursor() throws LogException {
-        cursor = logHubClientAdapter.GetCursor(shardId, CursorMode.END);
+        cursor = loghubClient.GetCursor(shardId, CursorMode.END);
     }
 }
