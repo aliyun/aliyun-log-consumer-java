@@ -17,81 +17,76 @@ public class LogHubConsumer {
         INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
     }
 
-    private int mShardId;
-    private LogHubClientAdapter mLogHubClientAdapter;
-    private DefaultLogHubCheckPointTracker mCheckPointTracker;
-    private ILogHubProcessor mProcessor;
-    private LogHubCursorPosition mCursorPosition;
-    private int mCursorStartTime = 0;
-    private int mMaxFetchLogGroupSize;
-
-    private ConsumerStatus mCurStatus = ConsumerStatus.INITIALIZING;
-
-    private ITask mCurrentTask;
-    private Future<TaskResult> mTaskFuture;
-    private Future<TaskResult> mFetchDataFuture;
-
-    private ExecutorService mExecutorService;
-    private String mNextFetchCursor;
-    private boolean mShutDown = false;
-
-    private FetchedLogGroup mLastFetchedData;
-
-    private long mLastLogErrorTime = 0;
-    private long mLastFetchTime = 0;
-    private int mLastFetchCount = 0;
-    private int mLastFetchRawSize = 0;
+    private int shardID;
+    private LogHubClientAdapter loghubClient;
+    private DefaultLogHubCheckPointTracker checkpointTracker;
+    private ILogHubProcessor processor;
+    private LogHubCursorPosition initialPosition;
+    private int startTime;
+    private int maxFetchLogGroupSize;
+    private ConsumerStatus currentStatus = ConsumerStatus.INITIALIZING;
+    private ITask currentTask;
+    private Future<TaskResult> taskFuture;
+    private Future<TaskResult> fetchDataFuture;
+    private ExecutorService executorService;
+    private String nextFetchCursor;
+    private boolean shutdown = false;
+    private FetchedLogGroup lastFetchedData;
+    private long lastLogErrorTime = 0;
+    private long lastFetchTime = 0;
+    private int lastFetchCount = 0;
+    private int lastFetchRawSize = 0;
 
     public LogHubConsumer(LogHubClientAdapter loghubClient,
-                          int shardId,
+                          int shardID,
                           ILogHubProcessor processor,
                           ExecutorService executorService,
                           LogHubConfig config) {
-        mLogHubClientAdapter = loghubClient;
-        mShardId = shardId;
-        mCursorPosition = config.getCursorPosition();
-        mCursorStartTime = config.GetCursorStartTime();
-        mProcessor = processor;
-        mCheckPointTracker = new DefaultLogHubCheckPointTracker(loghubClient, config, mShardId);
-        mExecutorService = executorService;
-        mMaxFetchLogGroupSize = config.getMaxFetchLogGroupSize();
+        this.loghubClient = loghubClient;
+        this.shardID = shardID;
+        this.initialPosition = config.getCursorPosition();
+        this.startTime = config.GetCursorStartTime();
+        this.processor = processor;
+        this.checkpointTracker = new DefaultLogHubCheckPointTracker(loghubClient, config, shardID);
+        this.executorService = executorService;
+        this.maxFetchLogGroupSize = config.getMaxFetchLogGroupSize();
     }
 
     public void consume() {
         checkAndGenerateNextTask();
-        if (this.mCurStatus.equals(ConsumerStatus.PROCESSING)
-                && mLastFetchedData == null) {
+        if (this.currentStatus.equals(ConsumerStatus.PROCESSING)
+                && lastFetchedData == null) {
             fetchData();
         }
     }
 
     public void saveCheckPoint(String cursor, boolean persistent)
             throws LogHubCheckPointException {
-        mCheckPointTracker.saveCheckPoint(cursor, persistent);
+        checkpointTracker.saveCheckPoint(cursor, persistent);
     }
 
     private void checkAndGenerateNextTask() {
-        if (mTaskFuture == null || mTaskFuture.isCancelled()
-                || mTaskFuture.isDone()) {
+        if (taskFuture == null || taskFuture.isCancelled()
+                || taskFuture.isDone()) {
             boolean taskSuccess = false;
-            TaskResult result = getTaskResult(mTaskFuture);
-            mTaskFuture = null;
+            TaskResult result = getTaskResult(taskFuture);
+            taskFuture = null;
             if (result != null && result.getException() == null) {
                 taskSuccess = true;
-                if (mCurStatus.equals(ConsumerStatus.INITIALIZING)) {
+                if (currentStatus.equals(ConsumerStatus.INITIALIZING)) {
                     InitTaskResult initResult = (InitTaskResult) (result);
-                    mNextFetchCursor = initResult.getCursor();
-                    mCheckPointTracker.setInMemoryCheckPoint(mNextFetchCursor);
+                    nextFetchCursor = initResult.getCursor();
+                    checkpointTracker.setInMemoryCheckPoint(nextFetchCursor);
                     if (initResult.isCursorPersistent()) {
-                        mCheckPointTracker.setInPersistentCheckPoint(mNextFetchCursor);
+                        checkpointTracker.setInPersistentCheckPoint(nextFetchCursor);
                     }
                 } else if (result instanceof ProcessTaskResult) {
                     ProcessTaskResult processTaskResult = (ProcessTaskResult) (result);
                     String checkpoint = processTaskResult.getRollBackCheckpoint();
                     if (checkpoint != null && !checkpoint.isEmpty()) {
-                        mLastFetchedData = null;
+                        lastFetchedData = null;
                         cancelCurrentFetch();
-                        mNextFetchCursor = checkpoint;
+                        nextFetchCursor = checkpoint;
                     }
                 }
             }
@@ -102,38 +97,38 @@ public class LogHubConsumer {
     }
 
     private void fetchData() {
-        if (mFetchDataFuture == null || mFetchDataFuture.isCancelled()
-                || mFetchDataFuture.isDone()) {
-            TaskResult result = getTaskResult(mFetchDataFuture);
+        if (fetchDataFuture == null || fetchDataFuture.isCancelled()
+                || fetchDataFuture.isDone()) {
+            TaskResult result = getTaskResult(fetchDataFuture);
             if (result != null && result.getException() == null) {
                 FetchTaskResult fetchResult = (FetchTaskResult) result;
-                mLastFetchedData = new FetchedLogGroup(mShardId,
+                lastFetchedData = new FetchedLogGroup(shardID,
                         fetchResult.getFetchedData(), fetchResult.getCursor());
-                mNextFetchCursor = fetchResult.getCursor();
-                mLastFetchCount = mLastFetchedData.getFetchedData().size();
-                mLastFetchRawSize = fetchResult.getRawSize();
+                nextFetchCursor = fetchResult.getCursor();
+                lastFetchCount = lastFetchedData.getFetchedData().size();
+                lastFetchRawSize = fetchResult.getRawSize();
             }
 
             sampleLogError(result);
 
             if (result == null || result.getException() == null) {
                 boolean genFetchTask = true;
-                if (mLastFetchRawSize < 1024 * 1024 && mLastFetchCount < 100 && mLastFetchCount < mMaxFetchLogGroupSize) {
-                    genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 500);
-                } else if (mLastFetchRawSize < 2 * 1024 * 1024 && mLastFetchCount < 500 && mLastFetchCount < mMaxFetchLogGroupSize) {
-                    genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 200);
-                } else if (mLastFetchRawSize < 4 * 1024 * 1024 && mLastFetchCount < 1000 && mLastFetchCount < mMaxFetchLogGroupSize) {
-                    genFetchTask = (System.currentTimeMillis() - mLastFetchTime > 50);
+                if (lastFetchRawSize < 1024 * 1024 && lastFetchCount < 100 && lastFetchCount < maxFetchLogGroupSize) {
+                    genFetchTask = (System.currentTimeMillis() - lastFetchTime > 500);
+                } else if (lastFetchRawSize < 2 * 1024 * 1024 && lastFetchCount < 500 && lastFetchCount < maxFetchLogGroupSize) {
+                    genFetchTask = (System.currentTimeMillis() - lastFetchTime > 200);
+                } else if (lastFetchRawSize < 4 * 1024 * 1024 && lastFetchCount < 1000 && lastFetchCount < maxFetchLogGroupSize) {
+                    genFetchTask = (System.currentTimeMillis() - lastFetchTime > 50);
                 }
                 if (genFetchTask) {
-                    mLastFetchTime = System.currentTimeMillis();
-                    LogHubFetchTask task = new LogHubFetchTask(mLogHubClientAdapter, mShardId, mNextFetchCursor, mMaxFetchLogGroupSize);
-                    mFetchDataFuture = mExecutorService.submit(task);
+                    lastFetchTime = System.currentTimeMillis();
+                    LogHubFetchTask task = new LogHubFetchTask(loghubClient, shardID, nextFetchCursor, maxFetchLogGroupSize);
+                    fetchDataFuture = executorService.submit(task);
                 } else {
-                    mFetchDataFuture = null;
+                    fetchDataFuture = null;
                 }
             } else {
-                mFetchDataFuture = null;
+                fetchDataFuture = null;
             }
 
         }
@@ -142,9 +137,9 @@ public class LogHubConsumer {
     private void sampleLogError(TaskResult result) {
         if (result != null && result.getException() != null) {
             long curTime = System.currentTimeMillis();
-            if (curTime - mLastLogErrorTime > 5 * 1000) {
+            if (curTime - lastLogErrorTime > 5 * 1000) {
                 LOG.warn("", result.getException());
-                mLastLogErrorTime = curTime;
+                lastLogErrorTime = curTime;
             }
         }
     }
@@ -161,58 +156,58 @@ public class LogHubConsumer {
     }
 
     private void cancelCurrentFetch() {
-        if (mFetchDataFuture != null) {
-            mFetchDataFuture.cancel(true);
-            getTaskResult(mFetchDataFuture);
-            LOG.info("Cancel a fetch task, shard id: {}", mShardId);
-            mFetchDataFuture = null;
+        if (fetchDataFuture != null) {
+            fetchDataFuture.cancel(true);
+            getTaskResult(fetchDataFuture);
+            LOG.info("Cancel a fetch task, shard id: {}", shardID);
+            fetchDataFuture = null;
         }
     }
 
     private void generateNextTask() {
         ITask nextTask = null;
-        if (this.mCurStatus.equals(ConsumerStatus.INITIALIZING)) {
-            nextTask = new InitializeTask(mProcessor, mLogHubClientAdapter, mShardId, mCursorPosition, mCursorStartTime);
-        } else if (this.mCurStatus.equals(ConsumerStatus.PROCESSING)) {
-            if (mLastFetchedData != null) {
-                mCheckPointTracker.setCursor(mLastFetchedData.getEndCursor());
-                nextTask = new ProcessTask(mProcessor,
-                        mLastFetchedData.getFetchedData(), mCheckPointTracker);
-                mLastFetchedData = null;
+        if (this.currentStatus.equals(ConsumerStatus.INITIALIZING)) {
+            nextTask = new InitializeTask(processor, loghubClient, shardID, initialPosition, startTime);
+        } else if (this.currentStatus.equals(ConsumerStatus.PROCESSING)) {
+            if (lastFetchedData != null) {
+                checkpointTracker.setCursor(lastFetchedData.getEndCursor());
+                nextTask = new ProcessTask(processor,
+                        lastFetchedData.getFetchedData(), checkpointTracker);
+                lastFetchedData = null;
             }
-        } else if (this.mCurStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
-            nextTask = new ShutDownTask(mProcessor, mCheckPointTracker);
+        } else if (this.currentStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
+            nextTask = new ShutDownTask(processor, checkpointTracker);
             cancelCurrentFetch();
         }
         if (nextTask != null) {
-            mCurrentTask = nextTask;
-            mTaskFuture = mExecutorService.submit(mCurrentTask);
+            currentTask = nextTask;
+            taskFuture = executorService.submit(currentTask);
         }
     }
 
     private void updateStatus(boolean taskSuccess) {
-        if (mCurStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
-            if (mCurrentTask == null || taskSuccess) {
-                mCurStatus = ConsumerStatus.SHUTDOWN_COMPLETE;
+        if (currentStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
+            if (currentTask == null || taskSuccess) {
+                currentStatus = ConsumerStatus.SHUTDOWN_COMPLETE;
             }
-        } else if (mShutDown) {
-            mCurStatus = ConsumerStatus.SHUTTING_DOWN;
+        } else if (shutdown) {
+            currentStatus = ConsumerStatus.SHUTTING_DOWN;
         } else if (taskSuccess) {
-            if (mCurStatus.equals(ConsumerStatus.INITIALIZING)) {
-                mCurStatus = ConsumerStatus.PROCESSING;
+            if (currentStatus.equals(ConsumerStatus.INITIALIZING)) {
+                currentStatus = ConsumerStatus.PROCESSING;
             }
         }
     }
 
     public void shutdown() {
-        this.mShutDown = true;
+        this.shutdown = true;
         if (!isShutdown()) {
             checkAndGenerateNextTask();
         }
     }
 
     public boolean isShutdown() {
-        return mCurStatus.equals(ConsumerStatus.SHUTDOWN_COMPLETE);
+        return currentStatus.equals(ConsumerStatus.SHUTDOWN_COMPLETE);
     }
 
 }
