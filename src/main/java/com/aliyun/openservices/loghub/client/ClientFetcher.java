@@ -23,7 +23,7 @@ public class ClientFetcher {
     private final LogHubConfig mLogHubConfig;
     private final LogHubHeartBeat mLogHubHeartBeat;
     private LogHubClientAdapter mLogHubClientAdapter;
-    private final Map<Integer, LogHubConsumer> mShardConsumer = new HashMap<Integer, LogHubConsumer>();
+    private final Map<Integer, ShardConsumer> mShardConsumer = new HashMap<Integer, ShardConsumer>();
     private int _curShardIndex = 0;
     private final List<Integer> mShardList = new ArrayList<Integer>();
     private final Map<Integer, FetchedLogGroup> mCachedData
@@ -68,7 +68,6 @@ public class ClientFetcher {
         mLogHubHeartBeat.start();
         mShardListUpdateService.scheduleWithFixedDelay(new ShardListUpdator(), 0L,
                 mShardListUpdateIntervalInMills, TimeUnit.MILLISECONDS);
-
     }
 
     /**
@@ -77,7 +76,7 @@ public class ClientFetcher {
      * checkpoint at the same time.
      */
     public void shutdown() {
-        for (LogHubConsumer consumer : mShardConsumer.values()) {
+        for (ShardConsumer consumer : mShardConsumer.values()) {
             consumer.shutdown();
         }
         mExecutorService.shutdown();
@@ -110,7 +109,7 @@ public class ClientFetcher {
                 mCachedData.put(shardId, null);
 
                 //emit next consume on current shard no matter whether gotten data.
-                LogHubConsumer consumer = mShardConsumer.get(shardId);
+                ShardConsumer consumer = mShardConsumer.get(shardId);
                 if (consumer != null)
                     consumer.consume();
 
@@ -128,7 +127,7 @@ public class ClientFetcher {
             throws LogHubCheckPointException {
 
         synchronized (mShardList) {
-            LogHubConsumer consumer = mShardConsumer.get(shardId);
+            ShardConsumer consumer = mShardConsumer.get(shardId);
             if (consumer != null) {
                 consumer.saveCheckPoint(cursor, persistent);
             } else {
@@ -173,8 +172,8 @@ public class ClientFetcher {
     private void cleanConsumer(ArrayList<Integer> ownedShard) {
         synchronized (mShardList) {
             ArrayList<Integer> removeShards = new ArrayList<Integer>();
-            for (Entry<Integer, LogHubConsumer> shard : mShardConsumer.entrySet()) {
-                LogHubConsumer consumer = shard.getValue();
+            for (Entry<Integer, ShardConsumer> shard : mShardConsumer.entrySet()) {
+                ShardConsumer consumer = shard.getValue();
                 if (!ownedShard.contains(shard.getKey())) {
                     consumer.shutdown();
                 }
@@ -191,13 +190,13 @@ public class ClientFetcher {
         }
     }
 
-    private LogHubConsumer getConsumer(int shardId) {
+    private ShardConsumer getConsumer(int shardId) {
         synchronized (mShardList) {
-            LogHubConsumer consumer = mShardConsumer.get(shardId);
+            ShardConsumer consumer = mShardConsumer.get(shardId);
             if (consumer != null) {
                 return consumer;
             }
-            consumer = new LogHubConsumer(mLogHubClientAdapter,
+            consumer = new ShardConsumer(mLogHubClientAdapter,
                     shardId,
                     mLogHubProcessorFactory.generatorProcessor(),
                     mExecutorService,

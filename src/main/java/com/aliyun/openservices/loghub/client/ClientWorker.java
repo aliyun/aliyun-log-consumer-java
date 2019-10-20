@@ -24,7 +24,7 @@ public class ClientWorker implements Runnable {
     private final LogHubConfig logHubConfig;
     private final LogHubHeartBeat logHubHeartBeat;
     private boolean shutDown = false;
-    private final Map<Integer, LogHubConsumer> shardConsumer = new HashMap<Integer, LogHubConsumer>();
+    private final Map<Integer, ShardConsumer> shardConsumer = new HashMap<Integer, ShardConsumer>();
     private final ExecutorService executorService = Executors.newCachedThreadPool(new LogThreadFactory());
     private LogHubClientAdapter loghubClient;
     private volatile boolean mainLoopExit = false;
@@ -64,14 +64,13 @@ public class ClientWorker implements Runnable {
         while (!shutDown) {
             logHubHeartBeat.getHeldShards(heldShards);
             for (int shard : heldShards) {
-                LogHubConsumer consumer = getConsumer(shard);
+                ShardConsumer consumer = getOrCreateConsumer(shard);
                 consumer.consume();
             }
             cleanConsumer(heldShards);
             try {
                 Thread.sleep(logHubConfig.getDataFetchIntervalMillis());
             } catch (InterruptedException e) {
-
             }
         }
         mainLoopExit = true;
@@ -86,7 +85,7 @@ public class ClientWorker implements Runnable {
             } catch (InterruptedException e) {
             }
         }
-        for (LogHubConsumer consumer : shardConsumer.values()) {
+        for (ShardConsumer consumer : shardConsumer.values()) {
             consumer.shutdown();
         }
         executorService.shutdown();
@@ -99,8 +98,8 @@ public class ClientWorker implements Runnable {
 
     private void cleanConsumer(ArrayList<Integer> ownedShard) {
         ArrayList<Integer> removeShards = new ArrayList<Integer>();
-        for (Entry<Integer, LogHubConsumer> shard : shardConsumer.entrySet()) {
-            LogHubConsumer consumer = shard.getValue();
+        for (Entry<Integer, ShardConsumer> shard : shardConsumer.entrySet()) {
+            ShardConsumer consumer = shard.getValue();
             if (!ownedShard.contains(shard.getKey())) {
                 consumer.shutdown();
                 LOG.info("try to shut down a consumer shard: {}", shard.getKey());
@@ -116,12 +115,12 @@ public class ClientWorker implements Runnable {
         }
     }
 
-    private LogHubConsumer getConsumer(final int shardId) {
-        LogHubConsumer consumer = shardConsumer.get(shardId);
+    private ShardConsumer getOrCreateConsumer(final int shardId) {
+        ShardConsumer consumer = shardConsumer.get(shardId);
         if (consumer != null) {
             return consumer;
         }
-        consumer = new LogHubConsumer(loghubClient,
+        consumer = new ShardConsumer(loghubClient,
                 shardId,
                 processorFactory.generatorProcessor(),
                 executorService,

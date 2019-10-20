@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-public class LogHubConsumer {
-    private static final Logger LOG = LoggerFactory.getLogger(LogHubConsumer.class);
+public class ShardConsumer {
+    private static final Logger LOG = LoggerFactory.getLogger(ShardConsumer.class);
 
     enum ConsumerStatus {
         INITIALIZING, PROCESSING, SHUTTING_DOWN, SHUTDOWN_COMPLETE
@@ -37,11 +37,11 @@ public class LogHubConsumer {
     private int lastFetchCount = 0;
     private int lastFetchRawSize = 0;
 
-    public LogHubConsumer(LogHubClientAdapter loghubClient,
-                          int shardID,
-                          ILogHubProcessor processor,
-                          ExecutorService executorService,
-                          LogHubConfig config) {
+    public ShardConsumer(LogHubClientAdapter loghubClient,
+                         int shardID,
+                         ILogHubProcessor processor,
+                         ExecutorService executorService,
+                         LogHubConfig config) {
         this.loghubClient = loghubClient;
         this.shardID = shardID;
         this.initialPosition = config.getCursorPosition();
