@@ -1,20 +1,22 @@
 package com.aliyun.openservices.loghub.client;
 
-import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
+import com.aliyun.openservices.loghub.client.throttle.FixedResourceBarrier;
+import com.aliyun.openservices.loghub.client.throttle.ResourceBarrier;
+import com.aliyun.openservices.loghub.client.throttle.UnlimitedResourceBarrier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 
 public class ClientWorker implements Runnable {
 
@@ -23,31 +25,31 @@ public class ClientWorker implements Runnable {
     private final ILogHubProcessorFactory processorFactory;
     private final LogHubConfig logHubConfig;
     private final LogHubHeartBeat logHubHeartBeat;
-    private boolean shutDown = false;
     private final Map<Integer, ShardConsumer> shardConsumer = new HashMap<Integer, ShardConsumer>();
-    private final ExecutorService executorService = Executors.newCachedThreadPool(new LogThreadFactory());
+    private final ExecutorService executorService;
     private LogHubClientAdapter loghubClient;
+    private volatile boolean shutDown = false;
     private volatile boolean mainLoopExit = false;
+    private ResourceBarrier resourceBarrier;
+    private int lastFetchThrottleMinShard = 0;
 
     public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) throws LogHubClientWorkerException {
+        this(factory, config, null);
+    }
+
+    public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config, ExecutorService service) throws LogHubClientWorkerException {
         processorFactory = factory;
         logHubConfig = config;
+        executorService = service == null ? Executors.newCachedThreadPool(new LogThreadFactory()) : service;
         loghubClient = new LogHubClientAdapter(config);
-        int timeout = (int) (config.getHeartBeatIntervalMillis() * 2 / 1000);
-        try {
-            loghubClient.CreateConsumerGroup(timeout, config.isConsumeInOrder());
-        } catch (LogException e) {
-            if ("ConsumerGroupAlreadyExist".equals(e.GetErrorCode())) {
-                try {
-                    loghubClient.UpdateConsumerGroup(timeout, config.isConsumeInOrder());
-                } catch (LogException ex) {
-                    throw new LogHubClientWorkerException("error occurs when update consumer group, errorCode: " + ex.GetErrorCode() + ", errorMessage: " + ex.GetErrorMessage());
-                }
-            } else {
-                throw new LogHubClientWorkerException("error occurs when create consumer group, errorCode: " + e.GetErrorCode() + ", errorMessage: " + e.GetErrorMessage());
-            }
+        loghubClient.createConsumerGroupIfNotExist(config);
+        logHubHeartBeat = new LogHubHeartBeat(loghubClient, config);
+        int dataSizeInMB = logHubConfig.getMaxInProgressingDataSizeInMB();
+        if (dataSizeInMB > 0) {
+            resourceBarrier = new FixedResourceBarrier(dataSizeInMB * 1024L * 1024L);
+        } else {
+            resourceBarrier = new UnlimitedResourceBarrier();
         }
-        logHubHeartBeat = new LogHubHeartBeat(loghubClient, config.getHeartBeatIntervalMillis());
     }
 
     public void SwitchClient(String accessKeyId, String accessKey) {
@@ -58,20 +60,36 @@ public class ClientWorker implements Runnable {
         loghubClient.SwitchClient(logHubConfig.getEndpoint(), accessKeyId, accessKey, stsToken);
     }
 
+    public void setShardFilter(ShardFilter shardFilter) {
+        logHubHeartBeat.setShardFilter(shardFilter);
+    }
+
+    private static List<Integer> sortShards(List<Integer> shards) {
+        if (shards == null) {
+            return Collections.emptyList();
+        }
+        Collections.sort(shards);
+        return shards;
+    }
+
     public void run() {
         logHubHeartBeat.start();
-        ArrayList<Integer> heldShards = new ArrayList<Integer>();
+        long fetchInterval = logHubConfig.getFetchIntervalMillis();
         while (!shutDown) {
-            logHubHeartBeat.getHeldShards(heldShards);
-            for (int shard : heldShards) {
-                ShardConsumer consumer = getOrCreateConsumer(shard);
-                consumer.consume();
+            List<Integer> heldShards = logHubHeartBeat.getHeldShards();
+            List<Integer> shards = sortShards(heldShards);
+            int curFetchThrottleMinShard = -1;
+            for (int shard : shards) {
+                ShardConsumer consumer = consumerForShard(shard);
+                if (!consumer.consume(shard >= lastFetchThrottleMinShard)) {
+                    if (curFetchThrottleMinShard < 0) {
+                        curFetchThrottleMinShard = shard;
+                    }
+                }
             }
+            lastFetchThrottleMinShard = Math.max(curFetchThrottleMinShard, 0);
             cleanConsumer(heldShards);
-            try {
-                Thread.sleep(logHubConfig.getDataFetchIntervalMillis());
-            } catch (InterruptedException e) {
-            }
+            LoghubClientUtil.sleep(fetchInterval);
         }
         mainLoopExit = true;
     }
@@ -80,42 +98,51 @@ public class ClientWorker implements Runnable {
         this.shutDown = true;
         int times = 0;
         while (!mainLoopExit && times++ < 20) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-            }
+            LoghubClientUtil.sleep(1000);
         }
         for (ShardConsumer consumer : shardConsumer.values()) {
             consumer.shutdown();
         }
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-        }
+        LoghubClientUtil.shutdownAndAwaitTermination(executorService, 30);
         logHubHeartBeat.stop();
     }
 
-    private void cleanConsumer(ArrayList<Integer> ownedShard) {
-        ArrayList<Integer> removeShards = new ArrayList<Integer>();
-        for (Entry<Integer, ShardConsumer> shard : shardConsumer.entrySet()) {
-            ShardConsumer consumer = shard.getValue();
-            if (!ownedShard.contains(shard.getKey())) {
+    private void cleanConsumer(List<Integer> ownedShard) {
+        List<Integer> shardToUnload = new ArrayList<Integer>();
+        for (Map.Entry<Integer, ShardConsumer> entry : shardConsumer.entrySet()) {
+            int shard = entry.getKey();
+            if (ownedShard.contains(shard)) {
+                continue;
+            }
+            LOG.warn("Shard {} has been assigned to another consumer.", shard);
+            final ShardConsumer consumer = entry.getValue();
+            if (consumer.canBeUnloaded()) {
+                LOG.info("Shutting down consumer of shard: {}", shard);
                 consumer.shutdown();
-                LOG.info("try to shut down a consumer shard: {}", shard.getKey());
+            } else {
+                LOG.warn("Shard {} cannot be unloaded as it's checkpoint has not been committed yet", shard);
             }
             if (consumer.isShutdown()) {
-                logHubHeartBeat.removeHeartShard(shard.getKey());
-                removeShards.add(shard.getKey());
-                LOG.info("remove a consumer shard: {}", shard.getKey());
+                shardToUnload.add(shard);
+                LOG.info("Shard shutdown done, removing from heartbeat list: {}", shard);
             }
         }
-        for (int shard : removeShards) {
+        for (Integer shard : shardToUnload) {
             shardConsumer.remove(shard);
+        }
+        for (Integer shard : ownedShard) {
+            if (!shardConsumer.containsKey(shard)) {
+                // Shard is not consuming such as filtered
+                shardToUnload.add(shard);
+            }
+        }
+        if (!shardToUnload.isEmpty()) {
+            logHubHeartBeat.unsubscribe(shardToUnload);
+            LOG.warn("Cancel heart beating for {}", Arrays.toString(shardToUnload.toArray()));
         }
     }
 
-    private ShardConsumer getOrCreateConsumer(final int shardId) {
+    private ShardConsumer consumerForShard(final int shardId) {
         ShardConsumer consumer = shardConsumer.get(shardId);
         if (consumer != null) {
             return consumer;
@@ -124,9 +151,11 @@ public class ClientWorker implements Runnable {
                 shardId,
                 processorFactory.generatorProcessor(),
                 executorService,
-                logHubConfig);
+                logHubConfig,
+                logHubHeartBeat,
+                resourceBarrier);
         shardConsumer.put(shardId, consumer);
-        LOG.info("create a consumer shard: {}", shardId);
+        LOG.info("Create a consumer for shard: {}", shardId);
         return consumer;
     }
 }

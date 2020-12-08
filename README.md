@@ -335,7 +335,7 @@ public class LogHubConfig
 <dependency>
     <groupId>com.aliyun.openservices</groupId>
     <artifactId>loghub-client-lib</artifactId>
-    <version>0.6.16</version>
+    <version>0.6.36</version>
 </dependency>
 ```
 
