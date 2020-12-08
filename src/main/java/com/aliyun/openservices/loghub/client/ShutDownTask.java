@@ -23,12 +23,15 @@ public class ShutDownTask implements ITask {
             processor.shutdown(checkPointTracker);
         } catch (Exception ex) {
             exception = ex;
-            LOG.warn("Could not shutdown processor", ex);
+            LOG.error("Could not shutdown processor", ex);
         }
         try {
-            checkPointTracker.flushCheckPoint();
+            checkPointTracker.flushCheckpoint();
         } catch (Exception ex) {
-            LOG.warn("Failed to flush check point", ex);
+            LOG.error("Failed to flush checkpoint", ex);
+            if (exception == null) {
+                exception = ex;
+            }
         }
         return new TaskResult(exception);
     }

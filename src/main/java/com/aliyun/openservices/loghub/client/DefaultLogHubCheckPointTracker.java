@@ -6,92 +6,122 @@ import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointExceptio
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Random;
+
 public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultLogHubCheckPointTracker.class);
 
-    private String mCursor;
-    private String mTempCheckPoint = "";
-    private String mLastPersistentCheckPoint = "";
     private LogHubClientAdapter loghubClient;
-    private String consumerName;
-    private int mShardId;
-    private long mLastCheckTime;
-    private boolean autoCommitEnabled;
-    private long autoCommitInterval;
+    private String cursor;
+    private String latestCursor;
+    private String pendingCheckpoint = "";
+    private String lastSavedCheckpoint = "";
+    private final String consumer;
+    private final int shardID;
+    private final long autoCommitInterval;
+    private final boolean autoCommitEnabled;
+    private volatile boolean allCommitted;
+    private long lastCheckTimeInMillis;
+    private LogHubHeartBeat heartBeat;
 
     public DefaultLogHubCheckPointTracker(LogHubClientAdapter loghubClient,
                                           LogHubConfig config,
+                                          LogHubHeartBeat heartBeat,
                                           int shardId) {
         this.loghubClient = loghubClient;
-        this.consumerName = config.getConsumerName();
-        this.mShardId = shardId;
-        this.mLastCheckTime = System.currentTimeMillis();
+        this.consumer = config.getConsumer();
+        this.shardID = shardId;
+        this.lastCheckTimeInMillis = System.currentTimeMillis();
         this.autoCommitEnabled = config.isAutoCommitEnabled();
         this.autoCommitInterval = config.getAutoCommitIntervalMs();
+        this.allCommitted = true;
+        this.heartBeat = heartBeat;
     }
 
+    /**
+     * Sets the latest cursor. Called in process stage only.
+     */
     public void setCursor(String cursor) {
-        mCursor = cursor;
+        this.cursor = cursor;
+        if ((cursor == null && latestCursor != null) || (cursor != null && !cursor.equals(latestCursor))) {
+            this.latestCursor = cursor;
+            this.allCommitted = false;
+        }
     }
 
     public String getCursor() {
-        return mCursor;
+        return cursor;
     }
 
-    public void saveCheckPoint(boolean persistent)
-            throws LogHubCheckPointException {
-        mTempCheckPoint = mCursor;
+    public void saveCheckPoint(boolean persistent) throws LogHubCheckPointException {
+        pendingCheckpoint = cursor;
         if (persistent) {
-            flushCheckPoint();
+            flushCheckpoint();
         }
-    }
-
-    public void setInMemoryCheckPoint(String cursor) {
-        mTempCheckPoint = cursor;
     }
 
     public void setInPersistentCheckPoint(String cursor) {
-        mLastPersistentCheckPoint = cursor;
+        lastSavedCheckpoint = cursor;
     }
 
-    public void saveCheckPoint(String cursor, boolean persistent)
-            throws LogHubCheckPointException {
-        mTempCheckPoint = cursor;
+    public void saveCheckPoint(String cursor, boolean persistent) throws LogHubCheckPointException {
+        pendingCheckpoint = cursor;
         if (persistent) {
-            flushCheckPoint();
+            flushCheckpoint();
         }
     }
 
-    public void flushCheckPoint() throws LogHubCheckPointException {
-        String toPersistent = mTempCheckPoint;
-        if (toPersistent != null && !toPersistent.equals(mLastPersistentCheckPoint)) {
+    public void flushCheckpoint() throws LogHubCheckPointException {
+        String checkpoint = pendingCheckpoint;
+        if (checkpoint == null || checkpoint.isEmpty() || checkpoint.equals(lastSavedCheckpoint)) {
+            return;
+        }
+        for (int i = 0; ; i++) {
             try {
-                loghubClient.UpdateCheckPoint(mShardId, consumerName, toPersistent);
-                mLastPersistentCheckPoint = toPersistent;
+                loghubClient.UpdateCheckPoint(shardID, consumer, checkpoint);
+                lastSavedCheckpoint = checkpoint;
+                break;
             } catch (LogException e) {
-                throw new LogHubCheckPointException(
-                        "fail to persistent the cursor to outside system, " + consumerName + ", " + mShardId + ", " + toPersistent, e);
+                final String errorCode = e.GetErrorCode();
+                if ("ConsumerNotExist".equalsIgnoreCase(errorCode)
+                        || "ConsumerNotMatch".equalsIgnoreCase(errorCode)) {
+                    heartBeat.markIdle(shardID);
+                    LOG.warn("Consumer {} has been removed or shard has been reassigned - {}", consumer, e.GetErrorMessage());
+                    break;
+                }
+                if (i >= 2) {
+                    throw new LogHubCheckPointException(
+                            "Failed to save checkpoint, " + consumer + ", " + shardID + ", " + checkpoint, e);
+                }
+                LoghubClientUtil.sleep(new Random().nextInt(200));
             }
         }
+        if (latestCursor == null || latestCursor.equals(lastSavedCheckpoint)) {
+            allCommitted = true;
+        }
     }
 
-    public void flushCheck() {
+    void flushCheckpointIfNeeded() {
         if (!autoCommitEnabled) {
             return;
         }
         long curTime = System.currentTimeMillis();
-        if (curTime > mLastCheckTime + autoCommitInterval) {
+        if (curTime > lastCheckTimeInMillis + autoCommitInterval) {
             try {
-                flushCheckPoint();
+                flushCheckpoint();
             } catch (LogHubCheckPointException e) {
                 LOG.error("Error while flushing checkpoint", e);
             }
-            mLastCheckTime = curTime;
+            lastCheckTimeInMillis = curTime;
         }
     }
 
     @Override
     public String getCheckPoint() {
-        return mTempCheckPoint;
+        return pendingCheckpoint;
+    }
+
+    boolean isAllCommitted() {
+        return allCommitted;
     }
 }
