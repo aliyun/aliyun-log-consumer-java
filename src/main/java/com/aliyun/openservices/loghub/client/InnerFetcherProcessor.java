@@ -38,7 +38,7 @@ public class InnerFetcherProcessor implements ILogHubProcessor {
             DefaultLogHubCheckPointTracker tracker =
                     (DefaultLogHubCheckPointTracker)checkPointTracker;
 
-            FetchedLogGroup data = new FetchedLogGroup(mShardId, logGroups, tracker.getCursor());
+            FetchedLogGroup data = new FetchedLogGroup(mShardId, logGroups, tracker.getNextCursor(), checkPointTracker.getCurrentCursor());
 
             mFetcher.updateCachedData(mShardId, data);
         }

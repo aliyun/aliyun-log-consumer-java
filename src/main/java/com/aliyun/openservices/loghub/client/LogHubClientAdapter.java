@@ -1,13 +1,18 @@
 package com.aliyun.openservices.loghub.client;
 
 import com.aliyun.openservices.log.Client;
+import com.aliyun.openservices.log.common.Consts;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
 import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
 import com.aliyun.openservices.log.exception.LogException;
+import com.aliyun.openservices.log.http.client.ClientConfiguration;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
 import com.aliyun.openservices.log.response.ConsumerGroupCheckPointResponse;
+import com.aliyun.openservices.log.response.ListConsumerGroupResponse;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
+import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
+import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,54 +22,156 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LogHubClientAdapter {
+
     private static final Logger LOG = LoggerFactory.getLogger(LogHubClientAdapter.class);
 
     private Client client;
-    private ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final String project;
     private final String logstore;
-    private final String consumerGroup;
+    private final String consumerGroupName;
     private final String consumer;
-    private final boolean useDirectMode;
-
-    private static final String DEFAULT_USER_AGENT = "loghub-client-library-java-0.6.17";
+    private final String userAgent;
+    private final LogHubConfig config;
 
     LogHubClientAdapter(final LogHubConfig config) {
-        this.useDirectMode = config.isDirectModeEnabled();
-        this.client = new Client(config.getEndpoint(), config.getAccessId(), config.getAccessKey());
-        if (this.useDirectMode) {
-            this.client.EnableDirectMode();
-        }
-        if (config.getStsToken() != null) {
-            this.client.setSecurityToken(config.getStsToken());
-        }
+        this.config = config;
         this.project = config.getProject();
         this.logstore = config.getLogStore();
-        this.consumerGroup = config.getConsumerGroupName();
-        this.consumer = config.getConsumerName();
-        if (config.getUserAgent() != null) {
-            client.setUserAgent(config.getUserAgent());
-        } else {
-            client.setUserAgent(DEFAULT_USER_AGENT);
+        this.consumerGroupName = config.getConsumerGroup();
+        this.consumer = config.getConsumer();
+        this.userAgent = getOrCreateUserAgent(config);
+        this.client = createClient(config.getEndpoint(),
+                config.getAccessId(),
+                config.getAccessKey(),
+                config.getStsToken());
+    }
+
+    private Client createClient(String endpoint, String accessKeyId, String accessKey, String stsToken) {
+        ClientConfiguration clientConfig = new ClientConfiguration();
+        clientConfig.setMaxConnections(Consts.HTTP_CONNECT_MAX_COUNT);
+        clientConfig.setConnectionTimeout(Consts.HTTP_CONNECT_TIME_OUT);
+        clientConfig.setSocketTimeout(Consts.HTTP_SEND_TIME_OUT);
+        clientConfig.setUseReaper(true);
+        clientConfig.setProxyHost(this.config.getProxyHost());
+        clientConfig.setProxyPort(this.config.getProxyPort());
+        clientConfig.setProxyUsername(this.config.getProxyUsername());
+        clientConfig.setProxyPassword(this.config.getProxyPassword());
+        clientConfig.setProxyDomain(this.config.getProxyDomain());
+        clientConfig.setProxyWorkstation(this.config.getProxyWorkstation());
+        Client client = new Client(endpoint, accessKeyId, accessKey, clientConfig);
+        if (stsToken != null) {
+            client.setSecurityToken(stsToken);
+        }
+        client.setUserAgent(userAgent);
+        client.setUseDirectMode(config.isDirectModeEnabled());
+        return client;
+    }
+
+    public void shutdown() {
+        freeClient();
+    }
+
+    private void freeClient() {
+        if (client != null) {
+            // Free resource in HTTP service client.
+            client.shutdown();
         }
     }
 
-    public void SwitchClient(String endPoint, String accessKeyId, String accessKey, String stsToken) {
+    public String getProject() {
+        return project;
+    }
+
+    public String getLogstore() {
+        return logstore;
+    }
+
+    public String getConsumer() {
+        return consumer;
+    }
+
+    private static String getOrCreateUserAgent(LogHubConfig config) {
+        if (config.getUserAgent() != null) {
+            return config.getUserAgent();
+        }
+        return "Consumer-Library-" + config.getConsumerGroup() + "/" + config.getConsumer();
+    }
+
+    public void SwitchClient(String endpoint, String accessKeyId, String accessKey, String stsToken) {
         lock.writeLock().lock();
-        this.client = new Client(endPoint, accessKeyId, accessKey);
-        if (this.useDirectMode) {
-            this.client.EnableDirectMode();
-        }
-        if (stsToken != null) {
-            this.client.setSecurityToken(stsToken);
-        }
+        freeClient();
+        this.client = createClient(endpoint, accessKeyId, accessKey, stsToken);
         lock.writeLock().unlock();
+    }
+
+    private ConsumerGroup getConsumerGroup(String consumerGroupName) throws LogException {
+        ListConsumerGroupResponse response = client.ListConsumerGroup(project, logstore);
+        if (response != null) {
+            for (ConsumerGroup item : response.GetConsumerGroups()) {
+                if (item.getConsumerGroupName().equalsIgnoreCase(consumerGroupName)) {
+                    return item;
+                }
+            }
+        }
+        return null;
+    }
+
+    void createConsumerGroupIfNotExist(LogHubConfig config) throws LogHubClientWorkerException {
+        LOG.info("Start client worker: {}", config.toString());
+        lock.readLock().lock();
+        try {
+            boolean exist = false;
+            try {
+                ConsumerGroup consumerGroup = getConsumerGroup(consumerGroupName);
+                if (consumerGroup != null) {
+                    if (consumerGroup.getTimeout() == config.getTimeoutInSeconds()
+                            && consumerGroup.isInOrder() == config.isConsumeInOrder()) {
+                        LOG.info("Consumer Group {} already exist", consumerGroupName);
+                        return;
+                    }
+                    exist = true;
+                }
+            } catch (LogException ex) {
+                LOG.warn("Error checking consumer group", ex);
+                // do not throw exception here for bwc
+            }
+            if (!exist) {
+                try {
+                    client.CreateConsumerGroup(project, logstore, new ConsumerGroup(consumerGroupName,
+                            config.getTimeoutInSeconds(),
+                            config.isConsumeInOrder()));
+                    LOG.info("Create ConsumerGroup {} success.", consumerGroupName);
+                    return;
+                } catch (LogException ex) {
+                    if (!"ConsumerGroupAlreadyExist".equalsIgnoreCase(ex.GetErrorCode())) {
+                        throw new LogHubClientWorkerException("error occurs when create consumer group, errorCode: "
+                                + ex.GetErrorCode()
+                                + ", errorMessage: "
+                                + ex.GetErrorMessage(),
+                                ex);
+                    }
+                }
+            }
+            try {
+                UpdateConsumerGroup(config.getTimeoutInSeconds(), config.isConsumeInOrder());
+                LOG.info("Update ConsumerGroup {} success.", consumerGroupName);
+            } catch (LogException ex2) {
+                throw new LogHubClientWorkerException("error occurs when update consumer group, errorCode: "
+                        + ex2.GetErrorCode()
+                        + ", errorMessage: "
+                        + ex2.GetErrorMessage(),
+                        ex2);
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public void CreateConsumerGroup(final int timeoutInSec, final boolean inOrder) throws LogException {
         lock.readLock().lock();
         try {
-            client.CreateConsumerGroup(project, logstore, new ConsumerGroup(consumerGroup, timeoutInSec, inOrder));
+            client.CreateConsumerGroup(project, logstore, new ConsumerGroup(consumerGroupName, timeoutInSec, inOrder));
         } finally {
             lock.readLock().unlock();
         }
@@ -73,30 +180,25 @@ public class LogHubClientAdapter {
     public void UpdateConsumerGroup(final int timeoutInSec, final boolean inOrder) throws LogException {
         lock.readLock().lock();
         try {
-            client.UpdateConsumerGroup(project, logstore, consumerGroup, inOrder, timeoutInSec);
+            client.UpdateConsumerGroup(project, logstore, consumerGroupName, inOrder, timeoutInSec);
         } finally {
             lock.readLock().unlock();
         }
     }
 
-    public boolean HeartBeat(ArrayList<Integer> shards, ArrayList<Integer> response) {
+    public List<Integer> HeartBeat(ArrayList<Integer> shards) throws LogException {
         lock.readLock().lock();
-        response.clear();
         try {
-            response.addAll(client.HeartBeat(project, logstore, consumerGroup, consumer, shards).GetShards());
-            return true;
-        } catch (LogException e) {
-            LOG.warn("Error while sending heartbeat", e);
+            return client.HeartBeat(project, logstore, consumerGroupName, consumer, shards).getShards();
         } finally {
             lock.readLock().unlock();
         }
-        return false;
     }
 
     public void UpdateCheckPoint(final int shard, final String consumer, final String checkpoint) throws LogException {
         lock.readLock().lock();
         try {
-            client.UpdateCheckPoint(project, logstore, consumerGroup, consumer, shard, checkpoint);
+            client.UpdateCheckPoint(project, logstore, consumerGroupName, consumer, shard, checkpoint);
         } finally {
             lock.readLock().unlock();
         }
@@ -106,7 +208,7 @@ public class LogHubClientAdapter {
         lock.readLock().lock();
         ConsumerGroupCheckPointResponse response;
         try {
-            response = client.GetCheckPoint(project, logstore, consumerGroup, shard);
+            response = client.GetCheckPoint(project, logstore, consumerGroupName, shard);
         } finally {
             lock.readLock().unlock();
         }
@@ -124,6 +226,16 @@ public class LogHubClientAdapter {
             return client.GetCursor(project, logstore, shard, mode).GetCursor();
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    public String getCursor(int shard, LogHubCursorPosition position, long startTime) throws LogException {
+        if (position.equals(LogHubCursorPosition.BEGIN_CURSOR)) {
+            return GetCursor(shard, CursorMode.BEGIN);
+        } else if (position.equals(LogHubCursorPosition.END_CURSOR)) {
+            return GetCursor(shard, CursorMode.END);
+        } else {
+            return GetCursor(shard, startTime);
         }
     }
 

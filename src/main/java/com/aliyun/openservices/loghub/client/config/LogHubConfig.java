@@ -11,226 +11,230 @@ public class LogHubConfig implements Serializable {
         END_CURSOR
     }
 
-    private static final long DEFAULT_DATA_FETCH_INTERVAL_MS = 200;
+    private static final long DEFAULT_FETCH_INTERVAL_MS = 200;
     // flush the check point every 60 seconds by default
     private static final long DEFAULT_COMMIT_INTERVAL_MS = 60 * 1000L;
+    private static final long DEFAULT_HEARTBEAT_INTERVAL = 5000;
+    private static final int DEFAULT_TIMEOUT_SEC = 60;
+    private static final int DEFAULT_BATCH_SIZE = 1000;
 
-    private String mConsumerGroupName;
-    private String consumerName;
+    private String consumerGroup;
+    private String consumer;
     private String endpoint;
-    private String mProject;
-    private String mLogStore;
-    private String mAccessId;
-    private String mAccessKey;
-    private LogHubCursorPosition mCursorPosition;
-    private int mLoghubCursorStartTime = 0;
-    private long mDataFetchIntervalMillis;
-    private long mHeartBeatIntervalMillis;
-    private boolean mConsumeInOrder;
-    private String mStsToken = null;
+    private String project;
+    private String logstore;
+    private String accessId;
+    private String accessKey;
+    private LogHubCursorPosition initialPosition;
+    private int startTimestamp = 0;
+    private long fetchIntervalMillis = DEFAULT_FETCH_INTERVAL_MS;
+    private long heartbeatIntervalMillis = DEFAULT_HEARTBEAT_INTERVAL;
+    private boolean consumeInOrder = false;
+    private String stsToken = null;
     private boolean directModeEnabled = false;
     private boolean autoCommitEnabled = true;
+    private boolean unloadAfterCommitEnabled = false;
     private long autoCommitIntervalMs = DEFAULT_COMMIT_INTERVAL_MS;
-    private int mMaxFetchLogGroupSize = 1000;
+    private int batchSize = DEFAULT_BATCH_SIZE;
+    private int timeoutInSeconds = DEFAULT_TIMEOUT_SEC;
+    private int maxInProgressingDataSizeInMB = 0;
     private String userAgent;
+    private String proxyHost;
+    private int proxyPort;
+    private String proxyUsername;
+    private String proxyPassword;
+    private String proxyDomain;
+    private String proxyWorkstation;
 
-    public LogHubConfig(String consumerGroupName,
-                        String consumerName,
+    private LogHubConfig(String consumerGroup,
+                         String consumer,
+                         String endpoint,
+                         String project,
+                         String logstore,
+                         String accessId,
+                         String accessKey) {
+        this.consumerGroup = consumerGroup;
+        this.consumer = consumer;
+        this.endpoint = endpoint;
+        this.project = project;
+        this.logstore = logstore;
+        this.accessId = accessId;
+        this.accessKey = accessKey;
+    }
+
+    public LogHubConfig(String consumerGroup,
+                        String consumer,
                         String endpoint,
-                        String project, String logStore,
-                        String accessId, String accessKey,
+                        String project,
+                        String logstore,
+                        String accessId,
+                        String accessKey,
                         ConsumePosition position) {
-        mConsumerGroupName = consumerGroupName;
-        this.consumerName = consumerName;
-        this.endpoint = endpoint;
-        mProject = project;
-        mLogStore = logStore;
-        mAccessId = accessId;
-        mAccessKey = accessKey;
-        mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
-        mHeartBeatIntervalMillis = 30000;
-        mConsumeInOrder = false;
-        if (position == ConsumePosition.BEGIN_CURSOR) mCursorPosition = LogHubCursorPosition.BEGIN_CURSOR;
-        else if (position == ConsumePosition.END_CURSOR) mCursorPosition = LogHubCursorPosition.END_CURSOR;
+        this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey);
+        this.initialPosition = convertPosition(position);
     }
 
-    public LogHubConfig(String consumerGroupName, String consumerName, String endpoint,
-                        String project, String logStore,
-                        String accessId, String accessKey,
-                        int consumerStartTimeInSeconds) {
-        mConsumerGroupName = consumerGroupName;
-        this.consumerName = consumerName;
-        this.endpoint = endpoint;
-        mProject = project;
-        mLogStore = logStore;
-        mAccessId = accessId;
-        mAccessKey = accessKey;
-        mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
-        mHeartBeatIntervalMillis = 30000;
-        mConsumeInOrder = false;
-        mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
-        mLoghubCursorStartTime = consumerStartTimeInSeconds;
+    private static LogHubCursorPosition convertPosition(ConsumePosition position) {
+        switch (position) {
+            case BEGIN_CURSOR:
+                return LogHubCursorPosition.BEGIN_CURSOR;
+            case END_CURSOR:
+                return LogHubCursorPosition.END_CURSOR;
+            default:
+                throw new IllegalArgumentException("Invalid initial position: " + position);
+        }
     }
 
-    public LogHubConfig(String consumerGroupName, String consumerName, String endpoint,
-                        String project, String logStore,
+    public LogHubConfig(String consumerGroup,
+                        String consumer,
+                        String endpoint,
+                        String project,
+                        String logstore,
+                        String accessId,
+                        String accessKey,
+                        int startTimestamp) {
+        this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey);
+        this.initialPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
+        this.startTimestamp = startTimestamp;
+    }
+
+    public LogHubConfig(String consumerGroup, String consumer, String endpoint,
+                        String project, String logstore,
                         String accessId, String accessKey,
                         ConsumePosition position,
-                        int maxFetchLogGroupSize) {
-        mConsumerGroupName = consumerGroupName;
-        this.consumerName = consumerName;
-        this.endpoint = endpoint;
-        mProject = project;
-        mLogStore = logStore;
-        mAccessId = accessId;
-        mAccessKey = accessKey;
-        mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
-        mHeartBeatIntervalMillis = 30000;
-        mConsumeInOrder = false;
-        if (position == ConsumePosition.BEGIN_CURSOR) mCursorPosition = LogHubCursorPosition.BEGIN_CURSOR;
-        else if (position == ConsumePosition.END_CURSOR) mCursorPosition = LogHubCursorPosition.END_CURSOR;
-        mMaxFetchLogGroupSize = maxFetchLogGroupSize;
+                        int batchSize) {
+        this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey);
+        this.initialPosition = convertPosition(position);
+        this.batchSize = batchSize;
     }
 
-    public LogHubConfig(String consumerGroupName, String consumerName, String endpoint,
-                        String project, String logStore,
+    public LogHubConfig(String consumerGroup, String consumer, String endpoint,
+                        String project, String logstore,
                         String accessId, String accessKey,
-                        int consumerStartTimeInSeconds,
-                        int maxFetchLogGroupSize) {
-        mConsumerGroupName = consumerGroupName;
-        this.consumerName = consumerName;
-        this.endpoint = endpoint;
-        mProject = project;
-        mLogStore = logStore;
-        mAccessId = accessId;
-        mAccessKey = accessKey;
-        mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
-        mHeartBeatIntervalMillis = 30000;
-        mConsumeInOrder = false;
-        mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
-        mLoghubCursorStartTime = consumerStartTimeInSeconds;
-        mMaxFetchLogGroupSize = maxFetchLogGroupSize;
+                        int startTimestamp,
+                        int batchSize) {
+        this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey);
+        this.initialPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
+        this.startTimestamp = startTimestamp;
+        this.batchSize = batchSize;
     }
 
     @Deprecated
-    public LogHubConfig(String consumerGroupName, String consumerName, String endpoint,
-                        String project, String logStore,
+    public LogHubConfig(String consumerGroup, String consumer, String endpoint,
+                        String project, String logstore,
                         String accessId, String accessKey,
-                        LogHubCursorPosition cursorPosition,
-                        long heartBeatIntervalMillis,
-                        boolean consumeInOrder,
-                        boolean directModeEnabled) {
-        mConsumerGroupName = consumerGroupName;
-        this.consumerName = consumerName;
-        this.endpoint = endpoint;
-        this.directModeEnabled = directModeEnabled;
-        mProject = project;
-        mLogStore = logStore;
-        mAccessId = accessId;
-        mAccessKey = accessKey;
-        mCursorPosition = cursorPosition;
-        mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
-        mHeartBeatIntervalMillis = heartBeatIntervalMillis;
-        mConsumeInOrder = consumeInOrder;
-    }
-
-    @Deprecated
-    public LogHubConfig(String consumerGroupName, String consumerName, String endpoint,
-                        String project, String logStore,
-                        String accessId, String accessKey,
-                        LogHubCursorPosition cursorPosition,
+                        int startTime,
                         long heartBeatIntervalMillis,
                         boolean consumeInOrder) {
-        this(consumerGroupName, consumerName, endpoint, project, logStore, accessId, accessKey,
-                cursorPosition, heartBeatIntervalMillis, consumeInOrder, false);
+        this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey);
+        this.initialPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
+        this.startTimestamp = startTime;
+        this.heartbeatIntervalMillis = heartBeatIntervalMillis;
+        this.consumeInOrder = consumeInOrder;
     }
 
     @Deprecated
-    public LogHubConfig(String consumerGroupName, String consumerName, String endpoint,
-                        String project, String logStore,
-                        String accessId, String accessKey,
-                        int start_time,
-                        long heartBeatIntervalMillis,
-                        boolean consumeInOrder) {
-        mConsumerGroupName = consumerGroupName;
-        this.consumerName = consumerName;
-        this.endpoint = endpoint;
-        mProject = project;
-        mLogStore = logStore;
-        mAccessId = accessId;
-        mAccessKey = accessKey;
-        mCursorPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
-        mLoghubCursorStartTime = start_time;
-        mDataFetchIntervalMillis = DEFAULT_DATA_FETCH_INTERVAL_MS;
-        mHeartBeatIntervalMillis = heartBeatIntervalMillis;
-        mConsumeInOrder = consumeInOrder;
-    }
-
-    @Deprecated
-    public LogHubConfig(String consumerGroupName, String consumerName, String endpoint,
-                        String project, String logStore,
-                        String accessId, String accessKey,
-                        LogHubCursorPosition cursorPosition,
-                        long heartBeatIntervalMillis,
-                        boolean consumeInOrder, String stsToken) {
-        this(consumerGroupName, consumerName, endpoint, project, logStore, accessId, accessKey, cursorPosition, heartBeatIntervalMillis, consumeInOrder);
-        this.mStsToken = stsToken;
-    }
-
-    @Deprecated
-    public LogHubConfig(String consumerGroupName,
-                        String consumerName,
+    public LogHubConfig(String consumerGroup,
+                        String consumer,
                         String endpoint,
                         String project,
                         String logStore,
                         String accessId,
                         String accessKey,
-                        int start_time,
+                        int startTime,
                         long heartBeatIntervalMillis,
                         boolean consumeInOrder,
                         String stsToken) {
-        this(consumerGroupName, consumerName, endpoint, project, logStore, accessId, accessKey, start_time, heartBeatIntervalMillis, consumeInOrder);
-        this.mStsToken = stsToken;
+        this(consumerGroup, consumer, endpoint, project, logStore, accessId, accessKey, startTime, heartBeatIntervalMillis, consumeInOrder);
+        this.stsToken = stsToken;
+    }
+
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    public void setProxyHost(String proxyHost) {
+        this.proxyHost = proxyHost;
+    }
+
+    public int getProxyPort() {
+        return proxyPort;
+    }
+
+    public void setProxyPort(int proxyPort) {
+        this.proxyPort = proxyPort;
+    }
+
+    public String getProxyUsername() {
+        return proxyUsername;
+    }
+
+    public void setProxyUsername(String proxyUsername) {
+        this.proxyUsername = proxyUsername;
+    }
+
+    public String getProxyPassword() {
+        return proxyPassword;
+    }
+
+    public void setProxyPassword(String proxyPassword) {
+        this.proxyPassword = proxyPassword;
+    }
+
+    public String getProxyDomain() {
+        return proxyDomain;
+    }
+
+    public void setProxyDomain(String proxyDomain) {
+        this.proxyDomain = proxyDomain;
+    }
+
+    public String getProxyWorkstation() {
+        return proxyWorkstation;
+    }
+
+    public void setProxyWorkstation(String proxyWorkstation) {
+        this.proxyWorkstation = proxyWorkstation;
     }
 
     public String getStsToken() {
-        return mStsToken;
+        return stsToken;
     }
 
-    public void setStsToken(String mStsToken) {
-        this.mStsToken = mStsToken;
+    public void setStsToken(String stsToken) {
+        this.stsToken = stsToken;
     }
 
-    public long getDataFetchIntervalMillis() {
-        return mDataFetchIntervalMillis;
+    public long getFetchIntervalMillis() {
+        return fetchIntervalMillis;
     }
 
-    public void setDataFetchIntervalMillis(long dataFetchIntervalMillis) {
-        this.mDataFetchIntervalMillis = dataFetchIntervalMillis;
+    public void setFetchIntervalMillis(long fetchIntervalMillis) {
+        this.fetchIntervalMillis = fetchIntervalMillis;
     }
 
     public boolean isConsumeInOrder() {
-        return mConsumeInOrder;
+        return consumeInOrder;
     }
 
     public void setConsumeInOrder(boolean order) {
-        mConsumeInOrder = order;
+        consumeInOrder = order;
     }
 
     public long getHeartBeatIntervalMillis() {
-        return mHeartBeatIntervalMillis;
+        return heartbeatIntervalMillis;
     }
 
     public void setHeartBeatIntervalMillis(long heartBeatIntervalMillis) {
-        this.mHeartBeatIntervalMillis = heartBeatIntervalMillis;
+        this.heartbeatIntervalMillis = heartBeatIntervalMillis;
     }
 
-    public String getConsumerGroupName() {
-        return mConsumerGroupName;
+    public String getConsumerGroup() {
+        return consumerGroup;
     }
 
-    public String getConsumerName() {
-        return consumerName;
+    public String getConsumer() {
+        return consumer;
     }
 
     public String getEndpoint() {
@@ -238,27 +242,27 @@ public class LogHubConfig implements Serializable {
     }
 
     public String getProject() {
-        return mProject;
+        return project;
     }
 
     public String getLogStore() {
-        return mLogStore;
+        return logstore;
     }
 
     public String getAccessId() {
-        return mAccessId;
+        return accessId;
     }
 
     public String getAccessKey() {
-        return mAccessKey;
+        return accessKey;
     }
 
     public LogHubCursorPosition getCursorPosition() {
-        return mCursorPosition;
+        return initialPosition;
     }
 
     public int GetCursorStartTime() {
-        return mLoghubCursorStartTime;
+        return startTimestamp;
     }
 
     public void setDirectModeEnabled(boolean directModeEnabled) {
@@ -270,11 +274,11 @@ public class LogHubConfig implements Serializable {
     }
 
     public int getMaxFetchLogGroupSize() {
-        return mMaxFetchLogGroupSize;
+        return batchSize;
     }
 
     public void setMaxFetchLogGroupSize(int maxFetchLogGroupSize) {
-        this.mMaxFetchLogGroupSize = maxFetchLogGroupSize;
+        this.batchSize = maxFetchLogGroupSize;
     }
 
     public String getUserAgent() {
@@ -299,5 +303,54 @@ public class LogHubConfig implements Serializable {
 
     public void setAutoCommitIntervalMs(long autoCommitIntervalMs) {
         this.autoCommitIntervalMs = autoCommitIntervalMs;
+    }
+
+    public boolean isUnloadAfterCommitEnabled() {
+        return unloadAfterCommitEnabled;
+    }
+
+    public void setUnloadAfterCommitEnabled(boolean unloadAfterCommitEnabled) {
+        this.unloadAfterCommitEnabled = unloadAfterCommitEnabled;
+    }
+
+    public int getTimeoutInSeconds() {
+        return timeoutInSeconds;
+    }
+
+    public void setTimeoutInSeconds(int timeoutInSeconds) {
+        this.timeoutInSeconds = timeoutInSeconds;
+    }
+
+    public int getMaxInProgressingDataSizeInMB() {
+        return maxInProgressingDataSizeInMB;
+    }
+
+    public void setMaxInProgressingDataSizeInMB(int maxInProgressingDataSizeInMB) {
+        this.maxInProgressingDataSizeInMB = maxInProgressingDataSizeInMB;
+    }
+
+    @Override
+    public String toString() {
+        return "LogHubConfig{" +
+                "consumerGroup='" + consumerGroup + '\'' +
+                ", consumer='" + consumer + '\'' +
+                ", endpoint='" + endpoint + '\'' +
+                ", project='" + project + '\'' +
+                ", logstore='" + logstore + '\'' +
+                ", accessId='" + accessId + '\'' +
+                ", initialPosition=" + initialPosition +
+                ", startTimestamp=" + startTimestamp +
+                ", fetchIntervalMillis=" + fetchIntervalMillis +
+                ", heartbeatIntervalMillis=" + heartbeatIntervalMillis +
+                ", consumeInOrder=" + consumeInOrder +
+                ", directModeEnabled=" + directModeEnabled +
+                ", autoCommitEnabled=" + autoCommitEnabled +
+                ", unloadAfterCommitEnabled=" + unloadAfterCommitEnabled +
+                ", autoCommitIntervalMs=" + autoCommitIntervalMs +
+                ", batchSize=" + batchSize +
+                ", timeoutInSeconds=" + timeoutInSeconds +
+                ", maxInProgressingDataSizeInMB=" + maxInProgressingDataSizeInMB +
+                ", userAgent='" + userAgent + '\'' +
+                '}';
     }
 }

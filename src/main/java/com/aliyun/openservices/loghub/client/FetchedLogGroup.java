@@ -7,12 +7,14 @@ import java.util.List;
 public class FetchedLogGroup {
     private final int shardId;
     private final List<LogGroupData> fetchedData;
-    private final String endCursor;
+    private final String nextCursor;
+    private final String cursor;
 
-    public FetchedLogGroup(int shardId, List<LogGroupData> fetchedData, String endCursor) {
+    public FetchedLogGroup(int shardId, List<LogGroupData> fetchedData, String nextCursor, String cursor) {
         this.shardId = shardId;
         this.fetchedData = fetchedData;
-        this.endCursor = endCursor;
+        this.nextCursor = nextCursor;
+        this.cursor = cursor;
     }
 
     public int getShardId() {
@@ -23,7 +25,11 @@ public class FetchedLogGroup {
         return fetchedData;
     }
 
-    public String getEndCursor() {
-        return endCursor;
+    public String getNextCursor() {
+        return nextCursor;
+    }
+
+    public String getCursor() {
+        return cursor;
     }
 }
