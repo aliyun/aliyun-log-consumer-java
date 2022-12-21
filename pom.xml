@@ -25,8 +25,8 @@
     </licenses>
     <scm>
         <url>https://github.com/aliyun/aliyun-log-consumer-java</url>
-        <connection>scm:git:git@gitlab.alibaba-inc.com:sls/aliyun-log-consumer-java.git</connection>
-        <developerConnection>scm:git:git@gitlab.alibaba-inc.com:sls/aliyun-log-consumer-java.git
+	<connection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</connection>
+        <developerConnection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git
         </developerConnection>
     </scm>
     <developers>
