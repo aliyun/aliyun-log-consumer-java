@@ -6,92 +6,144 @@ import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointExceptio
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Random;
+
 public class DefaultLogHubCheckPointTracker implements ILogHubCheckPointTracker {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultLogHubCheckPointTracker.class);
 
-    private String mCursor;
-    private String mTempCheckPoint = "";
-    private String mLastPersistentCheckPoint = "";
-    private LogHubClientAdapter loghubClient;
-    private String consumerName;
-    private int mShardId;
-    private long mLastCheckTime;
-    private boolean autoCommitEnabled;
-    private long autoCommitInterval;
+    private final LogHubClientAdapter loghubClient;
+    private String nextCursor;
+    private String latestCursor;
+    private String pendingCheckpoint = "";
+    private String lastSavedCheckpoint = "";
+    private final String consumer;
+    private final int shardID;
+    private final long autoCommitInterval;
+    private final boolean autoCommitEnabled;
+    private volatile boolean allCommitted;
+    private long lastCheckTimeInMillis;
+    private final LogHubHeartBeat heartBeat;
+    private String currentCursor;
+
+    private String initialCursor;
 
     public DefaultLogHubCheckPointTracker(LogHubClientAdapter loghubClient,
                                           LogHubConfig config,
+                                          LogHubHeartBeat heartBeat,
                                           int shardId) {
         this.loghubClient = loghubClient;
-        this.consumerName = config.getConsumerName();
-        this.mShardId = shardId;
-        this.mLastCheckTime = System.currentTimeMillis();
+        this.consumer = config.getConsumer();
+        this.shardID = shardId;
+        this.lastCheckTimeInMillis = System.currentTimeMillis();
         this.autoCommitEnabled = config.isAutoCommitEnabled();
         this.autoCommitInterval = config.getAutoCommitIntervalMs();
+        this.allCommitted = true;
+        this.heartBeat = heartBeat;
     }
 
-    public void setCursor(String cursor) {
-        mCursor = cursor;
-    }
-
-    public String getCursor() {
-        return mCursor;
-    }
-
-    public void saveCheckPoint(boolean persistent)
-            throws LogHubCheckPointException {
-        mTempCheckPoint = mCursor;
-        if (persistent) {
-            flushCheckPoint();
+    /**
+     * Sets the latest cursor. Called in process stage only.
+     */
+    public void setNextCursor(String nextCursor) {
+        this.nextCursor = nextCursor;
+        if ((nextCursor == null && latestCursor != null) || (nextCursor != null && !nextCursor.equals(latestCursor))) {
+            this.latestCursor = nextCursor;
+            this.allCommitted = false;
         }
     }
 
-    public void setInMemoryCheckPoint(String cursor) {
-        mTempCheckPoint = cursor;
+    public String getNextCursor() {
+        return nextCursor;
+    }
+
+    public void saveCheckPoint(boolean persistent) throws LogHubCheckPointException {
+        pendingCheckpoint = nextCursor;
+        if (persistent) {
+            flushCheckpoint();
+        }
     }
 
     public void setInPersistentCheckPoint(String cursor) {
-        mLastPersistentCheckPoint = cursor;
+        lastSavedCheckpoint = cursor;
     }
 
-    public void saveCheckPoint(String cursor, boolean persistent)
-            throws LogHubCheckPointException {
-        mTempCheckPoint = cursor;
+    public void saveCheckPoint(String cursor, boolean persistent) throws LogHubCheckPointException {
+        pendingCheckpoint = cursor;
         if (persistent) {
-            flushCheckPoint();
+            flushCheckpoint();
         }
     }
 
-    public void flushCheckPoint() throws LogHubCheckPointException {
-        String toPersistent = mTempCheckPoint;
-        if (toPersistent != null && !toPersistent.equals(mLastPersistentCheckPoint)) {
+    public void setInitialCursor(String initialCursor) {
+        this.initialCursor = initialCursor;
+    }
+
+    public void flushCheckpoint() throws LogHubCheckPointException {
+        String checkpoint = pendingCheckpoint;
+        if (checkpoint == null || checkpoint.isEmpty() || checkpoint.equals(lastSavedCheckpoint)) {
+            return;
+        }
+        for (int i = 0; ; i++) {
             try {
-                loghubClient.UpdateCheckPoint(mShardId, consumerName, toPersistent);
-                mLastPersistentCheckPoint = toPersistent;
+                loghubClient.UpdateCheckPoint(shardID, consumer, checkpoint);
+                lastSavedCheckpoint = checkpoint;
+                break;
             } catch (LogException e) {
-                throw new LogHubCheckPointException(
-                        "fail to persistent the cursor to outside system, " + consumerName + ", " + mShardId + ", " + toPersistent, e);
+                final String errorCode = e.GetErrorCode();
+                if ("ConsumerNotExist".equalsIgnoreCase(errorCode)
+                        || "ConsumerNotMatch".equalsIgnoreCase(errorCode)) {
+                    heartBeat.markIdle(shardID);
+                    LOG.warn("Consumer {} has been removed or shard has been reassigned - {}", consumer, e.GetErrorMessage());
+                    break;
+                } else if ("ShardNotExist".equalsIgnoreCase(errorCode)) {
+                    heartBeat.markIdle(shardID);
+                    LOG.warn("Shard {} doest not exist any more", shardID);
+                    break;
+                }
+                if (i >= 2) {
+                    throw new LogHubCheckPointException(
+                            "Failed to save checkpoint, " + consumer + ", " + shardID + ", " + checkpoint, e);
+                }
+                LoghubClientUtil.sleep(new Random().nextInt(200));
             }
         }
+        if (latestCursor == null || latestCursor.equals(lastSavedCheckpoint)) {
+            allCommitted = true;
+        }
     }
 
-    public void flushCheck() {
+    void flushCheckpointIfNeeded() {
         if (!autoCommitEnabled) {
             return;
         }
         long curTime = System.currentTimeMillis();
-        if (curTime > mLastCheckTime + autoCommitInterval) {
+        if (curTime > lastCheckTimeInMillis + autoCommitInterval) {
             try {
-                flushCheckPoint();
+                flushCheckpoint();
             } catch (LogHubCheckPointException e) {
                 LOG.error("Error while flushing checkpoint", e);
             }
-            mLastCheckTime = curTime;
+            lastCheckTimeInMillis = curTime;
         }
     }
 
     @Override
     public String getCheckPoint() {
-        return mTempCheckPoint;
+        return (pendingCheckpoint != null && !pendingCheckpoint.isEmpty())
+                ? pendingCheckpoint
+                : initialCursor;
+    }
+
+    public void setCurrentCursor(String currentCursor) {
+        this.currentCursor = currentCursor;
+    }
+
+    @Override
+    public String getCurrentCursor() {
+        return this.currentCursor;
+    }
+
+    boolean isAllCommitted() {
+        return allCommitted;
     }
 }

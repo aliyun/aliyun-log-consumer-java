@@ -26,4 +26,11 @@ public interface ILogHubCheckPointTracker {
      * @return the last saved checkpoint
      */
     String getCheckPoint();
+
+    /**
+     * Get the cursor of current fetched data.
+     *
+     * @return The cursor of current fetched data.
+     */
+    String getCurrentCursor();
 }

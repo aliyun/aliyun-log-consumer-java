@@ -6,6 +6,7 @@ import com.aliyun.openservices.loghub.client.exceptions.LogHubCheckPointExceptio
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubProcessorFactory;
 import com.aliyun.openservices.loghub.client.interfaces.ILogHubShardListener;
+import com.aliyun.openservices.loghub.client.throttle.UnlimitedResourceBarrier;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,12 +41,13 @@ public class ClientFetcher {
         mLogHubProcessorFactory = new InnerFetcherProcessorFactory(this);
         mLogHubConfig = config;
         mLogHubClientAdapter = new LogHubClientAdapter(config);
+        int timeout = config.getTimeoutInSeconds();
         try {
-            mLogHubClientAdapter.CreateConsumerGroup((int) (config.getHeartBeatIntervalMillis() * 2 / 1000), config.isConsumeInOrder());
+            mLogHubClientAdapter.CreateConsumerGroup(timeout, config.isConsumeInOrder());
         } catch (LogException e) {
             if (e.GetErrorCode().compareToIgnoreCase("ConsumerGroupAlreadyExist") == 0) {
                 try {
-                    mLogHubClientAdapter.UpdateConsumerGroup((int) (config.getHeartBeatIntervalMillis() * 2 / 1000), config.isConsumeInOrder());
+                    mLogHubClientAdapter.UpdateConsumerGroup(timeout, config.isConsumeInOrder());
                 } catch (LogException e1) {
                     throw new LogHubClientWorkerException("error occour when update consumer group, errorCode: " + e1.GetErrorCode() + ", errorMessage: " + e1.GetErrorMessage());
                 }
@@ -53,7 +55,7 @@ public class ClientFetcher {
                 throw new LogHubClientWorkerException("error occour when create consumer group, errorCode: " + e.GetErrorCode() + ", errorMessage: " + e.GetErrorMessage());
             }
         }
-        mLogHubHeartBeat = new LogHubHeartBeat(mLogHubClientAdapter, config.getHeartBeatIntervalMillis());
+        mLogHubHeartBeat = new LogHubHeartBeat(mLogHubClientAdapter, config);
     }
 
     public void SwitchClient(String accessKeyId, String accessKey) {
@@ -111,7 +113,7 @@ public class ClientFetcher {
                 //emit next consume on current shard no matter whether gotten data.
                 ShardConsumer consumer = mShardConsumer.get(shardId);
                 if (consumer != null)
-                    consumer.consume();
+                    consumer.consume(true);
 
                 _curShardIndex = (_curShardIndex + 1) % mShardList.size();
                 if (result != null) {
@@ -157,8 +159,7 @@ public class ClientFetcher {
     private class ShardListUpdator implements Runnable {
         public void run() {
             try {
-                ArrayList<Integer> heldShards = new ArrayList<Integer>();
-                mLogHubHeartBeat.getHeldShards(heldShards);
+                List<Integer> heldShards = mLogHubHeartBeat.getHeldShards();
                 for (int shard : heldShards) {
                     getConsumer(shard);
                 }
@@ -169,7 +170,7 @@ public class ClientFetcher {
         }
     }
 
-    private void cleanConsumer(ArrayList<Integer> ownedShard) {
+    private void cleanConsumer(List<Integer> ownedShard) {
         synchronized (mShardList) {
             ArrayList<Integer> removeShards = new ArrayList<Integer>();
             for (Entry<Integer, ShardConsumer> shard : mShardConsumer.entrySet()) {
@@ -178,7 +179,6 @@ public class ClientFetcher {
                     consumer.shutdown();
                 }
                 if (consumer.isShutdown()) {
-                    mLogHubHeartBeat.removeHeartShard(shard.getKey());
                     mShardConsumer.remove(shard.getKey());
                     removeShards.add(shard.getKey());
                     mShardList.remove(shard.getKey());
@@ -187,6 +187,7 @@ public class ClientFetcher {
             for (int shard : removeShards) {
                 mShardConsumer.remove(shard);
             }
+            mLogHubHeartBeat.unsubscribe(removeShards);
         }
     }
 
@@ -200,10 +201,12 @@ public class ClientFetcher {
                     shardId,
                     mLogHubProcessorFactory.generatorProcessor(),
                     mExecutorService,
-                    mLogHubConfig);
+                    mLogHubConfig,
+                    mLogHubHeartBeat,
+                    new UnlimitedResourceBarrier());
             mShardConsumer.put(shardId, consumer);
             mShardList.add(shardId);
-            consumer.consume();
+            consumer.consume(true);
             return consumer;
         }
     }

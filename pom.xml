@@ -9,7 +9,7 @@
 
     <groupId>com.aliyun.openservices</groupId>
     <artifactId>loghub-client-lib</artifactId>
-    <version>0.6.19-SNAPSHOT</version>
+    <version>0.6.42</version>
     <packaging>jar</packaging>
 
     <name>Aliyun LOG Java Consumer</name>
@@ -25,7 +25,7 @@
     </licenses>
     <scm>
         <url>https://github.com/aliyun/aliyun-log-consumer-java</url>
-        <connection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</connection>
+	<connection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</connection>
         <developerConnection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git
         </developerConnection>
     </scm>
@@ -42,6 +42,17 @@
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>
     </properties>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <dependencies>
         <dependency>
@@ -64,7 +75,7 @@
         <dependency>
             <groupId>com.aliyun.openservices</groupId>
             <artifactId>aliyun-log</artifactId>
-            <version>0.6.37</version>
+            <version>0.6.75</version>
         </dependency>
     </dependencies>
 
@@ -82,7 +93,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.5</version>
+                        <version>1.6</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -97,7 +108,6 @@
             </build>
         </profile>
     </profiles>
-
     <build>
         <plugins>
             <plugin>
