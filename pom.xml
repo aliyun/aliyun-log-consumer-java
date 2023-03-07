@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -17,15 +18,15 @@
     <description>Aliyun LOG Java Consumer</description>
     <licenses>
         <license>
-            <name />
-            <url />
+            <name/>
+            <url/>
             <distribution>repo</distribution>
             <comments>Copyright (C) Alibaba Cloud Computing. All rights reserved.</comments>
         </license>
     </licenses>
     <scm>
         <url>https://github.com/aliyun/aliyun-log-consumer-java</url>
-	<connection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</connection>
+        <connection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</connection>
         <developerConnection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git
         </developerConnection>
     </scm>
@@ -141,7 +142,7 @@
                     </execution>
                 </executions>
             </plugin>
-	    <plugin>
+            <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
                 <version>1.6.3</version>
@@ -151,6 +152,29 @@
                     <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.aliyun.openservices.log</pattern>
+                                    <shadedPattern>com.shade.com.aliyun.openservices.log</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
