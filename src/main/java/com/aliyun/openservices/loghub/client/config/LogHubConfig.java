@@ -24,8 +24,6 @@ public class LogHubConfig implements Serializable {
     private String project;
     private String logstore;
     private String query;
-    private String pullMode;
-    private boolean responseWithMeta;
     private String accessId;
     private String accessKey;
     private LogHubCursorPosition initialPosition;
@@ -353,22 +351,6 @@ public class LogHubConfig implements Serializable {
         this.query = query;
     }
 
-    public String getPullMode() {
-        return pullMode;
-    }
-
-    public void setPullMode(String pullMode) {
-        this.pullMode = pullMode;
-    }
-
-    public boolean isResponseWithMeta() {
-        return responseWithMeta;
-    }
-
-    public void setResponseWithMeta(boolean responseWithMeta) {
-        this.responseWithMeta = responseWithMeta;
-    }
-
     @Override
     public String toString() {
         return "LogHubConfig{" +
@@ -378,8 +360,6 @@ public class LogHubConfig implements Serializable {
                 ", project='" + project + '\'' +
                 ", logstore='" + logstore + '\'' +
                 ", query ='" + query + '\'' +
-                ", pullMode ='" + pullMode + '\'' +
-                ", responseWithMeta=" + pullMode +
                 ", accessId='" + accessId + '\'' +
                 ", initialPosition=" + initialPosition +
                 ", startTimestamp=" + startTimestamp +
