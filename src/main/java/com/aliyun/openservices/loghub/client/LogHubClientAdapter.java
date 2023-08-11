@@ -7,9 +7,11 @@ import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.http.client.ClientConfiguration;
+import com.aliyun.openservices.log.request.PullLogsRequest;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
 import com.aliyun.openservices.log.response.ConsumerGroupCheckPointResponse;
 import com.aliyun.openservices.log.response.ListConsumerGroupResponse;
+import com.aliyun.openservices.log.response.PullLogsResponse;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
@@ -248,10 +250,18 @@ public class LogHubClientAdapter {
         }
     }
 
-    public BatchGetLogResponse BatchGetLogs(final int shard, final int lines, final String cursor) throws LogException {
+    public PullLogsResponse PullLogs(final int shard, final String cursor, LogHubConfig config) throws LogException {
         lock.readLock().lock();
         try {
-            return client.BatchGetLog(project, logstore, shard, lines, cursor);
+            int lines = config.getMaxFetchLogGroupSize();
+            PullLogsRequest pullLogsRequest = new PullLogsRequest(project, logstore, shard, lines, cursor);
+            String query = config.getQuery();
+            if (query != null && !query.isEmpty()) {
+                pullLogsRequest.setQuery(query);
+                pullLogsRequest.setPullMode("scan_on_stream");
+                pullLogsRequest.setResponseWithMeta(true);
+            }
+            return client.pullLogs(pullLogsRequest);
         } finally {
             lock.readLock().unlock();
         }

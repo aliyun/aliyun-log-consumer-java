@@ -2,9 +2,8 @@ package com.aliyun.openservices.loghub.client;
 
 import com.aliyun.openservices.log.common.LogGroupData;
 import com.aliyun.openservices.log.exception.LogException;
-import com.aliyun.openservices.log.response.BatchGetLogResponse;
+import com.aliyun.openservices.log.response.PullLogsResponse;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
-import com.aliyun.openservices.loghub.client.throttle.ResourceBarrier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,17 +31,16 @@ public class LogHubFetchTask implements ITask {
         Exception exception = null;
         for (int attempt = 0; ; attempt++) {
             try {
-                BatchGetLogResponse response = loghubClient.BatchGetLogs(
-                        shardId, config.getMaxFetchLogGroupSize(), cursor);
-                List<LogGroupData> fetchedData = response.GetLogGroups();
+                PullLogsResponse response = loghubClient.PullLogs(shardId, cursor, config);
+                List<LogGroupData> fetchedData = response.getLogGroups();
                 LOG.debug("shard {}, cursor {}, next cursor {}, response size: {}", shardId, cursor,
-                        response.GetNextCursor(), response.GetCount());
-                String nextCursor = response.GetNextCursor();
+                        response.getNextCursor(), response.getCount());
+                String nextCursor = response.getNextCursor();
                 if (nextCursor.isEmpty()) {
                     LOG.info("Shard {} next cursor is empty, set to current cursor {}", shardId, cursor);
                     nextCursor = cursor;
                 }
-                return new FetchTaskResult(fetchedData, cursor, nextCursor, response.GetRawSize());
+                return new FetchTaskResult(fetchedData, cursor, nextCursor, response.getRawSize());
             } catch (LogException lex) {
                 if (attempt == 0 && lex.GetErrorCode().toLowerCase().contains("invalidcursor")) {
                     // If checkpoint is invalid, such as expired cursor, will
