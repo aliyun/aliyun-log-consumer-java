@@ -259,7 +259,6 @@ public class LogHubClientAdapter {
             if (query != null && !query.isEmpty()) {
                 pullLogsRequest.setQuery(query);
                 pullLogsRequest.setPullMode("scan_on_stream");
-                pullLogsRequest.setResponseWithMeta(true);
             }
             return client.pullLogs(pullLogsRequest);
         } finally {
