@@ -23,6 +23,7 @@ public class LogHubConfig implements Serializable {
     private String endpoint;
     private String project;
     private String logstore;
+    private String query;
     private String accessId;
     private String accessKey;
     private LogHubCursorPosition initialPosition;
@@ -72,6 +73,19 @@ public class LogHubConfig implements Serializable {
                         ConsumePosition position) {
         this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey);
         this.initialPosition = convertPosition(position);
+    }
+
+    public LogHubConfig(String consumerGroup,
+                        String consumer,
+                        String endpoint,
+                        String project,
+                        String logstore,
+                        String accessId,
+                        String accessKey,
+                        ConsumePosition position,
+                        String query) {
+        this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey, position);
+        this.setQuery(query);
     }
 
     private static LogHubCursorPosition convertPosition(ConsumePosition position) {
@@ -329,6 +343,14 @@ public class LogHubConfig implements Serializable {
         this.maxInProgressingDataSizeInMB = maxInProgressingDataSizeInMB;
     }
 
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
+    }
+
     @Override
     public String toString() {
         return "LogHubConfig{" +
@@ -337,6 +359,7 @@ public class LogHubConfig implements Serializable {
                 ", endpoint='" + endpoint + '\'' +
                 ", project='" + project + '\'' +
                 ", logstore='" + logstore + '\'' +
+                ", query ='" + query + '\'' +
                 ", accessId='" + accessId + '\'' +
                 ", initialPosition=" + initialPosition +
                 ", startTimestamp=" + startTimestamp +
