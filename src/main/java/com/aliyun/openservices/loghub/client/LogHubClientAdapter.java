@@ -1,10 +1,22 @@
 package com.aliyun.openservices.loghub.client;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.aliyun.openservices.log.Client;
 import com.aliyun.openservices.log.common.Consts;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
 import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
+import com.aliyun.openservices.log.common.auth.Credentials;
+import com.aliyun.openservices.log.common.auth.CredentialsProvider;
+import com.aliyun.openservices.log.common.auth.DefaultCredentials;
+import com.aliyun.openservices.log.common.auth.StaticCredentialsProvider;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.http.client.ClientConfiguration;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
@@ -13,13 +25,6 @@ import com.aliyun.openservices.log.response.ListConsumerGroupResponse;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LogHubClientAdapter {
 
@@ -41,28 +46,45 @@ public class LogHubClientAdapter {
         this.consumerGroupName = config.getConsumerGroup();
         this.consumer = config.getConsumer();
         this.userAgent = getOrCreateUserAgent(config);
-        this.client = createClient(config.getEndpoint(),
-                config.getAccessId(),
-                config.getAccessKey(),
-                config.getStsToken());
+        this.client = createClient(config);
     }
 
-    private Client createClient(String endpoint, String accessKeyId, String accessKey, String stsToken) {
+    private static ClientConfiguration getClientConfiguration(LogHubConfig config) {
         ClientConfiguration clientConfig = new ClientConfiguration();
         clientConfig.setMaxConnections(Consts.HTTP_CONNECT_MAX_COUNT);
         clientConfig.setConnectionTimeout(Consts.HTTP_CONNECT_TIME_OUT);
         clientConfig.setSocketTimeout(Consts.HTTP_SEND_TIME_OUT);
         clientConfig.setUseReaper(true);
-        clientConfig.setProxyHost(this.config.getProxyHost());
-        clientConfig.setProxyPort(this.config.getProxyPort());
-        clientConfig.setProxyUsername(this.config.getProxyUsername());
-        clientConfig.setProxyPassword(this.config.getProxyPassword());
-        clientConfig.setProxyDomain(this.config.getProxyDomain());
-        clientConfig.setProxyWorkstation(this.config.getProxyWorkstation());
+        clientConfig.setProxyHost(config.getProxyHost());
+        clientConfig.setProxyPort(config.getProxyPort());
+        clientConfig.setProxyUsername(config.getProxyUsername());
+        clientConfig.setProxyPassword(config.getProxyPassword());
+        clientConfig.setProxyDomain(config.getProxyDomain());
+        clientConfig.setProxyWorkstation(config.getProxyWorkstation());
+        return clientConfig;
+    }
+
+    private Client createClient(String endpoint, String accessKeyId, String accessKey, String stsToken) {
+        ClientConfiguration clientConfig = getClientConfiguration(config);
         Client client = new Client(endpoint, accessKeyId, accessKey, clientConfig);
         if (stsToken != null) {
             client.setSecurityToken(stsToken);
         }
+        client.setUserAgent(userAgent);
+        client.setUseDirectMode(config.isDirectModeEnabled());
+        return client;
+    }
+
+    private Client createClient(LogHubConfig config) {
+        CredentialsProvider credentialsProvider = config.getCredentialsProvider();
+        if (credentialsProvider == null) {
+            Credentials credentials = new DefaultCredentials(config.getAccessId(), config.getAccessKey(),
+                    config.getStsToken());
+            credentialsProvider = new StaticCredentialsProvider(credentials);
+        }
+        
+        ClientConfiguration clientConfig = getClientConfiguration(config);
+        Client client = new Client(config.getEndpoint(), credentialsProvider, clientConfig, null);
         client.setUserAgent(userAgent);
         client.setUseDirectMode(config.isDirectModeEnabled());
         return client;
