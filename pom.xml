@@ -74,7 +74,13 @@
         <dependency>
             <groupId>com.aliyun.openservices</groupId>
             <artifactId>aliyun-log</artifactId>
-            <version>0.6.92</version>
+            <version>0.6.93</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

@@ -13,10 +13,6 @@ import com.aliyun.openservices.log.common.Consts;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
 import com.aliyun.openservices.log.common.ConsumerGroup;
 import com.aliyun.openservices.log.common.ConsumerGroupShardCheckPoint;
-import com.aliyun.openservices.log.common.auth.Credentials;
-import com.aliyun.openservices.log.common.auth.CredentialsProvider;
-import com.aliyun.openservices.log.common.auth.DefaultCredentials;
-import com.aliyun.openservices.log.common.auth.StaticCredentialsProvider;
 import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.log.http.client.ClientConfiguration;
 import com.aliyun.openservices.log.response.BatchGetLogResponse;
@@ -76,15 +72,12 @@ public class LogHubClientAdapter {
     }
 
     private Client createClient(LogHubConfig config) {
-        CredentialsProvider credentialsProvider = config.getCredentialsProvider();
-        if (credentialsProvider == null) {
-            Credentials credentials = new DefaultCredentials(config.getAccessId(), config.getAccessKey(),
-                    config.getStsToken());
-            credentialsProvider = new StaticCredentialsProvider(credentials);
+        if (config.getCredentialsProvider() == null) {
+            return createClient(config.getEndpoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken());
         }
-        
+
         ClientConfiguration clientConfig = getClientConfiguration(config);
-        Client client = new Client(config.getEndpoint(), credentialsProvider, clientConfig, null);
+        Client client = new Client(config.getEndpoint(), config.getCredentialsProvider(), clientConfig, null);
         client.setUserAgent(userAgent);
         client.setUseDirectMode(config.isDirectModeEnabled());
         return client;
