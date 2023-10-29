@@ -53,12 +53,14 @@ public class LogHubClientAdapter {
         clientConfig.setConnectionTimeout(Consts.HTTP_CONNECT_TIME_OUT);
         clientConfig.setSocketTimeout(Consts.HTTP_SEND_TIME_OUT);
         clientConfig.setUseReaper(true);
-        clientConfig.setProxyHost(this.config.getProxyHost());
-        clientConfig.setProxyPort(this.config.getProxyPort());
-        clientConfig.setProxyUsername(this.config.getProxyUsername());
-        clientConfig.setProxyPassword(this.config.getProxyPassword());
-        clientConfig.setProxyDomain(this.config.getProxyDomain());
-        clientConfig.setProxyWorkstation(this.config.getProxyWorkstation());
+        clientConfig.setProxyHost(config.getProxyHost());
+        clientConfig.setProxyPort(config.getProxyPort());
+        clientConfig.setProxyUsername(config.getProxyUsername());
+        clientConfig.setProxyPassword(config.getProxyPassword());
+        clientConfig.setProxyDomain(config.getProxyDomain());
+        clientConfig.setProxyWorkstation(config.getProxyWorkstation());
+        clientConfig.setSignatureVersion(config.getSignVersion());
+        clientConfig.setRegion(config.getRegion());
         Client client = new Client(endpoint, accessKeyId, accessKey, clientConfig);
         if (stsToken != null) {
             client.setSecurityToken(stsToken);

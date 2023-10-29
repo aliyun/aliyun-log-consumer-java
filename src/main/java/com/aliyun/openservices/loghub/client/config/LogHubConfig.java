@@ -1,5 +1,7 @@
 package com.aliyun.openservices.loghub.client.config;
 
+import com.aliyun.openservices.log.http.signer.SignVersion;
+
 import java.io.Serializable;
 
 
@@ -45,6 +47,9 @@ public class LogHubConfig implements Serializable {
     private String proxyPassword;
     private String proxyDomain;
     private String proxyWorkstation;
+
+    private SignVersion signVersion = SignVersion.V1;
+    private String region;
 
     private LogHubConfig(String consumerGroup,
                          String consumer,
@@ -327,6 +332,22 @@ public class LogHubConfig implements Serializable {
 
     public void setMaxInProgressingDataSizeInMB(int maxInProgressingDataSizeInMB) {
         this.maxInProgressingDataSizeInMB = maxInProgressingDataSizeInMB;
+    }
+
+    public SignVersion getSignVersion() {
+        return signVersion;
+    }
+
+    public void setSignVersion(SignVersion signVersion) {
+        this.signVersion = signVersion;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
     }
 
     @Override
