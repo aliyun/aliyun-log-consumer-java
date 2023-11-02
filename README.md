@@ -44,7 +44,7 @@ Consumer Library 中主要有 4 个概念，分别是 ConsumerGroup、Consumer�
 
 ![](pics/consumer_group_concepts.jpg)
 
-### ConsumerGroup
+#### ConsumerGroup
 
 消费组。ConsumerGroup 是 Logstore 的子资源，拥有相同 ConsumerGroup 名字的消费者共同消费同一个 Logstore
 的所有数据，这些消费者之间不会重复消费数据。
@@ -57,16 +57,16 @@ ConsumerGroup 有两个很重要的属性：
 - `timeout`：`integer`，表示 ConsumerGroup 中消费者的超时时间，单位秒。当一个消费者汇报心跳的时间间隔超过
   timeout，则服务端会认为该消费者已经下线。
 
-### Consumer
+#### Consumer
 
 消费者。一个 ConsumerGroup 对应多个 Consumer，同一个ConsumerGroup 中的 Consumer 不能重名。每个 Consumer 上会被分配若干个
 Shard，Consumer 的职责就是要消费这些 Shard 上的数据。
 
-### Heartbeat
+#### Heartbeat
 
 消费者心跳。Consumer 需要定期向服务端汇报一个心跳包，用于表明自己还处于存活状态。
 
-## Checkpoint
+#### Checkpoint
 
 消费位点。消费者定期将分配给自己的 Shard 的消费位点保存到服务端，这样当该 Shard 被分配给其它消费者时，其他消费者就可以从服务端获取
 Shard 的消费断点，接着从断点继续消费数据，进而保证数据不丢失。
@@ -354,4 +354,4 @@ LogHubConfig 中配置的如果是子用户或角色的 AccessKey，需要在 RA
 
 ## 问题反馈
 
-如果您在使用过程中遇到了问题，可以创建 [GitHub Issue](https://github.com/aliyun/aliyun-log-consumer-java) 或者前往阿里云支持中心[提交工单](https://selfservice.console.aliyun.com/service/create-ticket)。
+如果您在使用过程中遇到了问题，可以创建 [GitHub Issue](https://github.com/aliyun/aliyun-log-consumer-java/issues) 或者前往阿里云支持中心[提交工单](https://selfservice.console.aliyun.com/service/create-ticket)。
