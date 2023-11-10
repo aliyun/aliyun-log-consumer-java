@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Logger;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.aliyun.openservices.log.Client;
@@ -57,6 +57,8 @@ public class LogHubClientAdapter {
         clientConfig.setProxyPassword(config.getProxyPassword());
         clientConfig.setProxyDomain(config.getProxyDomain());
         clientConfig.setProxyWorkstation(config.getProxyWorkstation());
+        clientConfig.setSignatureVersion(config.getSignVersion());
+        clientConfig.setRegion(config.getRegion());
         return clientConfig;
     }
 

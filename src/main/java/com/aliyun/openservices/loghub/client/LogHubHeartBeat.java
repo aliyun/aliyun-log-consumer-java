@@ -24,7 +24,6 @@ public class LogHubHeartBeat {
     private Set<Integer> heldShards;
     private Set<Integer> heartShards;
     private long lastSuccessTime;
-    private ShardFilter shardFilter;
 
     public LogHubHeartBeat(LogHubClientAdapter client,
                            LogHubConfig config) {
@@ -42,10 +41,6 @@ public class LogHubHeartBeat {
         LOG.info("Background heartbeat thread started, interval {}", intervalMills);
     }
 
-    public synchronized void setShardFilter(ShardFilter shardFilter) {
-        this.shardFilter = shardFilter;
-    }
-
     /**
      * Stops background threads.
      */
@@ -54,27 +49,12 @@ public class LogHubHeartBeat {
     }
 
     public synchronized List<Integer> getHeldShards() {
-        return shardFilter == null
-                ? new ArrayList<Integer>(heldShards)
-                : shardFilter.filter(new ArrayList<Integer>(heldShards));
+        return new ArrayList<>(heldShards);
     }
 
-    public synchronized void unsubscribe(List<Integer> shards) {
-        heartShards.removeAll(shards);
-    }
-
-    private synchronized void unsubscribeIdle(Set<Integer> shards) {
-        if (shardFilter == null || shards.isEmpty()) {
-            return;
-        }
-        List<Integer> filtered = shardFilter.filter(new ArrayList<Integer>(shards));
-        List<Integer> additional = new ArrayList<Integer>();
-        for (Integer shard : shards) {
-            if (!filtered.contains(shard)) {
-                additional.add(shard);
-            }
-        }
-        unsubscribe(additional);
+    public synchronized void removeFromHeartShards(int shard) {
+        heartShards.remove(shard);
+        LOG.warn("Cancel heart beating for shard={}", shard);
     }
 
     private synchronized void heartBeat() {
@@ -93,9 +73,9 @@ public class LogHubHeartBeat {
                     client.getConsumer(),
                     ex);
             if (nowMillis - lastSuccessTime > (timeoutSecs * 1000L) + intervalMills) {
-                // Should already been removed from consumer group
+                // The current consumer should already been removed from consumer group
                 heldShards.clear();
-                unsubscribeIdle(heartShards);
+                heartShards.clear();
                 LOG.warn("Heartbeat failed since {}, clear held shards", lastSuccessTime);
             }
         }

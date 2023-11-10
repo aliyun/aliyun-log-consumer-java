@@ -90,6 +90,7 @@ public class ShardConsumer {
     }
 
     private void checkAndGenerateNextTask() {
+        LOG.debug("Check and generate next task, shard={}, currentStatus={}", shardID, currentStatus);
         if (taskFuture == null || taskFuture.isCancelled() || taskFuture.isDone()) {
             boolean taskSuccess = false;
             TaskResult result = getTaskResult(taskFuture, false);
@@ -112,6 +113,7 @@ public class ShardConsumer {
                     }
                 }
             }
+            LOG.debug("Task success = {}, shard={}, currentStatus={}", taskSuccess, shardID, currentStatus);
             sampleLogError(result);
             updateStatus(taskSuccess);
             generateNextTask();
@@ -165,8 +167,10 @@ public class ShardConsumer {
                 fetchDataFuture = null;
                 lastFetchedData = null;
                 resourceBarrier.release(PRE_ALLOCATED_BYTES);
+                LOG.debug("Fetch data task is canceled, shard={}", shardID);
                 return true;
             } else if (!fetchDataFuture.isDone()) {
+                LOG.debug("Fetch data task is running, shard={}", shardID);
                 return true;
             }
             TaskResult result = getTaskResult(fetchDataFuture, false);
@@ -188,6 +192,7 @@ public class ShardConsumer {
                 resourceBarrier.release(PRE_ALLOCATED_BYTES);
             }
         }
+        LOG.debug("Fetch data task completed, shard={}, hasError={}", shardID, hasError);
         if (fetchAllowed && shouldFetchNext(hasError)) {
             lastFetchTime = System.currentTimeMillis();
             LogHubFetchTask task = new LogHubFetchTask(loghubClient, shardID, nextFetchCursor, config);
@@ -225,6 +230,7 @@ public class ShardConsumer {
     }
 
     private void cancelCurrentFetch() {
+        LOG.info("Cancel current fetch task, shard={}, fetchDataFuture==null: {}", shardID, (fetchDataFuture == null));
         if (fetchDataFuture != null) {
             fetchDataFuture.cancel(true);
             getTaskResult(fetchDataFuture, true);
@@ -238,8 +244,10 @@ public class ShardConsumer {
     private void generateNextTask() {
         ITask nextTask = null;
         if (this.currentStatus.equals(ConsumerStatus.INITIALIZING)) {
+            LOG.info("GenerateNextTask, current status = {}, add initialize task, shard={}", currentStatus, shardID);
             nextTask = new InitializeTask(processor, loghubClient, shardID, initialPosition, startTime);
         } else if (this.currentStatus.equals(ConsumerStatus.PROCESSING)) {
+            LOG.debug("GenerateNextTask, current status = {}, add process task, shard={}", currentStatus, shardID);
             if (lastFetchedData != null) {
                 checkpointTracker.setCurrentCursor(lastFetchedData.getCursor());
                 checkpointTracker.setNextCursor(lastFetchedData.getNextCursor());
@@ -247,13 +255,15 @@ public class ShardConsumer {
                         lastFetchedData.getFetchedData(),
                         checkpointTracker,
                         lastFetchRawSize,
-                        resourceBarrier);
+                        resourceBarrier,
+                        shardID);
                 lastFetchedData = null;
             }
         } else if (this.currentStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
             if (lastFetchedData != null) {
                 resourceBarrier.release(lastFetchRawSize);
             }
+            LOG.info("Current status = {}, add shutdown task, shard={}", currentStatus, shardID);
             nextTask = new ShutDownTask(processor, checkpointTracker);
             cancelCurrentFetch();
         }
@@ -264,12 +274,18 @@ public class ShardConsumer {
     }
 
     private void updateStatus(boolean taskSuccess) {
+        LOG.debug("Current status = {}, shard={}, task success={}", currentStatus, shardID, taskSuccess);
         if (currentStatus.equals(ConsumerStatus.SHUTTING_DOWN)) {
             if (currentTask == null || taskSuccess) {
                 currentStatus = ConsumerStatus.SHUTDOWN_COMPLETE;
+                LOG.info("Change current status to {}, shard={}", currentStatus, shardID);
             }
         } else if (shutdown) {
-            currentStatus = ConsumerStatus.SHUTTING_DOWN;
+            if (currentStatus != ConsumerStatus.SHUTDOWN_COMPLETE) {
+                // If already shutdown, do not shut down again.
+                currentStatus = ConsumerStatus.SHUTTING_DOWN;
+                LOG.info("Change current status to {}, shard={}", currentStatus, shardID);
+            }
         } else if (taskSuccess) {
             if (currentStatus.equals(ConsumerStatus.INITIALIZING)) {
                 currentStatus = ConsumerStatus.PROCESSING;

@@ -3,6 +3,7 @@ package com.aliyun.openservices.loghub.client.config;
 import java.io.Serializable;
 
 import com.aliyun.openservices.log.common.auth.CredentialsProvider;
+import com.aliyun.openservices.log.http.signer.SignVersion;
 
 public class LogHubConfig implements Serializable {
     private static final long serialVersionUID = -460559812263406428L;
@@ -47,6 +48,9 @@ public class LogHubConfig implements Serializable {
     private String proxyPassword;
     private String proxyDomain;
     private String proxyWorkstation;
+
+    private SignVersion signVersion = SignVersion.V1;
+    private String region;
 
     private LogHubConfig(String consumerGroup,
                          String consumer,
@@ -358,6 +362,22 @@ public class LogHubConfig implements Serializable {
 
     public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+    }
+
+    public SignVersion getSignVersion() {
+        return signVersion;
+    }
+
+    public void setSignVersion(SignVersion signVersion) {
+        this.signVersion = signVersion;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
     }
 
     @Override
