@@ -41,13 +41,10 @@ public class LogHubClientAdapter {
         this.consumerGroupName = config.getConsumerGroup();
         this.consumer = config.getConsumer();
         this.userAgent = getOrCreateUserAgent(config);
-        this.client = createClient(config.getEndpoint(),
-                config.getAccessId(),
-                config.getAccessKey(),
-                config.getStsToken());
+        this.client = createClient(config);
     }
 
-    private Client createClient(String endpoint, String accessKeyId, String accessKey, String stsToken) {
+    private static ClientConfiguration getClientConfiguration(LogHubConfig config) {
         ClientConfiguration clientConfig = new ClientConfiguration();
         clientConfig.setMaxConnections(Consts.HTTP_CONNECT_MAX_COUNT);
         clientConfig.setConnectionTimeout(Consts.HTTP_CONNECT_TIME_OUT);
@@ -61,10 +58,27 @@ public class LogHubClientAdapter {
         clientConfig.setProxyWorkstation(config.getProxyWorkstation());
         clientConfig.setSignatureVersion(config.getSignVersion());
         clientConfig.setRegion(config.getRegion());
+        return clientConfig;
+    }
+
+    private Client createClient(String endpoint, String accessKeyId, String accessKey, String stsToken) {
+        ClientConfiguration clientConfig = getClientConfiguration(config);
         Client client = new Client(endpoint, accessKeyId, accessKey, clientConfig);
         if (stsToken != null) {
             client.setSecurityToken(stsToken);
         }
+        client.setUserAgent(userAgent);
+        client.setUseDirectMode(config.isDirectModeEnabled());
+        return client;
+    }
+
+    private Client createClient(LogHubConfig config) {
+        if (config.getCredentialsProvider() == null) {
+            return createClient(config.getEndpoint(), config.getAccessId(), config.getAccessKey(), config.getStsToken());
+        }
+
+        ClientConfiguration clientConfig = getClientConfiguration(config);
+        Client client = new Client(config.getEndpoint(), config.getCredentialsProvider(), clientConfig, null);
         client.setUserAgent(userAgent);
         client.setUseDirectMode(config.isDirectModeEnabled());
         return client;

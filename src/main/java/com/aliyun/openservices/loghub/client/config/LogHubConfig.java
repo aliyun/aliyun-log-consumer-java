@@ -1,9 +1,9 @@
 package com.aliyun.openservices.loghub.client.config;
 
-import com.aliyun.openservices.log.http.signer.SignVersion;
-
 import java.io.Serializable;
 
+import com.aliyun.openservices.log.common.auth.CredentialsProvider;
+import com.aliyun.openservices.log.http.signer.SignVersion;
 
 public class LogHubConfig implements Serializable {
     private static final long serialVersionUID = -460559812263406428L;
@@ -27,6 +27,7 @@ public class LogHubConfig implements Serializable {
     private String logstore;
     private String accessId;
     private String accessKey;
+    private CredentialsProvider credentialsProvider;
     private LogHubCursorPosition initialPosition;
     private int startTimestamp = 0;
     private long fetchIntervalMillis = DEFAULT_FETCH_INTERVAL_MS;
@@ -67,6 +68,27 @@ public class LogHubConfig implements Serializable {
         this.accessKey = accessKey;
     }
 
+    public LogHubConfig(String consumerGroup, String consumer, String endpoint, String project, String logstore, CredentialsProvider credentialsProvider, ConsumePosition position) {
+        this.consumerGroup = consumerGroup;
+        this.consumer = consumer;
+        this.endpoint = endpoint;
+        this.project = project;
+        this.logstore = logstore;
+        this.credentialsProvider = credentialsProvider;
+        this.initialPosition = convertPosition(position);
+    }
+
+    public LogHubConfig(String consumerGroup, String consumer, String endpoint, String project, String logstore, CredentialsProvider credentialsProvider, int startTimestamp) {
+        this.consumerGroup = consumerGroup;
+        this.consumer = consumer;
+        this.endpoint = endpoint;
+        this.project = project;
+        this.logstore = logstore;
+        this.credentialsProvider = credentialsProvider;
+        this.initialPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
+        this.startTimestamp = startTimestamp;
+    }
+    
     public LogHubConfig(String consumerGroup,
                         String consumer,
                         String endpoint,
@@ -332,6 +354,14 @@ public class LogHubConfig implements Serializable {
 
     public void setMaxInProgressingDataSizeInMB(int maxInProgressingDataSizeInMB) {
         this.maxInProgressingDataSizeInMB = maxInProgressingDataSizeInMB;
+    }
+
+    public CredentialsProvider getCredentialsProvider() {
+        return credentialsProvider;
+    }
+
+    public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
+        this.credentialsProvider = credentialsProvider;
     }
 
     public SignVersion getSignVersion() {
