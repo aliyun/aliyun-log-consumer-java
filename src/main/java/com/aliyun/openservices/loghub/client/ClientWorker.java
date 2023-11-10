@@ -9,12 +9,7 @@ import com.aliyun.openservices.loghub.client.throttle.UnlimitedResourceBarrier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -34,6 +29,9 @@ public class ClientWorker implements Runnable {
     private int lastFetchThrottleMinShard = 0;
     private boolean shareThreadPool;
 
+    private ShardFilter shardFilter;
+    private List<Integer> assigned;
+
     public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config) throws LogHubClientWorkerException {
         this(factory, config, null);
     }
@@ -41,6 +39,7 @@ public class ClientWorker implements Runnable {
     public ClientWorker(ILogHubProcessorFactory factory, LogHubConfig config, ExecutorService threadPool) throws LogHubClientWorkerException {
         processorFactory = factory;
         logHubConfig = config;
+        assigned = new ArrayList<>();
         if (threadPool == null) {
             shareThreadPool = false;
             executorService = Executors.newCachedThreadPool(new LogThreadFactory());
@@ -73,7 +72,7 @@ public class ClientWorker implements Runnable {
     }
 
     public void setShardFilter(ShardFilter shardFilter) {
-        logHubHeartBeat.setShardFilter(shardFilter);
+        this.shardFilter = shardFilter;
     }
 
     private static List<Integer> sortShards(List<Integer> shards) {
@@ -90,6 +89,9 @@ public class ClientWorker implements Runnable {
         while (!shutDown) {
             List<Integer> heldShards = logHubHeartBeat.getHeldShards();
             List<Integer> shards = sortShards(heldShards);
+            if (shardFilter != null) {
+                shards = shardFilter.filter(shards);
+            }
             int curFetchThrottleMinShard = -1;
             for (int shard : shards) {
                 ShardConsumer consumer = consumerForShard(shard);
@@ -123,38 +125,41 @@ public class ClientWorker implements Runnable {
     }
 
     private void cleanConsumer(List<Integer> ownedShard) {
-        List<Integer> shardToUnload = new ArrayList<Integer>();
+        List<Integer> shutdownComplete = new ArrayList<>();
         for (Map.Entry<Integer, ShardConsumer> entry : shardConsumer.entrySet()) {
             int shard = entry.getKey();
-            if (ownedShard.contains(shard)) {
-                continue;
-            }
-            LOG.warn("Shard {} has been assigned to another consumer.", shard);
             final ShardConsumer consumer = entry.getValue();
-            if (consumer.canBeUnloaded()) {
-                LOG.info("Shutting down consumer of shard: {}", shard);
-                consumer.shutdown();
-            } else {
-                LOG.warn("Shard {} cannot be unloaded as it's checkpoint has not been committed yet", shard);
+            if (!ownedShard.contains(shard)) {
+                LOG.warn("Shard {} has been assigned to another consumer.", shard);
+                if (consumer.canBeUnloaded()) {
+                    LOG.info("Shutting down consumer of shard: {}", shard);
+                    consumer.shutdown();
+                } else {
+                    LOG.warn("Shard {} cannot be unloaded as checkpoint not updated yet", shard);
+                }
             }
             if (consumer.isShutdown()) {
-                shardToUnload.add(shard);
-                LOG.info("Shard shutdown done, removing from heartbeat list: {}", shard);
+                shutdownComplete.add(shard);
+                LOG.info("Shard shutdown done, shard={}", shard);
             }
         }
-        for (Integer shard : shardToUnload) {
+        for (int shard : assigned) {
+            // Filter the shards not in consuming, such as filtered. We can remove
+            // them from heart shards without unload.
+            if (!shardConsumer.containsKey(shard) && !ownedShard.contains(shard)) {
+                shutdownComplete.add(shard);
+            }
+        }
+        // The following scenario is possible.
+        // shard -> assigned to other consumer -> shutting down -> shutting down complete
+        //                                      -> assigned back ->
+        for (Integer shard : shutdownComplete) {
             shardConsumer.remove(shard);
-        }
-        for (Integer shard : ownedShard) {
-            if (!shardConsumer.containsKey(shard)) {
-                // Shard is not consuming such as filtered
-                shardToUnload.add(shard);
+            if (!ownedShard.contains(shard)) {
+                logHubHeartBeat.removeFromHeartShards(shard);
             }
         }
-        if (!shardToUnload.isEmpty()) {
-            logHubHeartBeat.unsubscribe(shardToUnload);
-            LOG.warn("Cancel heart beating for {}", Arrays.toString(shardToUnload.toArray()));
-        }
+        assigned = ownedShard;
     }
 
     private ShardConsumer consumerForShard(final int shardId) {

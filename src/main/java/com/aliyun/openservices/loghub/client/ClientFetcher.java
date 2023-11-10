@@ -186,8 +186,8 @@ public class ClientFetcher {
             }
             for (int shard : removeShards) {
                 mShardConsumer.remove(shard);
+                mLogHubHeartBeat.removeFromHeartShards(shard);
             }
-            mLogHubHeartBeat.unsubscribe(removeShards);
         }
     }
 
