@@ -1,13 +1,5 @@
 package com.aliyun.openservices.loghub.client;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.slf4j.Logger;
-
-import org.slf4j.LoggerFactory;
-
 import com.aliyun.openservices.log.Client;
 import com.aliyun.openservices.log.common.Consts;
 import com.aliyun.openservices.log.common.Consts.CursorMode;
@@ -21,6 +13,13 @@ import com.aliyun.openservices.log.response.ListConsumerGroupResponse;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LogHubClientAdapter {
 
