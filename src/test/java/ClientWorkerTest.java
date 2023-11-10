@@ -9,15 +9,17 @@ import org.junit.Test;
 import java.util.Map;
 
 public class ClientWorkerTest {
-    static class EnvVar{
+    static class EnvVar {
         public String accessKeyID;
         public String accessKeySecret;
         public String endpoint;
         public String project;
         public String logStore;
+
         private static boolean isEmpty(String str) {
             return str == null || str.isEmpty();
         }
+
         EnvVar() {
             Map<String, String> envVariables = System.getenv();
             this.accessKeyID = envVariables.get("LOG_TEST_ACCESS_KEY_ID");
@@ -30,6 +32,7 @@ public class ClientWorkerTest {
             }
         }
     }
+
     private static final EnvVar env = new EnvVar();
 
     private static final String TEST_PROJECT = env.project;
@@ -39,19 +42,13 @@ public class ClientWorkerTest {
     private static final String ACCESS_KEY = env.accessKeySecret;
 
 
-
-    public static void main(String[] args) throws LogHubClientWorkerException,
-            InterruptedException {
+    public static void main(String[] args) throws LogHubClientWorkerException, InterruptedException {
         int n = 5;
         Thread[] threads = new Thread[n];
         ClientWorker[] workers = new ClientWorker[n];
 
         for (int i = 0; i < n; i++) {
-            LogHubConfig config = new LogHubConfig(
-                    "consumer_group_client_worker_test", "consumer_" + i,
-                    TEST_ENDPOINT, TEST_PROJECT, TEST_LOGSTORE,
-                    ACCESS_KEY_ID, ACCESS_KEY,
-                    LogHubConfig.ConsumePosition.BEGIN_CURSOR);
+            LogHubConfig config = new LogHubConfig("consumer_group_client_worker_test", "consumer_" + i, TEST_ENDPOINT, TEST_PROJECT, TEST_LOGSTORE, ACCESS_KEY_ID, ACCESS_KEY, LogHubConfig.ConsumePosition.BEGIN_CURSOR);
             config.setHeartBeatIntervalMillis(20 * 1000);
             ClientWorker worker = new ClientWorker(new LogHubProcessorTestFactory(), config);
             threads[i] = new Thread(worker);
@@ -70,19 +67,16 @@ public class ClientWorkerTest {
 
         Thread.sleep(60 * 1000);
     }
+
     @Test
-    public void TestCredentialsProvider() throws LogHubClientWorkerException, InterruptedException {
+    public void testCredentialsProvider() throws LogHubClientWorkerException, InterruptedException {
         int n = 5;
         Thread[] threads = new Thread[n];
         ClientWorker[] workers = new ClientWorker[n];
-        CredentialsProvider provider = new StaticCredentialsProvider(new DefaultCredentials(ACCESS_KEY_ID, ACCESS_KEY,""));
+        CredentialsProvider provider = new StaticCredentialsProvider(new DefaultCredentials(ACCESS_KEY_ID, ACCESS_KEY, ""));
 
         for (int i = 0; i < n; i++) {
-            LogHubConfig config = new LogHubConfig(
-                    "consumer_group_client_worker_test", "consumer_" + i,
-                    TEST_ENDPOINT, TEST_PROJECT, TEST_LOGSTORE,
-                    provider,
-                    LogHubConfig.ConsumePosition.BEGIN_CURSOR);
+            LogHubConfig config = new LogHubConfig("consumer_group_client_worker_test", "consumer_" + i, TEST_ENDPOINT, TEST_PROJECT, TEST_LOGSTORE, provider, LogHubConfig.ConsumePosition.BEGIN_CURSOR);
             config.setHeartBeatIntervalMillis(20 * 1000);
             ClientWorker worker = new ClientWorker(new LogHubProcessorTestFactory(), config);
             threads[i] = new Thread(worker);
@@ -104,19 +98,15 @@ public class ClientWorkerTest {
 
 
     @Test
-    public void TestCredentialsProvider2() throws LogHubClientWorkerException, InterruptedException {
+    public void testCredentialsProvider2() throws LogHubClientWorkerException, InterruptedException {
         int n = 5;
         Thread[] threads = new Thread[n];
         ClientWorker[] workers = new ClientWorker[n];
-        CredentialsProvider provider = new StaticCredentialsProvider(new DefaultCredentials(ACCESS_KEY_ID, ACCESS_KEY,""));
+        CredentialsProvider provider = new StaticCredentialsProvider(new DefaultCredentials(ACCESS_KEY_ID, ACCESS_KEY, ""));
 
         int startTime = (int) (System.currentTimeMillis() / 1000);
         for (int i = 0; i < n; i++) {
-            LogHubConfig config = new LogHubConfig(
-                    "consumer_group_client_worker_test", "consumer_" + i,
-                    TEST_ENDPOINT, TEST_PROJECT, TEST_LOGSTORE,
-                    provider,
-                    startTime);
+            LogHubConfig config = new LogHubConfig("consumer_group_client_worker_test", "consumer_" + i, TEST_ENDPOINT, TEST_PROJECT, TEST_LOGSTORE, provider, startTime);
             config.setHeartBeatIntervalMillis(20 * 1000);
             ClientWorker worker = new ClientWorker(new LogHubProcessorTestFactory(), config);
             threads[i] = new Thread(worker);

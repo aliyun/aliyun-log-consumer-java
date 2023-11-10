@@ -64,13 +64,7 @@ public class LogHubConfig implements Serializable {
         this.accessKey = accessKey;
     }
 
-    public LogHubConfig(String consumerGroup,
-        String consumer,
-        String endpoint,
-        String project,
-        String logstore,
-        CredentialsProvider credentialsProvider,
-            ConsumePosition position) {
+    public LogHubConfig(String consumerGroup, String consumer, String endpoint, String project, String logstore, CredentialsProvider credentialsProvider, ConsumePosition position) {
         this.consumerGroup = consumerGroup;
         this.consumer = consumer;
         this.endpoint = endpoint;
@@ -80,13 +74,7 @@ public class LogHubConfig implements Serializable {
         this.initialPosition = convertPosition(position);
     }
 
-    public LogHubConfig(String consumerGroup,
-            String consumer,
-            String endpoint,
-            String project,
-            String logstore,
-            CredentialsProvider credentialsProvider,
-            int startTimestamp) {
+    public LogHubConfig(String consumerGroup, String consumer, String endpoint, String project, String logstore, CredentialsProvider credentialsProvider, int startTimestamp) {
         this.consumerGroup = consumerGroup;
         this.consumer = consumer;
         this.endpoint = endpoint;
