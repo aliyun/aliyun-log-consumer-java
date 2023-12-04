@@ -137,22 +137,21 @@ public class LogHubClientAdapter {
         LOG.info("Start client worker: {}", config.toString());
         lock.readLock().lock();
         try {
-            boolean exist = false;
+            ConsumerGroup consumerGroup = null;
             try {
-                ConsumerGroup consumerGroup = getConsumerGroup(consumerGroupName);
+                consumerGroup = getConsumerGroup(consumerGroupName);
                 if (consumerGroup != null) {
                     if (consumerGroup.getTimeout() == config.getTimeoutInSeconds()
                             && consumerGroup.isInOrder() == config.isConsumeInOrder()) {
                         LOG.info("Consumer Group {} already exist", consumerGroupName);
                         return;
                     }
-                    exist = true;
                 }
             } catch (LogException ex) {
                 LOG.warn("Error checking consumer group", ex);
                 // do not throw exception here for bwc
             }
-            if (!exist) {
+            if (consumerGroup == null) {
                 try {
                     client.CreateConsumerGroup(project, logstore, new ConsumerGroup(consumerGroupName,
                             config.getTimeoutInSeconds(),
@@ -168,7 +167,11 @@ public class LogHubClientAdapter {
                                 ex);
                     }
                 }
+            } else if (consumerGroup.getTimeout() == config.getTimeoutInSeconds() &&
+                    consumerGroup.isInOrder() == config.isConsumeInOrder()) {
+                return;
             }
+
             try {
                 UpdateConsumerGroup(config.getTimeoutInSeconds(), config.isConsumeInOrder());
                 LOG.info("Update ConsumerGroup {} success.", consumerGroupName);
