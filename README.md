@@ -1,4 +1,4 @@
-# Consumer Library 使用说明
+# Consumer Library
 
 Aliyun LOG Consumer Library 一个是消费 Logstore 数据的 Java 库，它有如下功能特点：
 
@@ -10,21 +10,7 @@ Aliyun LOG Consumer Library 一个是消费 Logstore 数据的 Java 库，它有
 - 线程安全：Consumer 内的所有方法以及暴露的接口都是线程安全的
 - 优雅关闭：调用关闭程序接口，Consumer 会等待异步任务结束并将当前消费位点提交至服务端，保证下次开始不会重复消费数据
 
-
-举个例子，用户需要通过 Storm 进行流计算，启动了 A、B、C 3 个消费实例。在有 10 个 Shard 情况下，系统会自动为 A、B、C 分配 3、3、4 个
-Shard 进行消费。部分示例场景如下：
-
-1. 场景一：消费实例 A 宕机，则：系统会把 A 未消费的 3 个 Shard 中数据自动均衡 B、C 上，当 A 恢复后，会重新均衡； 
-2. 场景二：添加实例 D、E，则：系统会自动进行均衡，每个实例消费 2 个 Shard； 
-3. 场景三：Shard 进行分裂或合并，则：系统会根据最新的 Shard 信息，重新均衡； 
-4. 场景三：只读（readonly）状态的 Shard 消费完毕，则：剩余的 Shard 会重新做负载均衡。
-
-以上整个过程不会产生数据丢失、以及重复，自动处理 Shard 的负载均衡、消费者故障恢复等逻辑。用户只需专注在自己业务逻辑上，而无需关心
-Shard 分配、CheckPoint、Failover 等事宜。
-
-
-## 实现原理
-
+## 概念介绍
 
 Consumer Library 中主要有 4 个概念，分别是 ConsumerGroup、Consumer、Heartbeat 和 Checkpoint，它们之间的关系如下：
 
@@ -245,19 +231,19 @@ Consumer 由 ClientWorker 创建和管理，Shard 和 Consumer 一一对应。
 
 假设 Logstore 中有 Shard 0 ~ Shard 3 这 4 个 Shard ，有 3个 Worker，其 ConsumerGroup 和 Worker 分别是：
 
-- <consumer_group_name_1 , worker_A>
-- <consumer_group_name_1 , worker_B>
-- <consumer_group_name_2 , worker_C>
+- `<consumer_group_name_1 , worker_A>`
+- `<consumer_group_name_1 , worker_B>`
+- `<consumer_group_name_2 , worker_C>`
 
 则，这些 Worker 和 Shard 的分配关系可能是：
 
-- <consumer_group_name_1 , worker_A>: shard_0, shard_1
-- <consumer_group_name_1 , worker_B>: shard_2, shard_3
-- <consumer_group_name_2 , worker_C>: shard_0, shard_1, shard_2, shard_3 （ConsumerGroup 不同的 Worker 互不影响）
+- `<consumer_group_name_1 , worker_A>`: shard_0, shard_1
+- `<consumer_group_name_1 , worker_B>`: shard_2, shard_3
+- `<consumer_group_name_2 , worker_C>`: shard_0, shard_1, shard_2, shard_3 （ConsumerGroup 不同的 Worker 互不影响）
 
 ### ILogHubProcessor 的实现
 
-- 需要确保实现的 ILogHubProcessor `process()` 接口每次都能顺利执行并退出，这样才能继续拉取下一批数据
+- 需要确保实现的 `ILogHubProcessor#process()` 接口每次都能顺利执行并退出，这样才能继续拉取下一批数据
 - 如果 `process()` 返回 `null` 或空字符串，则认为数据处理成功，会继续拉取下一批数据；否则必须返回 Checkpoint，以便 Consumer 重新拉取对应 Checkpoint 的数据
 - ILogHubCheckPointTracker的 `saveCheckPoint()` 接口，无论传递的参数是 true 或 false，都表示当前处理的数据已经完成
     - 参数为 `true`，则立刻将消费位点持久化至服务端
