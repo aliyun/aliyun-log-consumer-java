@@ -2,10 +2,6 @@
 
 Aliyun LOG Consumer Library 一个是消费 Logstore 数据的 Java 库，它有如下功能特点：
 
-- 至少一次：Consumer 实现了 Checkpoint 机制，支持定期自动或手动保存消费位点到服务端，这样即使 Consumer
-  异常，下次也可以从服务端获取断点位置继续消费，保证数据至少消费一次
-- 精确一次：正常消费过程中，Consumer 会自动处理 Checkpoint 提交逻辑，保证数据精确消费一次；如果出现异常，Consumer
-  将当前消费位点提交至服务端，保证数据不被重复消费
 - 自动负载均衡：Consumer 会根据当前 ConsumerGroup 的消费者数量和 Shard 数量自动进行负载均衡，保证任意两个消费者持有 Shard
   数量之差的绝对值小于等于 1
 - 线程安全：Consumer 内的所有方法以及暴露的接口都是线程安全的
@@ -14,31 +10,21 @@ Aliyun LOG Consumer Library 一个是消费 Logstore 数据的 Java 库，它有
 - 高性能：Consumer 使用多线程异步拉取数据和处理数据，以提高吞吐量和性能
 - 使用简单：在整个使用过程中，不会产生数据丢失和重复，用户只需要进行简单配置、创建消费者实例，然后编写数据处理代码逻辑即可，不需关心消费断点保存，以及错误重试等问题
 
-> 注意：精确一次需要配合业务代码来实现。当程序关闭时，如果 Consumer Library 能给正常将当前消费位点提交至服务端，则
-> Consumer 可以保证拉取的数据不重复进而实现精确一次。如果程序关闭过程中，Consumer Library
-> 无法正常提交当前消费位点到服务端，则下次拉取数据时就会从上一次提交的消费位点开始消费，可能有少部分数据重复，只能实现至少一次。
-> 当 Consumer Library 精确一次拉取数据后，还需要业务代码处理数据时保证不丢失、不重复，最终才能保证整个业务逻辑的精确一次。
-
-## 使用场景
-
-Consumer Library 是对 Logstore 消费者提供的高级模式，解决多个消费者同时消费 Logstore 时自动分配 Shard 的问题。
-
-例如在 Storm、Spark 场景中多个消费者情况下，自动处理 Shard 的负载均衡、消费者故障恢复等逻辑。用户只需专注在自己业务逻辑上，而无需关心
-Shard 分配、CheckPoint、Failover 等事宜。
 
 举个例子，用户需要通过 Storm 进行流计算，启动了 A、B、C 3 个消费实例。在有 10 个 Shard 情况下，系统会自动为 A、B、C 分配 3、3、4 个
 Shard 进行消费。部分示例场景如下：
 
-* 场景一：消费实例 A 宕机，则：系统会把 A 未消费的 3 个 Shard 中数据自动均衡 B、C 上，当 A 恢复后，会重新均衡；
-* 场景二：添加实例 D、E，则：系统会自动进行均衡，每个实例消费 2 个 Shard；
-* 场景三：Shard 进行分裂或合并，则：系统会根据最新的 Shard 信息，重新均衡；
-* 场景三：只读（readonly）状态的 Shard 消费完毕，则：剩余的 Shard 会重新做负载均衡。
+1. 场景一：消费实例 A 宕机，则：系统会把 A 未消费的 3 个 Shard 中数据自动均衡 B、C 上，当 A 恢复后，会重新均衡； 
+2. 场景二：添加实例 D、E，则：系统会自动进行均衡，每个实例消费 2 个 Shard； 
+3. 场景三：Shard 进行分裂或合并，则：系统会根据最新的 Shard 信息，重新均衡； 
+4. 场景三：只读（readonly）状态的 Shard 消费完毕，则：剩余的 Shard 会重新做负载均衡。
 
-以上整个过程不会产生数据丢失、以及重复，用户只需要使用该 Consumer Library 并编写处理数据的业务逻辑即可。
+以上整个过程不会产生数据丢失、以及重复，自动处理 Shard 的负载均衡、消费者故障恢复等逻辑。用户只需专注在自己业务逻辑上，而无需关心
+Shard 分配、CheckPoint、Failover 等事宜。
+
 
 ## 实现原理
 
-### 术语简介
 
 Consumer Library 中主要有 4 个概念，分别是 ConsumerGroup、Consumer、Heartbeat 和 Checkpoint，它们之间的关系如下：
 
@@ -71,83 +57,14 @@ Shard，Consumer 的职责就是要消费这些 Shard 上的数据。
 消费位点。消费者定期将分配给自己的 Shard 的消费位点保存到服务端，这样当该 Shard 被分配给其它消费者时，其他消费者就可以从服务端获取
 Shard 的消费断点，接着从断点继续消费数据，进而保证数据不丢失。
 
-### 有限状态自动机
-
-#### 状态定义
-
-服务端对 ConsumerGroup 中每个 Shard 都会维护一个有限状态自动机，共有五种状态，分别是
-already_alloc、not_alloc、wait、transfer、over，每种状态的含义如下：
-
-- already_alloc：该 Shard 已经被某个 Consumer 持有并消费。
-- not_alloc：该 Shard 可以消费，且尚未被任何 Consumer 持有。
-- wait：该 Shard 当前不可以消费，需要等待其祖先 Shard 消费完毕。
-- transfer：将该 Shard 转交给另一个消费者消费的过渡状态。只有当当前消费者在 Heartbeat
-  中放弃消费该shard，才能将该shard转交出去，因此需要这个过渡状态。
-- over：该shard的数据已经消费完。
-
-wait 状态需要重点说明下，假设某个时刻数据仓库所有shard的关系如下图：
-
-![shards](pics/shards.JPG)
-
-初始时有 3 个 Shard 0、1、2，每个 Shard 下面的区间表示关联的 Hash Key 的集合，这里为了简单用数值型表示 Hash Key。 此时 Hash
-Key 为 7 的数据会被写入 Shard 0。
-
-随后 Shard 0 分裂成 3 和 4，Shard 0 变成只读（readonly）状态，Shard 3 和 4 变成读写（readwrite）状态，这个时候 Hash Key 是 7
-的数据不会再被写入 Shard 0，而是写入 Shard 4。
-
-再接着 Shard 4 和 5 合并成 6 之后，Hash Key 为 7 的数据只会写入 Shard 6。
-
-如果要顺序消费 Hash Key 为 7 的数据，必须保证在 Shard 0 被消费完之前，Shard 4 不应该被任何消费者消费。同理，Shard 6 不应该在
-Shard 4 数据消费完之前被消费。我们把 Shard 0、4 认为是 Shard 6 的祖先，Shard 6 称为 Shard 0 和 4 的后代。
-
-**某个 Shard 可以被消费的条件是：当且仅当其祖先 Shard 中的数据被消费完。** 基于这个原因，引入 wait 状态表示该 Shard
-当前不可以被消费。
-
-#### 状态转移
-
-有限状态自动机的状态转移过程如下图所示：
-
-![状态转移图](pics/states.JPG)
-
-图中每个状态用首字母缩写表示，每条连线对应含义如下：
-
-- 1 表示 Shard 的起始状态只能是 wait 或者 not_alloc。
-- 2 表示该 Shard 的祖先 Shard 的数据已经被消费完，可以开始消费当前shard的数据了。
-- 3 表示该 Shard 被分配给了某一个消费者。
-- 4 表示消费该 Shard 的 Consumer 心跳超时了，回收其持有的 Shard。
-- 5 表示持有该 Shard 的消费者所持有的 Shard 总数太多，不满足“任意两个消费者持有 Shard 数量之差的绝对值小于等于 1”，所以将该
-  Shard 转移给别的消费者消费，这时会将等待消费的消费者（next consumer）和这个 Shard 关联起来。
-- 6 表示收到持有该 Shard 的 Consumer 放弃消费的 Heartbeat，并将该 Shard 转移给关联的 next consumer 持有。发生该转移还有一种可能是该
-  Shard 的 next consumer 超时，继续由持有该 Shard 的消费者持有该 Shard。
-- 7 表示当强制更新 over 状态的 Shard 的消费断点到某个非数据结束位置时，该 Shard 恢复可消费状态。执行这种更新操作要特别当心，因为该
-  Shard 的后代 Shard 可能已经被消费了，很可能导致数据无法按照 hash key 的顺序消费。
-- 8 表示只读状态的 Shard 数据被消费完了。
-- 9 表示持有该 Shard 的消费者 Heartbeat 超时，回收该 Shard 到 not_alloc 状态。
-
-这里要注意以下几点：
-
-- Shard 处于 transfer 状态时，服务端收到持有该 Shard 的消费者的 Heartbeat时，返回的确认 Shard 集合中不会包含该 Shard，确认
-  Shard 集合中只会包含持有者是该 Consumer 并且 Shard 状态是 already_alloc 的 shard。
-- 消费者调用 UpdateCheckpoint 更新消费断点，如果是只读状态的 Shard 要检查该 Checkpoint 是否是 Shard 的结尾，如果是就需要将
-  Shard 状态转移成over。
-- 5 是保证“任意两个消费者持有 Shard 数量之差的绝对值小于等于 1”的基础，当发现有 Consumer 持有的 Shard 数量不满足该条件时，从
-  Shard 持有数量多的消费者那里剥夺一些 Shard，分配给持有数量少的 Consumer，这个过程称为消费负载均衡。这些将要易手的 Shard
-  需要设置成 transfer状态，以等待持有者在 Heartbeat 过程中确认放弃，这主要是为了让持有者收到放弃消息时将消费断点保存到服务端，从而易手之后，新的
-  Consumer 可以从服务端获取该 Shard 的消费断点。
-- 新的 Shard 加入时，只能由转移1进入。当该 Shard 有祖先 Shard，并且其祖先没有消费完时，其状态为 wait；否则状态为 not_alloc。
-- 消费的负载均衡只会考虑 not_alloc、already_alloc、transfer 状态的 Shard，wait 和 over 状态的 Shard 由于不满足消费条件，所以不会被分配给任何
-  consumer。
-
 ## 如何使用
 
 使用 Consumer Library 主要分为三步：
 
-1. 添加依赖
-2. 实现Consumer Library 中的两个接口：
-
+1. 添加依赖；
+2. 实现 Consumer Library 中的两个接口，编写业务逻辑：
 - `ILogHubProcessor`：每个 Shard 对应一个实例，每个实例只消费特定 Shard 的数据；
 - `ILogHubProcessorFactory`：负责生成实现 ILogHubProcessor 的接口实例；
-
 3. 启动一个或多个 ClientWorker 实例。
 
 ### 添加依赖
@@ -343,8 +260,8 @@ Consumer 由 ClientWorker 创建和管理，Shard 和 Consumer 一一对应。
 - 需要确保实现的 ILogHubProcessor `process()` 接口每次都能顺利执行并退出，这样才能继续拉取下一批数据
 - 如果 `process()` 返回 `null` 或空字符串，则认为数据处理成功，会继续拉取下一批数据；否则必须返回 Checkpoint，以便 Consumer 重新拉取对应 Checkpoint 的数据
 - ILogHubCheckPointTracker的 `saveCheckPoint()` 接口，无论传递的参数是 true 或 false，都表示当前处理的数据已经完成
-    - 参数为 true，则立刻将消费位点持久化至服务端
-    - 参数为 false，则会将消费位点存储在内存。并且开启了 autoCommitEnabled 后，会定期将消费位点同步到服务端
+    - 参数为 `true`，则立刻将消费位点持久化至服务端
+    - 参数为 `false`，则会将消费位点存储在内存。如果 `autoCommitEnabled` 为 `true`，会定期将消费位点同步到服务端
 
 ### RAM 权限
 
