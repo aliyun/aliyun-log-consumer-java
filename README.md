@@ -9,7 +9,7 @@ The Aliyun LOG Consumer Library is a Java library for consuming data from Logsto
 
 - **Easy to use**: Simply configure and implement your data processing logic without worrying about load balancing, checkpointing, or exception handling.
 - **High performance**: Enhances throughput and efficiency with multi-threaded asynchronous data fetching and processing.
-- **Automatic load balancing**: Automatically balances the load based on the number of consumers in the ConsumerGroup and the number of Shards.
+- **Load balancing**: Automatically balances the load based on the number of consumers in the ConsumerGroup and the number of Shards.
 - **Automatic retry**: Automatically retries transient exceptions that occur during execution, without causing data duplication.
 - **Thread-safe**: All exposed methods and interfaces are thread-safe.
 - **Graceful shutdown**: Waits for the completion of asynchronous tasks and commits the current consumption checkpoint to the server when the shutdown interface is called.
