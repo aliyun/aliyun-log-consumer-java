@@ -1,64 +1,35 @@
-# Consumer Library
+# Consumer User Guide
 
-Aliyun LOG Consumer Library 一个是消费 Logstore 数据的 Java 库，它有如下功能特点：
+English | [中文](./README-zh_CN.md)
 
-- 使用简单：在整个使用过程中，不会产生数据丢失和重复，用户只需要进行简单配置、创建消费者实例，然后编写数据处理代码逻辑即可，不需关心消费断点保存，以及错误重试等问题
-- 高性能：Consumer 使用多线程异步拉取数据和处理数据，以提高吞吐量和性能
-- 自动负载均衡：Consumer 会根据当前 ConsumerGroup 的消费者数量和 Shard 数量自动进行负载均衡，保证任意两个消费者持有 Shard
-  数量之差的绝对值小于等于 1
-- 自动重试：对程序运行当中出现的可重试的异常，Consumer 会自动重试，重试过程不会导致数据的重复消费
-- 线程安全：Consumer 内的所有方法以及暴露的接口都是线程安全的
-- 优雅关闭：调用关闭程序接口，Consumer 会等待异步任务结束并将当前消费位点提交至服务端，保证下次开始不会重复消费数据
+The Aliyun LOG Consumer Library is a Java library for consuming data from Logstore that simplifies the data consumption process by automatically managing load balancing, checkpoint saving, sequential consumption, and exception handling.
 
-## 概念介绍
 
-Consumer Library 中主要有 4 个概念，分别是 ConsumerGroup、Consumer、Heartbeat 和 Checkpoint，它们之间的关系如下：
+## Features
 
-![](pics/consumer_group_concepts.jpg)
+- **Easy to use**: Simply configure and implement your data processing logic without worrying about load balancing, checkpointing, or exception handling.
+- **High performance**: Enhances throughput and efficiency with multi-threaded asynchronous data fetching and processing.
+- **Automatic load balancing**: Automatically balances the load based on the number of consumers in the ConsumerGroup and the number of Shards.
+- **Automatic retry**: Automatically retries transient exceptions that occur during execution, without causing data duplication.
+- **Thread-safe**: All exposed methods and interfaces are thread-safe.
+- **Graceful shutdown**: Waits for the completion of asynchronous tasks and commits the current consumption checkpoint to the server when the shutdown interface is called.
 
-#### ConsumerGroup
 
-消费组。ConsumerGroup 是 Logstore 的子资源，拥有相同 ConsumerGroup 名字的消费者共同消费同一个 Logstore
-的所有数据，这些消费者之间不会重复消费数据。
+## How To Use
 
-一个 Logstore 下面可以最多创建 30 个 ConsumerGroup，不可以重名。同一个 Logstore 下的 ConsumerGroup 之间消费数据互不相影响。
+Using the Consumer Library primarily involves three steps:
 
-ConsumerGroup 有两个很重要的属性：
+1. Add dependencies;
+2. Implement two interfaces from the Consumer Library to write business logic:
+    - `ILogHubProcessor`: Each Shard corresponds to an instance, with each instance consuming data from a specific Shard only;
+    - `ILogHubProcessorFactory`: A factory object responsible for creating instances that implement the ILogHubProcessor;
+3. Start one or more ClientWorker instances.
 
-- `order`：`boolean`，表示是否按照写入时间顺序消费 hash key 相同的数据；
-- `timeout`：`integer`，表示 ConsumerGroup 中消费者的超时时间，单位秒。当一个消费者汇报心跳的时间间隔超过
-  timeout，则服务端会认为该消费者已经下线。
+### Add Dependencies
 
-#### Consumer
-
-消费者。一个 ConsumerGroup 对应多个 Consumer，同一个ConsumerGroup 中的 Consumer 不能重名。每个 Consumer 上会被分配若干个
-Shard，Consumer 的职责就是要消费这些 Shard 上的数据。
-
-#### Heartbeat
-
-消费者心跳。Consumer 需要定期向服务端汇报一个心跳包，用于表明自己还处于存活状态。
-
-#### Checkpoint
-
-消费位点。消费者定期将分配给自己的 Shard 的消费位点保存到服务端，这样当该 Shard 被分配给其它消费者时，其他消费者就可以从服务端获取
-Shard 的消费断点，接着从断点继续消费数据，进而保证数据不丢失。
-
-## 如何使用
-
-使用 Consumer Library 主要分为三步：
-
-1. 添加依赖；
-2. 实现 Consumer Library 中的两个接口，编写业务逻辑：
-- `ILogHubProcessor`：每个 Shard 对应一个实例，每个实例只消费特定 Shard 的数据；
-- `ILogHubProcessorFactory`：负责生成实现 ILogHubProcessor 的接口实例；
-3. 启动一个或多个 ClientWorker 实例。
-
-### 添加依赖
-
-以 maven 为例，在 `pom.xml` 中添加如下依赖：
+Using Maven as an example, add the following dependencies in `pom.xml`:
 
 ```xml
-
 <dependency>
     <groupId>com.google.protobuf</groupId>
     <artifactId>protobuf-java</artifactId>
@@ -71,9 +42,9 @@ Shard 的消费断点，接着从断点继续消费数据，进而保证数据�
 </dependency>
 ```
 
-> 注意：请到 maven 仓库中查看最新版本。
+> Note: Please check the Maven repository for the latest version.
 
-### 实现 ILogHubProcessor 和 ILogHubProcessorFactory
+### Implement ILogHubProcessor and ILogHubProcessorFactory
 
 ```java
 import com.aliyun.openservices.log.common.FastLog;
@@ -90,17 +61,17 @@ import java.util.List;
 
 public class SampleLogHubProcessor implements ILogHubProcessor {
     private int shardId;
-    // 记录上次持久化 Checkpoint 的时间。
+    // The time when the last checkpoint is saved. 
     private long mLastCheckTime = 0;
 
     public void initialize(int shardId) {
         this.shardId = shardId;
     }
 
-    // 消费数据的主逻辑，消费时的所有异常都需要处理，不能直接抛出。
+    // The main logic of data consumption. You must include the code to handle all exceptions that may occur during data consumption. 
     public String process(List<LogGroupData> logGroups,
                           ILogHubCheckPointTracker checkPointTracker) {
-        // 打印已获取的数据。
+        // Display the obtained data. 
         for (LogGroupData logGroup : logGroups) {
             FastLogGroup flg = logGroup.GetFastLogGroup();
             System.out.println("Tags");
@@ -118,11 +89,13 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
             }
         }
         long curTime = System.currentTimeMillis();
-        // 每隔 30 秒，写一次Checkpoint到服务端。如果 30 秒内 Worker 发生异常终止，新启动的 Worker 会从上一个 Checkpoint 获取消费数据，可能存在少量的重复数据。
+        // A checkpoint is written to Simple Log Service at an interval of 30 seconds. If the ClientWorker instance unexpectedly stops within 30 seconds, a newly started ClientWorker instance consumes data from the last checkpoint. A small amount of data may be repeatedly consumed. 
         if (curTime - mLastCheckTime > 30 * 1000) {
             try {
-                // 参数为 true 表示立即将 Checkpoint 更新到服务端；false 表示将 Checkpoint 缓存在本地。默认间隔60秒会将 Checkpoint 更新到服务端。
-                checkPointTracker.saveCheckPoint(true);
+                If true is passed to saveCheckPoint, checkpoints are immediately synchronized to Simple Log Service.If
+                false is passed to saveCheckPoint, checkpoints are cached on your computer.By
+                default,checkpoints are synchronized to Simple Log Service at an interval of 60 seconds.
+                        checkPointTracker.saveCheckPoint(true);
             } catch (LogHubCheckPointException e) {
                 e.printStackTrace();
             }
@@ -131,9 +104,9 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
         return null;
     }
 
-    // 当 Worker 退出时，会调用该函数，您可以在此处执行清理工作。
+    // The shutdown function of the ClientWorker instance is called. You can manage the checkpoints. 
     public void shutdown(ILogHubCheckPointTracker checkPointTracker) {
-        // 将Checkpoint立即保存到服务端。
+        // Save checkpoints to the server. 
         try {
             checkPointTracker.saveCheckPoint(true);
         } catch (LogHubCheckPointException e) {
@@ -144,13 +117,13 @@ public class SampleLogHubProcessor implements ILogHubProcessor {
 
 class SampleLogHubProcessorFactory implements ILogHubProcessorFactory {
     public ILogHubProcessor generatorProcessor() {
-        // 生成一个消费实例。
+        // Generate a consumer. 
         return new SampleLogHubProcessor();
     }
 }
 ```
 
-### 启动一个或多个 ClientWorker 实例
+## Start ClientWorker instances
 
 ```java
 import com.aliyun.openservices.loghub.client.ClientWorker;
@@ -158,103 +131,133 @@ import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
 
 public class Main {
-    // 日志服务的服务接入点，请您根据实际情况填写。
+    // The Simple Log Service endpoint. Configure the parameter based on your business scenario. 
     private static String Endpoint = "cn-hangzhou.log.aliyuncs.com";
-    // 日志服务项目名称，请您根据实际情况填写。请从已创建项目中获取项目名称。
+    // The name of the Simple Log Service project. Configure the parameter based on your business scenario. You must enter the name of an existing project. 
     private static String Project = "ali-cn-hangzhou-sls-admin";
-    // 日志库名称，请您根据实际情况填写。请从已创建日志库中获取日志库名称。
+    // The name of the Logstore. Configure the parameter based on your business scenario. You must enter the name of an existing Logstore. 
     private static String Logstore = "sls_operation_log";
-    // 消费组名称，请您根据实际情况填写。您无需提前创建，该程序运行时会自动创建该消费组。
+    // The name of the consumer group. Configure the parameter based on your business scenario. You do not need to create a consumer group in advance. A consumer group is automatically created when a program runs. 
     private static String ConsumerGroup = "consumerGroupX";
-    // 本示例从环境变量中获取AccessKey ID和AccessKey Secret。。
+    // Configure environment variables. In this example, the AccessKey ID and AccessKey secret are obtained from environment variables.  
     private static String AccessKeyId = System.getenv("ALIBABA_CLOUD_ACCESS_KEY_ID");
     private static String AccessKeySecret = System.getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET");
 
     public static void main(String[] args) throws LogHubClientWorkerException, InterruptedException {
-        // consumer_1 是消费者名称，同一个消费组下面的消费者名称必须不同。不同消费者在多台机器上启动多个进程，均衡消费一个 Logstore 时，消费者名称可以使用机器IP地址来区分。
-        // maxFetchLogGroupSize 用于设置每次从服务端获取的 LogGroup 最大数目，使用默认值即可。您可以使用 config.setMaxFetchLogGroupSize(100) 调整，取值范围为(0,1000]。
+        // consumer_1 specifies the name of a consumer. The name of each consumer in a consumer group must be unique. If different consumers start processes on different machines to consume data in a Logstore, you can use the machine IP addresses to identify each consumer. 
+        // maxFetchLogGroupSize specifies the maximum number of log groups that can be obtained from Simple Log Service at a time. Retain the default value. You can use config.setMaxFetchLogGroupSize(100); to change the maximum number. Valid range: (0,1000]. 
         LogHubConfig config = new LogHubConfig(ConsumerGroup, "consumer_1", Endpoint, Project, Logstore, AccessKeyId, AccessKeySecret, LogHubConfig.ConsumePosition.BEGIN_CURSOR, 1000);
         ClientWorker worker = new ClientWorker(new SampleLogHubProcessorFactory(), config);
         Thread thread = new Thread(worker);
-        // Thread 运行之后，ClientWorker 会自动运行，ClientWorker 扩展了 Runnable 接口。
+        // After you execute the thread, the ClientWorker instance automatically runs and extends the Runnable interface. 
         thread.start();
         Thread.sleep(60 * 60 * 1000);
-        // 调用 Worker 的 shutdown 函数，退出消费实例，关联的线程也会自动停止。
+        // The shutdown function of the ClientWorker instance is called to exit the consumption instance. The associated thread is automatically stopped. 
         worker.shutdown();
-        // ClientWorker 运行过程中会生成多个异步的任务。shutdown 完成后，请等待还在执行的任务安全退出。建议设置 sleep 为 30 秒。
+        // Multiple asynchronous tasks are generated when the ClientWorker instance is running. To ensure that all running tasks securely stop after the shutdown, we recommend that you set Thread.sleep to 30 seconds. 
         Thread.sleep(30 * 1000);
     }
 }
 ```
 
-## 配置说明
+## Configuration
 
-LogHubConfig 主要配置项及说明如下：
+Below are the main configuration items and explanations for LogHubConfig:
 
-| 属性                           | 类型                   | 默认值                                           | 描述                                                                                                                                                                                                                                   |
-|------------------------------|----------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| consumerGroup                | String               |                                               | 消费组名称                                                                                                                                                                                                                                |
-| consumer                     | String               |                                               | 消费者名称                                                                                                                                                                                                                                |  
-| endpoint                     | String               |                                               | 服务入口，关于如何确定 Project 对应的服务入口可参考文章[服务入口](https://help.aliyun.com/zh/sls/developer-reference/endpoints)                                                                                                                                 |
-| project                      | String               |                                               | 将要消费的项目名称                                                                                                                                                                                                                            |                                                                                                      |
-| logstore                     | String               |                                               | 将要消费的项目下的日志库名称                                                                                                                                                                                                                       |                                                                                                      |
-| accessId                     | String               |                                               | 云账号的 AccessKeyId                                                                                                                                                                                                                     |                                                                                                      |
-| accessKey                    | String               |                                               | 云账号的 AccessKeySecret                                                                                                                                                                                                                 |                                                                                                      |
-| initialPosition              | LogHubCursorPosition | 依构造函数而定                                       | 开始消费的时间点，该参数只在第一次创建消费组的时候使用，当再次启动消费组进行消费的时候会从上次消费到的断点进行继续消费。可选值： <br/> - `BEGIN_CURSOR`：开始位置<br/> - `END_CURSOR`：结束位置<br/> - `SPECIAL_TIMER_CURSOR`：自定义起始位置<br/> > LogHubConfig 构造函数之一的参数为 position，类型是 LogHubConfig.ConsumePosition |                                                                                                      |
-| startTimestamp               | int                  | 依构造函数而定                                       | 自定义日志消费时间点，只有当 initialPosition 设置为 `SPECIAL_TIMER_CURSOR` 时，该参数才能使用，参数为 UNIX 时间戳，单位为秒。 > LogHubConfig 构造函数之一的参数为 startTimestamp，传入该参数时，  LogHubConfig 会自动将 initialPosition 设置为 `SPECIAL_TIMER_CURSOR`                                |                                                                                                      |
-| fetchIntervalMillis          | long                 | 200                                           | 服务端拉取日志时间间隔，单位毫秒，建议取值 200 以上                                                                                                                                                                                                         |                                                                                                      |
-| heartbeatIntervalMillis      | long                 | 5000                                          | 向服务端发送的心跳间隔，单位秒。如果超过（heartbeatIntervalMillis + timeoutInSeconds）没有向服务端汇报心跳，服务端就认为该消费者已经掉线，会将该消费者持有的 Shard 进行重新分配                                                                                                                     |                                                                                                      |
-| consumeInOrder               | boolean              | false                                         | 是否按序消                                                                                                                                                                                                                                |                                                                                                      |
-| stsToken                     | String               |                                               | 云账号的 AccessKeyToken。基于角色扮演的身份消费数据时，需要该属性                                                                                                                                                                                             |                                                                                                      |
-| directModeEnabled            | boolean              | false                                         |                                                                                                                                                                                                                                      |                                                                                                      |
-| autoCommitEnabled            | boolean              | true                                          | 是否自动提交消费位点到服务端。 开启后，会每隔一定时间自动提交消费位点到服务端。间隔时间可通过 autoCommitIntervalMs 配置                                                                                                                                                              |                                                                                                      |
-| unloadAfterCommitEnabled     | boolean              | false                                         | 当 shard 的消费位点被提交后，是否销毁 Consumer                                                                                                                                                                                                      |                                                                                                      |
-| autoCommitIntervalMs         | long                 | 60000                                         | 自动提交消费位点的间隔时间，单位毫秒。当 autoCommitEnabled 为 true 时，该配置有效                                                                                                                                                                                |                                                                                                      |
-| batchSize                    | int                  | 1000                                          | 从服务端一次拉取日志组数量，日志组可参考内容[日志组](https://help.aliyun.com/zh/sls/product-overview/log-group)，默认值 1000，其取值范围是 1 ~ 1000                                                                                                                      |                                                                                                      |
-| timeoutInSeconds             | int                  | 60                                            | 表示消费者的超时时间，单位秒                                                                                                                                                                                                                       |                                                                                                      |
-| maxInProgressingDataSizeInMB | int                  | 0                                             | 所有 Consumer 正在处理的最大数据量，单位 MB。0 表示不限制。超过限制后，会阻塞拉取线程。所以可以通过该值控制异步拉取数据的速率和内存大小                                                                                                                                                          |                                                                                                      |
-| userAgent                    | String               | `Consumer-Library-{ConsumerGroup}/{Consumer}` | 调用接口的 UserAgent                                                                                                                                                                                                                      |                                                                                                      |
-| proxyHost                    | String               |                                               | 代理服务器地址                                                                                                                                                                                                                              |                                                                                                      |
-| proxyPort                    | int                  |                                               | 代理服务器端口                                                                                                                                                                                                                              |                                                                                                      |
-| proxyUsername                | String               |                                               | 代理服务器用户名                                                                                                                                                                                                                             |                                                                                                      |
-| proxyPassword                | String               |                                               | 代理服务器密码                                                                                                                                                                                                                              |                                                                                                      |
-| proxyDomain                  | String               |                                               | 代理服务器域名                                                                                                                                                                                                                              |                                                                                                      |
-| proxyWorkstation             | String               |                                               | 代理工作站                                                                                                                                                                                                                                |                                                                                                      |
+| Attribute                    | Type                 | Default Value                                 | Description                                                                                                                                                                                                                                                                                                                                                                             |
+|------------------------------|----------------------|-----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| consumerGroup                | String               |                                               | Consumer group name.                                                                                                                                                                                                                                                                                                                                                                    |
+| consumer                     | String               |                                               | Consumer name.                                                                                                                                                                                                                                                                                                                                                                          |  
+| endpoint                     | String               |                                               | Service endpoint. For information on determining the service endpoint for a Project, refer to the [Endpoints](https://www.alibabacloud.com/help/en/sls/developer-reference/endpoints).                                                                                                                                                                                                  |
+| project                      | String               |                                               | Name of the project to be consumed.                                                                                                                                                                                                                                                                                                                                                     |                                                                                               
+| logstore                     | String               |                                               | Name of the logstore within the project to be consumed.                                                                                                                                                                                                                                                                                                                                 |                                                                                                      
+| accessId                     | String               |                                               | AccessKeyId of the account.                                                                                                                                                                                                                                                                                                                                                             |                                                                                                      
+| accessKey                    | String               |                                               | AccessKeySecret of the account.                                                                                                                                                                                                                                                                                                                                                         |                                                                                                      
+| initialPosition              | LogHubCursorPosition |                                               | The starting point for consumption. This parameter is used only at the time of the first creation of the consumer group. When the consumer group is started again for consumption, it will continue from the last consumed checkpoint. Options include: <br/> - `BEGIN_CURSOR`：Start position<br/> - `END_CURSOR`：End position<br/> - `SPECIAL_TIMER_CURSOR`：Custom start position<br/> |                                                                                                      
+| startTimestamp               | int                  |                                               | Custom log consumption time point. This parameter can only be used when `initialPosition` is set to `SPECIAL_TIMER_CURSOR`. It represents the UNIX timestamp in seconds. When the `startTimestamp` parameter is passed, LogHubConfig automatically sets initialPosition to `SPECIAL_TIMER_CURSOR`.                                                                                      |                                                                                                      
+| fetchIntervalMillis          | long                 | 200                                           | Interval for fetching logs from the server, in milliseconds. It is recommended to set this value to 200 or more.                                                                                                                                                                                                                                                                        |                                                                                                      
+| heartbeatIntervalMillis      | long                 | 5000                                          | The interval for sending heartbeats to the server, in seconds. If the server doesn't receive a heartbeat for (heartbeatIntervalMillis + timeoutInSeconds), it assumes the consumer has gone offline and will reassign the held Shard.                                                                                                                                                   |                                                                                                      
+| consumeInOrder               | boolean              | false                                         | Whether to consume logs in order.                                                                                                                                                                                                                                                                                                                                                       |                                                                                                      
+| stsToken                     | String               |                                               | AccessKeyToken of the account. Required when consuming data using a role.                                                                                                                                                                                                                                                                                                               |                                                                                                      
+| autoCommitEnabled            | boolean              | true                                          | Whether to automatically commit checkpoint information to the server. When enabled, checkpoints will be committed to the server at regular intervals. The interval is configurable through `autoCommitIntervalMs`.                                                                                                                                                                      |                                                                                                      
+| batchSize                    | int                  | 1000                                          | The number of log groups to fetch from the server in one request. Default value is 1000, with a range of 1 ~ 1000. For more information on log groups, please refer to [Log Group](https://www.alibabacloud.com/help/en/sls/product-overview/log-group).                                                                                                                                |                                                                                                      
+| timeoutInSeconds             | int                  | 60                                            | Consumer timeout period, in seconds.                                                                                                                                                                                                                                                                                                                                                    |                                                                                                      
+| maxInProgressingDataSizeInMB | int                  | 0                                             | The maximum amount of data in MB that all Consumers are currently processing. A value of 0 means no limit. If this limit is exceeded, the data fetch thread will be blocked. Therefore, this value can be used to control the rate of asynchronous data fetch and the size of memory used.                                                                                              |                                                                                                      
+| userAgent                    | String               | `Consumer-Library-{ConsumerGroup}/{Consumer}` | UserAgent for the API call.                                                                                                                                                                                                                                                                                                                                                             |                                                                                                      
+| proxyHost                    | String               |                                               | Proxy server host.                                                                                                                                                                                                                                                                                                                                                                      |                                                                                                      
+| proxyPort                    | int                  |                                               | Proxy server port.                                                                                                                                                                                                                                                                                                                                                                      |                                                                                                      
+| proxyUsername                | String               |                                               | Proxy server username.                                                                                                                                                                                                                                                                                                                                                                  |                                                                                                      
+| proxyPassword                | String               |                                               | Proxy server password.                                                                                                                                                                                                                                                                                                                                                                  |                                                                                                      
+| proxyDomain                  | String               |                                               | Proxy server domain.                                                                                                                                                                                                                                                                                                                                                                    |                                                                                                      
+| proxyWorkstation             | String               |                                               | Proxy workstation.                                                                                                                                                                                                                                                                                                                                                                      |                                                                                                      
 
-## 常见问题及注意事项
 
-### ConsumerGroup、Consumer 和 ClientWorker 的关系
+## Common Questions and Precautions
 
-LogHubConfig 中 ConsumerGroup 表一个消费组，ConsumerGroup 相同的 Consumer 分摊消费 Logstore 中的 Shard。
+### Introduction to the concept of Consumer Library
 
-Consumer 由 ClientWorker 创建和管理，Shard 和 Consumer 一一对应。
+There are four main concepts in the Consumer Library: ConsumerGroup, Consumer, Heartbeat, and Checkpoint. Their relationships are as follows:
 
-假设 Logstore 中有 Shard 0 ~ Shard 3 这 4 个 Shard ，有 3个 Worker，其 ConsumerGroup 和 Worker 分别是：
+![](pics/consumer_group_concepts.jpg)
 
-- `<consumer_group_name_1 , worker_A>`
-- `<consumer_group_name_1 , worker_B>`
-- `<consumer_group_name_2 , worker_C>`
+**ConsumerGroup**
 
-则，这些 Worker 和 Shard 的分配关系可能是：
+A ConsumerGroup is a sub-resource of Logstore. Consumers with the same ConsumerGroup name jointly consume all data from the same Logstore without overlapping data consumption.
 
-- `<consumer_group_name_1 , worker_A>`: shard_0, shard_1
-- `<consumer_group_name_1 , worker_B>`: shard_2, shard_3
-- `<consumer_group_name_2 , worker_C>`: shard_0, shard_1, shard_2, shard_3 （ConsumerGroup 不同的 Worker 互不影响）
+A maximum of 30 ConsumerGroups can be created under a single Logstore, and they must have unique names. ConsumerGroups
+under the same Logstore do not affect each other's data consumption.
 
-### ILogHubProcessor 的实现
+ConsumerGroup has two important attributes:
 
-- 需要确保实现的 `ILogHubProcessor#process()` 接口每次都能顺利执行并退出，这样才能继续拉取下一批数据
-- 如果 `process()` 返回 `null` 或空字符串，则认为数据处理成功，会继续拉取下一批数据；否则必须返回 Checkpoint，以便 Consumer 重新拉取对应 Checkpoint 的数据
-- ILogHubCheckPointTracker的 `saveCheckPoint()` 接口，无论传递的参数是 true 或 false，都表示当前处理的数据已经完成
-    - 参数为 `true`，则立刻将消费位点持久化至服务端
-    - 参数为 `false`，则会将消费位点存储在内存。如果 `autoCommitEnabled` 为 `true`，会定期将消费位点同步到服务端
+- `order`: `boolean`, indicates whether to consume data with the same hash key in the order it was written.
+- `timeout`: `integer`, the timeout period for consumers within the ConsumerGroup, in seconds. If a consumer's heartbeat interval exceeds the timeout, the server deems the consumer to be offline.
 
-### RAM 权限
+**Consumer**
 
-LogHubConfig 中配置的如果是子用户或角色的 AccessKey，需要在 RAM 中进行授权，详细内容请参考 [RAM用户授权](https://help.aliyun.com/zh/sls/user-guide/use-consumer-groups-to-consume-data#section-yrp-xfr-7va)。
+A Consumer. Multiple Consumers correspond to a single ConsumerGroup, and Consumers within the same ConsumerGroup must not have the same name. Several shards will be allocated to each Consumer, whose responsibility is to consume data on these Shards.
 
-> 注意：为了安全起见，请不要使用主账号 AccessKey。
+**Heartbeat**
 
-## 问题反馈
+Consumer heartbeat. Consumers must regularly report a heartbeat packet to the server to indicate they are still alive.
 
-如果您在使用过程中遇到了问题，可以创建 [GitHub Issue](https://github.com/aliyun/aliyun-log-consumer-java/issues) 或者前往阿里云支持中心[提交工单](https://selfservice.console.aliyun.com/service/create-ticket)。
+**Checkpoint**
+
+Consumption position. Consumers periodically save the consumption position of the Shards assigned to them to the server.
+
+When a Shard is reassigned to another consumer, that new consumer can obtain the consumption checkpoint from the server and continue to consume data from that checkpoint, ensuring no data loss.
+
+### The Relationship Between ConsumerGroup, Consumer, and ClientWorker
+
+In LogHubConfig, ConsumerGroup represents a consumer group. Consumers with the same ConsumerGroup share the consumption of Shards in a Logstore.
+
+Consumer is created and managed by ClientWorker, and there is a one-to-one correspondence between Shard and Consumer.
+
+Assume there are Shards 0 to 3 (4 Shards in total) in a Logstore, and there are 3 Workers with the following ConsumerGroup and Worker pairs:
+
+- `<consumer_group_name_1, worker_A>`
+- `<consumer_group_name_1, worker_B>`
+- `<consumer_group_name_2, worker_C>`
+
+Then, the possible assignment of Workers to Shards might be:
+ 
+- `<consumer_group_name_1, worker_A>`: shard_0, shard_1
+- `<consumer_group_name_1, worker_B>`: shard_2, shard_3
+- `<consumer_group_name_2, worker_C>`: shard_0, shard_1, shard_2, shard_3 (Workers with different ConsumerGroups do not affect each other)
+
+### Implementation of ILogHubProcessor
+
+- It is essential to ensure that the implemented `ILogHubProcessor#process()` interface can execute and exit smoothly each time in order to continue fetching the next batch of data.
+- If `process()` returns `null` or an empty string, it is considered that the data processing is successful, and the next batch of data will be fetched; otherwise, a Checkpoint must be returned so the Consumer can re-fetch the data corresponding to that Checkpoint.
+- For the `saveCheckPoint()` interface of ILogHubCheckPointTracker, whether the passed parameter is true or false, it indicates that the current data processing is complete.
+  - If the parameter is `true`, the consumption checkpoint is immediately persisted to the server.
+  - If the parameter is `false`, the consumption checkpoint is stored in memory. If autoCommitEnabled is true, the consumption checkpoint will be periodically synchronized to the server.
+  
+### RAM Permissions for Data Consumption
+
+If the AccessKey of a sub-user or role is configured in LogHubConfig, authorization needs to be completed in RAM. For detailed information, please refer to [RAM User Authorization](https://www.alibabacloud.com/help/en/sls/user-guide/use-consumer-groups-to-consume-data#section-yrp-xfr-7va).
+
+> Note: For security reasons, please use the RAM User Account AccessKey instead of the Alibaba Cloud Account AccessKey.
+
+## Feedback on Issues
+
+If you encounter any issues during use, you can create a [GitHub Issue](https://github.com/aliyun/aliyun-log-consumer-java/issues) or go to the Alibaba Cloud Support Center to [submit a ticket](https://selfservice.console.aliyun.com/service/create-ticket).
