@@ -25,6 +25,7 @@ public class LogHubConfig implements Serializable {
     private String endpoint;
     private String project;
     private String logstore;
+    private String query;
     private String accessId;
     private String accessKey;
     private CredentialsProvider credentialsProvider;
@@ -99,6 +100,19 @@ public class LogHubConfig implements Serializable {
                         ConsumePosition position) {
         this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey);
         this.initialPosition = convertPosition(position);
+    }
+
+    public LogHubConfig(String consumerGroup,
+                        String consumer,
+                        String endpoint,
+                        String project,
+                        String logstore,
+                        String accessId,
+                        String accessKey,
+                        ConsumePosition position,
+                        String query) {
+        this(consumerGroup, consumer, endpoint, project, logstore, accessId, accessKey, position);
+        this.query = query;
     }
 
     private static LogHubCursorPosition convertPosition(ConsumePosition position) {
@@ -276,6 +290,13 @@ public class LogHubConfig implements Serializable {
         return logstore;
     }
 
+    public void setQuery(String query) {
+        this.query = query;
+    }
+
+    public String getQuery() {
+        return query;
+    }
     public String getAccessId() {
         return accessId;
     }
@@ -364,6 +385,9 @@ public class LogHubConfig implements Serializable {
         this.credentialsProvider = credentialsProvider;
     }
 
+    public boolean hasQuery() {
+        return query != null && !query.isEmpty();
+    }
     public SignVersion getSignVersion() {
         return signVersion;
     }

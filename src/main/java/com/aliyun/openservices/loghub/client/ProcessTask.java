@@ -14,7 +14,7 @@ public class ProcessTask implements ITask {
     private ILogHubProcessor processor;
     private List<LogGroupData> chunk;
     private DefaultLogHubCheckPointTracker checkPointTracker;
-    private int rawSize;
+    private long rawSize;
     private ResourceBarrier resourceBarrier;
 
     private int shard;
@@ -22,7 +22,7 @@ public class ProcessTask implements ITask {
     public ProcessTask(ILogHubProcessor processor,
                        List<LogGroupData> logGroups,
                        DefaultLogHubCheckPointTracker checkPointTracker,
-                       int rawSize,
+                       long rawSize,
                        ResourceBarrier resourceBarrier,
                        int shard) {
         this.processor = processor;

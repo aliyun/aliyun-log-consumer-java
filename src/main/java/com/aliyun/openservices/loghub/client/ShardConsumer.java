@@ -43,7 +43,9 @@ public class ShardConsumer {
     private long lastLogErrorTime = 0;
     private long lastFetchTime = 0;
     private int lastFetchCount = 0;
-    private int lastFetchRawSize = 0;
+    private long lastFetchRawSize = 0;
+    private long lastFetchRawSizeBeforeQuery = 0;
+    private int rawLogGroupCountBeforeQuery = 0;
     private int throttledCount = 0;
     private LogHubConfig config;
     private ResourceBarrier resourceBarrier;
@@ -144,11 +146,17 @@ public class ShardConsumer {
         }
         long currentNow = System.currentTimeMillis();
         boolean allowFetch;
-        if (lastFetchRawSize < 1024 * 1024 && lastFetchCount < 100 && lastFetchCount < maxFetchLogGroupSize) {
+        long rawSize = lastFetchRawSize;
+        int lastFetchLogGroupCount = lastFetchCount;
+        if (config.hasQuery()) {
+            rawSize = lastFetchRawSizeBeforeQuery;
+            lastFetchLogGroupCount = rawLogGroupCountBeforeQuery;
+        }
+        if (rawSize < 1024 * 1024 && lastFetchLogGroupCount < 100 && lastFetchLogGroupCount < maxFetchLogGroupSize) {
             allowFetch = currentNow - lastFetchTime > 500;
-        } else if (lastFetchRawSize < 2 * 1024 * 1024 && lastFetchCount < 500 && lastFetchCount < maxFetchLogGroupSize) {
+        } else if (rawSize < 2 * 1024 * 1024 && lastFetchLogGroupCount < 500 && lastFetchLogGroupCount < maxFetchLogGroupSize) {
             allowFetch = currentNow - lastFetchTime > 200;
-        } else if (lastFetchRawSize < 4 * 1024 * 1024 && lastFetchCount < 1000 && lastFetchCount < maxFetchLogGroupSize) {
+        } else if (rawSize < 4 * 1024 * 1024 && lastFetchLogGroupCount < 1000 && lastFetchLogGroupCount < maxFetchLogGroupSize) {
             allowFetch = currentNow - lastFetchTime > 50;
         } else {
             allowFetch = true;
@@ -185,6 +193,8 @@ public class ShardConsumer {
                 nextFetchCursor = fetchResult.getNextCursor();
                 lastFetchCount = fetchedData.size();
                 lastFetchRawSize = fetchResult.getRawSize();
+                lastFetchRawSizeBeforeQuery = fetchResult.getRawSizeBeforeQuery();
+                rawLogGroupCountBeforeQuery = fetchResult.getRawLogGroupCountBeforeQuery();
                 resourceBarrier.acquire(lastFetchRawSize - PRE_ALLOCATED_BYTES);
                 sampleLogError(result);
                 hasError = result.getException() != null;
