@@ -327,6 +327,8 @@ public class LogHubConfig
     private long mHeartBeatIntervalMillis;
     //是否按序消费
     private boolean mConsumeInOrder;
+    //SPL语句，如 *| where a = 'xxx', 详情参考：https://help.aliyun.com/zh/sls/user-guide/spl-overview
+    private String query;
 }
 ```
 
@@ -335,7 +337,7 @@ public class LogHubConfig
 <dependency>
     <groupId>com.aliyun.openservices</groupId>
     <artifactId>loghub-client-lib</artifactId>
-    <version>0.6.16</version>
+    <version>0.6.46</version>
 </dependency>
 ```
 
