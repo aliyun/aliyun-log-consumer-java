@@ -59,6 +59,8 @@ public class LogHubClientAdapter {
         clientConfig.setProxyWorkstation(config.getProxyWorkstation());
         clientConfig.setSignatureVersion(config.getSignVersion());
         clientConfig.setRegion(config.getRegion());
+        clientConfig.setRequestTimeoutEnabled(config.isRequestTimeoutEnabled());
+        clientConfig.setRequestTimeout(config.getRequestTimeout());
         return clientConfig;
     }
 

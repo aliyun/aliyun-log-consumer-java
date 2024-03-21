@@ -19,6 +19,7 @@ public class LogHubConfig implements Serializable {
     private static final long DEFAULT_HEARTBEAT_INTERVAL = 5000;
     private static final int DEFAULT_TIMEOUT_SEC = 60;
     private static final int DEFAULT_BATCH_SIZE = 1000;
+    public static final int DEFAULT_REQUEST_TIMEOUT = 60 * 1000;
 
     private String consumerGroup;
     private String consumer;
@@ -49,6 +50,9 @@ public class LogHubConfig implements Serializable {
     private String proxyPassword;
     private String proxyDomain;
     private String proxyWorkstation;
+    private boolean requestTimeoutEnabled = false;
+
+    private int requestTimeout = DEFAULT_REQUEST_TIMEOUT;
 
     private SignVersion signVersion = SignVersion.V1;
     private String region;
@@ -403,7 +407,21 @@ public class LogHubConfig implements Serializable {
     public void setRegion(String region) {
         this.region = region;
     }
+    public boolean isRequestTimeoutEnabled() {
+        return requestTimeoutEnabled;
+    }
 
+    public void setRequestTimeoutEnabled(boolean requestTimeoutEnabled) {
+        this.requestTimeoutEnabled = requestTimeoutEnabled;
+    }
+
+    public int getRequestTimeout() {
+        return requestTimeout;
+    }
+
+    public void setRequestTimeout(int requestTimeout) {
+        this.requestTimeout = requestTimeout;
+    }
     @Override
     public String toString() {
         return "LogHubConfig{" +
@@ -426,6 +444,8 @@ public class LogHubConfig implements Serializable {
                 ", timeoutInSeconds=" + timeoutInSeconds +
                 ", maxInProgressingDataSizeInMB=" + maxInProgressingDataSizeInMB +
                 ", userAgent='" + userAgent + '\'' +
+                ", requestTimeoutEnabled=" + requestTimeoutEnabled +
+                ", requestTimeout=" + requestTimeout +
                 '}';
     }
 }
