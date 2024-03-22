@@ -1,6 +1,7 @@
 import com.aliyun.openservices.log.common.auth.CredentialsProvider;
 import com.aliyun.openservices.log.common.auth.DefaultCredentials;
 import com.aliyun.openservices.log.common.auth.StaticCredentialsProvider;
+import com.aliyun.openservices.log.http.signer.SignVersion;
 import com.aliyun.openservices.loghub.client.ClientWorker;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
@@ -78,6 +79,10 @@ public class ClientWorkerTest {
         for (int i = 0; i < n; i++) {
             LogHubConfig config = new LogHubConfig("consumer_group_client_worker_test", "consumer_" + i, TEST_ENDPOINT, TEST_PROJECT, TEST_LOGSTORE, provider, LogHubConfig.ConsumePosition.BEGIN_CURSOR);
             config.setHeartBeatIntervalMillis(20 * 1000);
+            config.setSignVersion(SignVersion.V4);
+            config.setRegion("cn-hangzhou");
+            config.setRequestTimeout(60 * 1000);
+            config.setRequestTimeoutEnabled(true);
             ClientWorker worker = new ClientWorker(new LogHubProcessorTestFactory(), config);
             threads[i] = new Thread(worker);
             workers[i] = worker;

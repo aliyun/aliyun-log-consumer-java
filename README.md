@@ -329,6 +329,10 @@ public class LogHubConfig
     private boolean mConsumeInOrder;
     //SPL语句，如 *| where a = 'xxx', 详情参考：https://help.aliyun.com/zh/sls/user-guide/spl-overview
     private String query;
+    // 是否开启请求超时
+    private boolean requestTimeoutEnabled;
+    // 请求超时时间
+    private int requestTimeout;
 }
 ```
 
