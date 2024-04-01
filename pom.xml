@@ -10,7 +10,7 @@
 
     <groupId>com.aliyun.openservices</groupId>
     <artifactId>loghub-client-lib</artifactId>
-    <version>0.6.48</version>
+    <version>0.6.49</version>
     <packaging>jar</packaging>
 
     <name>Aliyun LOG Java Consumer</name>
@@ -170,8 +170,32 @@
                         <configuration>
                             <relocations>
                                 <relocation>
+                                    <pattern>com.google</pattern>
+                                    <shadedPattern>com.shade.google</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>com.aliyun.openservices.log</pattern>
-                                    <shadedPattern>com.shade.com.aliyun.openservices.log</shadedPattern>
+                                    <shadedPattern>com.shade.aliyun.openservices.log</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>net.jpountz</pattern>
+                                    <shadedPattern>net.shade.jpountz</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.alibaba</pattern>
+                                    <shadedPattern>com.shade.alibaba</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache</pattern>
+                                    <shadedPattern>org.shade.apache</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.codehaus</pattern>
+                                    <shadedPattern>org.shade.codehaus</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.checkerframework</pattern>
+                                    <shadedPattern>org.shade.checkerframework</shadedPattern>
                                 </relocation>
                             </relocations>
                             <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
