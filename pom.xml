@@ -190,10 +190,6 @@
                                     <shadedPattern>org.shade.apache</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.codehaus</pattern>
-                                    <shadedPattern>org.shade.codehaus</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>org.checkerframework</pattern>
                                     <shadedPattern>org.shade.checkerframework</shadedPattern>
                                 </relocation>
