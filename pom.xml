@@ -10,7 +10,7 @@
 
     <groupId>com.aliyun.openservices</groupId>
     <artifactId>loghub-client-lib</artifactId>
-    <version>0.6.48</version>
+    <version>0.6.49</version>
     <packaging>jar</packaging>
 
     <name>Aliyun LOG Java Consumer</name>
@@ -169,9 +169,27 @@
                         </goals>
                         <configuration>
                             <relocations>
+
+                                <relocation>
+                                    <pattern>com.google.protobuf</pattern>
+                                    <shadedPattern>com.shade.google.protobuf</shadedPattern>
+                                </relocation>
                                 <relocation>
                                     <pattern>com.aliyun.openservices.log</pattern>
-                                    <shadedPattern>com.shade.com.aliyun.openservices.log</shadedPattern>
+                                    <shadedPattern>com.shade.aliyun.openservices.log</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>net.jpountz.lz4</pattern>
+                                    <shadedPattern>net.shade.jpountz.lz4</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.alibaba.fastjson</pattern>
+                                    <shadedPattern>com.shade.alibaba.fastjson</shadedPattern>
+                                </relocation>
+                                <!-- http client and common-->
+                                <relocation>
+                                    <pattern>org.apache</pattern>
+                                    <shadedPattern>org.shade.apache</shadedPattern>
                                 </relocation>
                             </relocations>
                             <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
