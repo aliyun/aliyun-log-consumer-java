@@ -169,29 +169,27 @@
                         </goals>
                         <configuration>
                             <relocations>
+
                                 <relocation>
-                                    <pattern>com.google</pattern>
-                                    <shadedPattern>com.shade.google</shadedPattern>
+                                    <pattern>com.google.protobuf</pattern>
+                                    <shadedPattern>com.shade.google.protobuf</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.aliyun.openservices.log</pattern>
                                     <shadedPattern>com.shade.aliyun.openservices.log</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>net.jpountz</pattern>
-                                    <shadedPattern>net.shade.jpountz</shadedPattern>
+                                    <pattern>net.jpountz.lz4</pattern>
+                                    <shadedPattern>net.shade.jpountz.lz4</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>com.alibaba</pattern>
-                                    <shadedPattern>com.shade.alibaba</shadedPattern>
+                                    <pattern>com.alibaba.fastjson</pattern>
+                                    <shadedPattern>com.shade.alibaba.fastjson</shadedPattern>
                                 </relocation>
+                                <!-- http client and common-->
                                 <relocation>
                                     <pattern>org.apache</pattern>
                                     <shadedPattern>org.shade.apache</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.checkerframework</pattern>
-                                    <shadedPattern>org.shade.checkerframework</shadedPattern>
                                 </relocation>
                             </relocations>
                             <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
