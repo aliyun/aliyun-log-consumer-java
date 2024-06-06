@@ -11,6 +11,7 @@ import com.aliyun.openservices.log.request.PullLogsRequest;
 import com.aliyun.openservices.log.response.ConsumerGroupCheckPointResponse;
 import com.aliyun.openservices.log.response.ListConsumerGroupResponse;
 import com.aliyun.openservices.log.response.PullLogsResponse;
+import com.aliyun.openservices.loghub.client.config.CompressType;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import com.aliyun.openservices.loghub.client.config.LogHubCursorPosition;
 import com.aliyun.openservices.loghub.client.exceptions.LogHubClientWorkerException;
@@ -272,6 +273,10 @@ public class LogHubClientAdapter {
         try {
             int count = config.getMaxFetchLogGroupSize();
             PullLogsRequest pullLogsRequest = new PullLogsRequest(project, logstore, shard, count, cursor);
+            CompressType compressType = config.getCompressType();
+            if (compressType != null) {
+                pullLogsRequest.setCompressType(compressType == CompressType.ZSTD ? Consts.CompressType.ZSTD : Consts.CompressType.LZ4);
+            }
             if (config.hasQuery()) {
                 pullLogsRequest.setQuery(config.getQuery());
                 pullLogsRequest.setPullMode("scan_on_stream");
