@@ -1,9 +1,9 @@
 package com.aliyun.openservices.loghub.client.config;
 
-import java.io.Serializable;
-
 import com.aliyun.openservices.log.common.auth.CredentialsProvider;
 import com.aliyun.openservices.log.http.signer.SignVersion;
+
+import java.io.Serializable;
 
 public class LogHubConfig implements Serializable {
     private static final long serialVersionUID = -460559812263406428L;
@@ -20,7 +20,6 @@ public class LogHubConfig implements Serializable {
     private static final int DEFAULT_TIMEOUT_SEC = 60;
     private static final int DEFAULT_BATCH_SIZE = 1000;
     public static final int DEFAULT_REQUEST_TIMEOUT = 60 * 1000;
-
     private String consumerGroup;
     private String consumer;
     private String endpoint;
@@ -53,9 +52,9 @@ public class LogHubConfig implements Serializable {
     private boolean requestTimeoutEnabled = false;
 
     private int requestTimeout = DEFAULT_REQUEST_TIMEOUT;
-
     private SignVersion signVersion = SignVersion.V1;
     private String region;
+    private CompressType compressType;
 
     private LogHubConfig(String consumerGroup,
                          String consumer,
@@ -93,7 +92,7 @@ public class LogHubConfig implements Serializable {
         this.initialPosition = LogHubCursorPosition.SPECIAL_TIMER_CURSOR;
         this.startTimestamp = startTimestamp;
     }
-    
+
     public LogHubConfig(String consumerGroup,
                         String consumer,
                         String endpoint,
@@ -301,6 +300,7 @@ public class LogHubConfig implements Serializable {
     public String getQuery() {
         return query;
     }
+
     public String getAccessId() {
         return accessId;
     }
@@ -392,6 +392,7 @@ public class LogHubConfig implements Serializable {
     public boolean hasQuery() {
         return query != null && !query.isEmpty();
     }
+
     public SignVersion getSignVersion() {
         return signVersion;
     }
@@ -407,6 +408,7 @@ public class LogHubConfig implements Serializable {
     public void setRegion(String region) {
         this.region = region;
     }
+
     public boolean isRequestTimeoutEnabled() {
         return requestTimeoutEnabled;
     }
@@ -422,6 +424,15 @@ public class LogHubConfig implements Serializable {
     public void setRequestTimeout(int requestTimeout) {
         this.requestTimeout = requestTimeout;
     }
+
+    public CompressType getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(CompressType compressType) {
+        this.compressType = compressType;
+    }
+
     @Override
     public String toString() {
         return "LogHubConfig{" +
