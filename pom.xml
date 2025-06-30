@@ -25,8 +25,7 @@
     <scm>
         <url>https://github.com/aliyun/aliyun-log-consumer-java</url>
         <connection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</connection>
-        <developerConnection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git
-        </developerConnection>
+        <developerConnection>scm:git:git@github.com:aliyun/aliyun-log-consumer-java.git</developerConnection>
     </scm>
     <developers>
         <developer>
@@ -44,12 +43,12 @@
 
     <distributionManagement>
         <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+            <id>snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </snapshotRepository>
         <repository>
             <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <url>https://central.sonatype.com</url>
         </repository>
     </distributionManagement>
 
