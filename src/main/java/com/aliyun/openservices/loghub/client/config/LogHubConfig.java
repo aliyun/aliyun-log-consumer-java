@@ -26,6 +26,7 @@ public class LogHubConfig implements Serializable {
     private String project;
     private String logstore;
     private String query;
+    private String processor;
     private String accessId;
     private String accessKey;
     private CredentialsProvider credentialsProvider;
@@ -432,6 +433,15 @@ public class LogHubConfig implements Serializable {
     public void setCompressType(CompressType compressType) {
         this.compressType = compressType;
     }
+    public void setProcessor(String processor) {
+        this.processor = processor;
+    }
+    public String getProcessor() {
+        return processor;
+    }
+    public boolean hasProcessor() {
+        return processor != null && !processor.isEmpty();
+    }
 
     @Override
     public String toString() {
@@ -457,6 +467,7 @@ public class LogHubConfig implements Serializable {
                 ", userAgent='" + userAgent + '\'' +
                 ", requestTimeoutEnabled=" + requestTimeoutEnabled +
                 ", requestTimeout=" + requestTimeout +
+                ", processor='" + processor + '\'' +
                 '}';
     }
 }
