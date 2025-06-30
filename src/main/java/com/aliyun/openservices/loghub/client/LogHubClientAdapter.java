@@ -279,7 +279,9 @@ public class LogHubClientAdapter {
             }
             if (config.hasQuery()) {
                 pullLogsRequest.setQuery(config.getQuery());
-                pullLogsRequest.setPullMode("scan_on_stream");
+            }
+            if (config.hasProcessor()) {
+                pullLogsRequest.setProcessor(config.getProcessor());
             }
             return client.pullLogs(pullLogsRequest);
         } finally {
