@@ -158,14 +158,13 @@ public class ShardConsumer {
         }
 
         long elapsedTime = currentNow - lastFetchTime;
-        // if reach end, wait at least 100ms
         if (lastFetchReachedEnd) {
             return elapsedTime > IDLE_FETCH_INTERVAL_MS;
         }
 
         // wait time = max(config.getFetchIntervalMillis(), IDLE_FETCH_INTERVAL_MS / 2)
         long waitTime = Math.max(config.getFetchIntervalMillis(), IDLE_FETCH_INTERVAL_MS / 2);
-        return elapsedTime > waitTime;
+        return elapsedTime + 1 >= waitTime;
     }
 
     private boolean fetchData(boolean fetchAllowed) {
