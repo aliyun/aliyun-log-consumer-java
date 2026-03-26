@@ -17,7 +17,7 @@ import java.util.concurrent.Future;
 public class ShardConsumer {
     private static final Logger LOG = LoggerFactory.getLogger(ShardConsumer.class);
     private static final long PRE_ALLOCATED_BYTES = 20 * 1024 * 1024;
-    private static final long REACH_END_FETCH_INTERVAL_MS = 200;
+    private static final long IDLE_FETCH_INTERVAL_MS = 400;
 
     enum ConsumerStatus {
         INITIALIZING,
@@ -160,11 +160,11 @@ public class ShardConsumer {
         long elapsedTime = currentNow - lastFetchTime;
         // if reach end, wait at least 100ms
         if (lastFetchReachedEnd) {
-            return elapsedTime > REACH_END_FETCH_INTERVAL_MS;
+            return elapsedTime > IDLE_FETCH_INTERVAL_MS;
         }
 
-        // wait time = min(2 * config.getFetchIntervalMillis(), REACH_END_FETCH_INTERVAL_MS)
-        long waitTime = Math.min(2 * config.getFetchIntervalMillis(), REACH_END_FETCH_INTERVAL_MS);
+        // wait time = max(config.getFetchIntervalMillis(), IDLE_FETCH_INTERVAL_MS / 2)
+        long waitTime = Math.max(config.getFetchIntervalMillis(), IDLE_FETCH_INTERVAL_MS / 2);
         return elapsedTime > waitTime;
     }
 
