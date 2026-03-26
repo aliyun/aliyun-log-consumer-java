@@ -17,6 +17,7 @@ import java.util.concurrent.Future;
 public class ShardConsumer {
     private static final Logger LOG = LoggerFactory.getLogger(ShardConsumer.class);
     private static final long PRE_ALLOCATED_BYTES = 20 * 1024 * 1024;
+    private static final long REACH_END_FETCH_INTERVAL_MS = 200;
 
     enum ConsumerStatus {
         INITIALIZING,
@@ -50,6 +51,7 @@ public class ShardConsumer {
     private LogHubConfig config;
     private ResourceBarrier resourceBarrier;
     private long lastUnThrottledTimeInMillis = 0;
+    private boolean lastFetchReachedEnd = false;
 
     public ShardConsumer(LogHubClientAdapter loghubClient,
                          int shardID,
@@ -145,27 +147,20 @@ public class ShardConsumer {
             return false;
         }
         long currentNow = System.currentTimeMillis();
-        boolean allowFetch;
-        long rawSize = lastFetchRawSize;
-        int lastFetchLogGroupCount = lastFetchCount;
-        if (config.hasQuery()) {
-            rawSize = lastFetchRawSizeBeforeQuery;
-            lastFetchLogGroupCount = rawLogGroupCountBeforeQuery;
+        // fetch not reach end or data is large, allow fetch
+        if (!lastFetchReachedEnd && lastFetchRawSizeBeforeQuery >= 1024 * 1024) {
+            return true;
         }
-        if (rawSize < 1024 * 1024 && lastFetchLogGroupCount < 100 && lastFetchLogGroupCount < maxFetchLogGroupSize) {
-            allowFetch = currentNow - lastFetchTime > 500;
-        } else if (rawSize < 2 * 1024 * 1024 && lastFetchLogGroupCount < 500 && lastFetchLogGroupCount < maxFetchLogGroupSize) {
-            allowFetch = currentNow - lastFetchTime > 200;
-        } else if (rawSize < 4 * 1024 * 1024 && lastFetchLogGroupCount < 1000 && lastFetchLogGroupCount < maxFetchLogGroupSize) {
-            allowFetch = currentNow - lastFetchTime > 50;
-        } else {
-            allowFetch = true;
+
+        long elapsedTime = currentNow - lastFetchTime;
+        // if reach end, wait at least 100ms
+        if (lastFetchReachedEnd) {
+            return elapsedTime > REACH_END_FETCH_INTERVAL_MS;
         }
-        if (!allowFetch) {
-            return false;
-        }
-        //checkThrottled will acquire resource from barrier; do not move position of this line
-        return !checkThrottled();
+
+        // wait time = min(2 * config.getFetchIntervalMillis(), REACH_END_FETCH_INTERVAL_MS)
+        long waitTime = Math.min(2 * config.getFetchIntervalMillis(), REACH_END_FETCH_INTERVAL_MS);
+        return elapsedTime > waitTime;
     }
 
     private boolean fetchData(boolean fetchAllowed) {
@@ -193,8 +188,15 @@ public class ShardConsumer {
                 nextFetchCursor = fetchResult.getNextCursor();
                 lastFetchCount = fetchedData.size();
                 lastFetchRawSize = fetchResult.getRawSize();
+                lastFetchReachedEnd = fetchResult.isEndOfCursor();
                 lastFetchRawSizeBeforeQuery = fetchResult.getRawSizeBeforeQuery();
                 rawLogGroupCountBeforeQuery = fetchResult.getRawLogGroupCountBeforeQuery();
+                if (lastFetchRawSizeBeforeQuery <= 0) {
+                    lastFetchRawSizeBeforeQuery = lastFetchRawSize;
+                }
+                if (rawLogGroupCountBeforeQuery <= 0) {
+                    rawLogGroupCountBeforeQuery = lastFetchCount;
+                }
                 resourceBarrier.acquire(lastFetchRawSize - PRE_ALLOCATED_BYTES);
                 sampleLogError(result);
                 hasError = result.getException() != null;
@@ -203,7 +205,7 @@ public class ShardConsumer {
             }
         }
         LOG.debug("Fetch data task completed, shard={}, hasError={}", shardID, hasError);
-        if (fetchAllowed && shouldFetchNext(hasError)) {
+        if (fetchAllowed && shouldFetchNext(hasError) && !checkThrottled()) {
             lastFetchTime = System.currentTimeMillis();
             LogHubFetchTask task = new LogHubFetchTask(loghubClient, shardID, nextFetchCursor, config);
             fetchDataFuture = executorService.submit(task);

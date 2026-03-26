@@ -48,7 +48,7 @@ public class LogHubFetchTask implements ITask {
                     rawLogGroupCountBeforeQuery = Math.max(response.getRawDataCount(), 0);
                 }
                 return new FetchTaskResult(fetchedData, cursor, nextCursor, response.getRawSize(), rawSizeBeforeQuery,
-                        rawLogGroupCountBeforeQuery);
+                        rawLogGroupCountBeforeQuery, response.isEndOfCursor());
             } catch (LogException lex) {
                 if (attempt == 0 && lex.GetErrorCode().toLowerCase().contains("invalidcursor")) {
                     // If checkpoint is invalid, such as expired cursor, will
