@@ -146,6 +146,11 @@ public class ShardConsumer {
         if (hasError) {
             return false;
         }
+        // fetch got full batch
+        if (lastFetchCount > 0 && lastFetchCount >= config.getMaxFetchLogGroupSize()) {
+            return true;
+        }
+
         long currentNow = System.currentTimeMillis();
         // fetch not reach end or data is large, allow fetch
         if (!lastFetchReachedEnd && lastFetchRawSizeBeforeQuery >= 1024 * 1024) {
