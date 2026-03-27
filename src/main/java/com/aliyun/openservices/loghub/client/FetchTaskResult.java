@@ -12,8 +12,9 @@ public class FetchTaskResult extends TaskResult {
     private int rawSize;
     private long rawSizeBeforeQuery;
     private int rawLogGroupCountBeforeQuery;
+    private boolean endOfCursor;
 
-    public FetchTaskResult(List<LogGroupData> fetchData, String cursor, String nextCursor, int rawSize, long rawSizeBeforeQuery, int rawLogGroupCountBeforeQuery) {
+    public FetchTaskResult(List<LogGroupData> fetchData, String cursor, String nextCursor, int rawSize, long rawSizeBeforeQuery, int rawLogGroupCountBeforeQuery, boolean endOfCursor) {
         super(null);
         this.fetchData = fetchData;
         this.cursor = cursor;
@@ -21,6 +22,7 @@ public class FetchTaskResult extends TaskResult {
         this.rawSize = rawSize;
         this.rawSizeBeforeQuery = rawSizeBeforeQuery;
         this.rawLogGroupCountBeforeQuery = rawLogGroupCountBeforeQuery;
+        this.endOfCursor = endOfCursor;
     }
 
     public List<LogGroupData> getFetchedData() {
@@ -44,5 +46,9 @@ public class FetchTaskResult extends TaskResult {
     }
     public int getRawLogGroupCountBeforeQuery() {
         return rawLogGroupCountBeforeQuery;
+    }
+
+    public boolean isEndOfCursor() {
+        return endOfCursor;
     }
 }
