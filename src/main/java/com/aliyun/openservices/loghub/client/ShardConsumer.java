@@ -147,7 +147,7 @@ public class ShardConsumer {
             return false;
         }
         // fetch got full batch
-        if (lastFetchCount > 0 && lastFetchCount >= config.getMaxFetchLogGroupSize()) {
+        if (rawLogGroupCountBeforeQuery > 0 && rawLogGroupCountBeforeQuery >= config.getMaxFetchLogGroupSize()) {
             return true;
         }
 
@@ -162,8 +162,7 @@ public class ShardConsumer {
             return elapsedTime > IDLE_FETCH_INTERVAL_MS;
         }
 
-        // wait time = max(config.getFetchIntervalMillis(), IDLE_FETCH_INTERVAL_MS / 2)
-        long waitTime = Math.max(config.getFetchIntervalMillis(), IDLE_FETCH_INTERVAL_MS / 2);
+        long waitTime = config.getFetchIntervalMillis();
         return elapsedTime + 1 >= waitTime;
     }
 
