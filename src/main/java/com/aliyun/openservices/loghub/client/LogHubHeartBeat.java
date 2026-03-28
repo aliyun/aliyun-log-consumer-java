@@ -1,5 +1,6 @@
 package com.aliyun.openservices.loghub.client;
 
+import com.aliyun.openservices.log.exception.LogException;
 import com.aliyun.openservices.loghub.client.config.LogHubConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 public class LogHubHeartBeat {
     private static final Logger LOG = LoggerFactory.getLogger(LogHubHeartBeat.class);
     private static final long STOP_TIMEOUT_SECS = 10L;
+    private static final int RETRY_DELAY_MS = 1000;
 
     private ScheduledExecutorService executorService;
     private final LogHubClientAdapter client;
@@ -60,24 +62,78 @@ public class LogHubHeartBeat {
     private synchronized void heartBeat() {
         long nowMillis = System.currentTimeMillis();
         try {
-            LOG.debug("Sending heartbeat {}", Arrays.toString(heartShards.toArray()));
-            List<Integer> shards = client.HeartBeat(new ArrayList<Integer>(heartShards));
-            LOG.info("Heartbeat response: {}", shards);
-            heldShards = new HashSet<Integer>(shards);
-            heartShards.addAll(shards);
-            lastSuccessTime = nowMillis;
+            List<Integer> shards = sendHeartbeatWithRetry();
+            if (shards != null) {
+                heldShards = new HashSet<Integer>(shards);
+                heartShards.addAll(shards);
+                lastSuccessTime = nowMillis;
+            } else {
+                handleHeartbeatFailure(nowMillis, null);
+            }
         } catch (Exception ex) {
-            LOG.error("Error sending heartbeat, project {}, logstore {}, consumer {}",
+            LOG.error("Unexpected error during heartbeat, project {}, logstore {}, consumer {}",
                     client.getProject(),
                     client.getLogstore(),
                     client.getConsumer(),
                     ex);
-            if (nowMillis - lastSuccessTime > (timeoutSecs * 1000L) + intervalMills) {
-                // The current consumer should already been removed from consumer group
-                heldShards.clear();
-                heartShards.clear();
-                LOG.warn("Heartbeat failed since {}, clear held shards", lastSuccessTime);
+            handleHeartbeatFailure(nowMillis, ex);
+        }
+    }
+
+    /**
+     * Sends a heartbeat with one retry on network/client-side errors.
+     * @return the list of held shards on success, or null on failure
+     */
+    private List<Integer> sendHeartbeatWithRetry() {
+        List<Integer> shardsToHeart = new ArrayList<Integer>(heartShards);
+        LOG.debug("Sending heartbeat {}", Arrays.toString(shardsToHeart.toArray()));
+
+        try {
+            List<Integer> response = client.HeartBeat(shardsToHeart);
+            LOG.info("Heartbeat succeeded, response: {}", response);
+            return response;
+        } catch (LogException ex) {
+            if (!isRetryable(ex)) {
+                LOG.error("Non-retryable heartbeat failure. errorCode={}, httpCode={}, message={}",
+                        ex.getErrorCode(), ex.getHttpCode(), ex.GetErrorMessage());
+                return null;
             }
+
+            LOG.warn("Retryable heartbeat failure, attempting one retry. errorCode={}, httpCode={}, message={}",
+                    ex.getErrorCode(), ex.getHttpCode(), ex.GetErrorMessage());
+        }
+
+        // Retry once
+        try {
+            Thread.sleep(RETRY_DELAY_MS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            LOG.error("Heartbeat retry interrupted");
+            return null;
+        }
+
+        try {
+            List<Integer> response = client.HeartBeat(shardsToHeart);
+            LOG.info("Heartbeat retry succeeded, response: {}", response);
+            return response;
+        } catch (LogException retryEx) {
+            LOG.error("Heartbeat retry also failed. errorCode={}, httpCode={}, message={}",
+                    retryEx.getErrorCode(), retryEx.getHttpCode(), retryEx.GetErrorMessage());
+            return null;
+        }
+    }
+
+    private boolean isRetryable(LogException ex) {
+        // Only retry for client-side/network errors (httpCode <= 0).
+        // Server errors (4xx, 5xx) are not retried.
+        return ex.getHttpCode() <= 0;
+    }
+
+    private void handleHeartbeatFailure(long nowMillis, Exception ex) {
+        if (nowMillis - lastSuccessTime > (timeoutSecs * 1000L) + intervalMills) {
+            heldShards.clear();
+            heartShards.clear();
+            LOG.warn("Heartbeat failed since {}, clear held shards", lastSuccessTime);
         }
     }
 
