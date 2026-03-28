@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -68,7 +67,7 @@ public class LogHubHeartBeat {
                 heartShards.addAll(shards);
                 lastSuccessTime = nowMillis;
             } else {
-                handleHeartbeatFailure(nowMillis, null);
+                handleHeartbeatFailure(nowMillis);
             }
         } catch (Exception ex) {
             LOG.error("Unexpected error during heartbeat, project {}, logstore {}, consumer {}",
@@ -76,7 +75,7 @@ public class LogHubHeartBeat {
                     client.getLogstore(),
                     client.getConsumer(),
                     ex);
-            handleHeartbeatFailure(nowMillis, ex);
+            handleHeartbeatFailure(nowMillis);
         }
     }
 
@@ -86,7 +85,7 @@ public class LogHubHeartBeat {
      */
     private List<Integer> sendHeartbeatWithRetry() {
         List<Integer> shardsToHeart = new ArrayList<Integer>(heartShards);
-        LOG.debug("Sending heartbeat {}", Arrays.toString(shardsToHeart.toArray()));
+        LOG.debug("Sending heartbeat {}", shardsToHeart);
 
         try {
             List<Integer> response = client.HeartBeat(shardsToHeart);
@@ -103,7 +102,6 @@ public class LogHubHeartBeat {
                     ex.getErrorCode(), ex.getHttpCode(), ex.GetErrorMessage());
         }
 
-        // Retry once
         try {
             Thread.sleep(RETRY_DELAY_MS);
         } catch (InterruptedException ie) {
@@ -129,7 +127,7 @@ public class LogHubHeartBeat {
         return ex.getHttpCode() <= 0;
     }
 
-    private void handleHeartbeatFailure(long nowMillis, Exception ex) {
+    private void handleHeartbeatFailure(long nowMillis) {
         if (nowMillis - lastSuccessTime > (timeoutSecs * 1000L) + intervalMills) {
             heldShards.clear();
             heartShards.clear();
