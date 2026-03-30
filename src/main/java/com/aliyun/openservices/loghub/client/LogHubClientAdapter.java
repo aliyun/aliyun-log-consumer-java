@@ -35,6 +35,7 @@ public class LogHubClientAdapter {
     private final String consumer;
     private final String userAgent;
     private final LogHubConfig config;
+    private static final int HEARTBEAT_RETRY_INTERVAL_MS = 1000;
 
     LogHubClientAdapter(final LogHubConfig config) {
         this.config = config;
@@ -213,6 +214,25 @@ public class LogHubClientAdapter {
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    public List<Integer> HeartBeatWithRetry(ArrayList<Integer> shards) throws LogException {
+        List<Integer> res = null;
+        try {
+            res = HeartBeat(shards);
+            return res;
+        } catch (LogException e) {
+            if (e.GetHttpCode() >= 200) {
+                throw e;
+            }
+            LOG.error("ConsumerGroup {} HeartBeat failed, httpCode: {}, errorCode: {}, errorMessage: {}",
+                    consumerGroupName, e.GetHttpCode(), e.GetErrorCode(), e.GetErrorMessage());
+        } catch (Exception e) {
+            throw e;
+        }
+        // do retry if client network error
+        LoghubClientUtil.sleep(HEARTBEAT_RETRY_INTERVAL_MS);
+        return HeartBeat(shards);
     }
 
     public void UpdateCheckPoint(final int shard, final String consumer, final String checkpoint) throws LogException {

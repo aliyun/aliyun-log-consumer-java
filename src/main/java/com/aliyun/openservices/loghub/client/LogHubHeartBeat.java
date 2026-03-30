@@ -61,7 +61,7 @@ public class LogHubHeartBeat {
         long nowMillis = System.currentTimeMillis();
         try {
             LOG.debug("Sending heartbeat {}", Arrays.toString(heartShards.toArray()));
-            List<Integer> shards = client.HeartBeat(new ArrayList<Integer>(heartShards));
+            List<Integer> shards = client.HeartBeatWithRetry(new ArrayList<Integer>(heartShards));
             LOG.info("Heartbeat response: {}", shards);
             heldShards = new HashSet<Integer>(shards);
             heartShards.addAll(shards);
