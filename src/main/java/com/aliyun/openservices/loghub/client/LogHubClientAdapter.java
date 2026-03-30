@@ -222,7 +222,8 @@ public class LogHubClientAdapter {
             res = HeartBeat(shards);
             return res;
         } catch (LogException e) {
-            if (e.GetHttpCode() >= 200) {
+            // if http code is 200-499, it's a valid response, throw exception directly
+            if (e.GetHttpCode() >= 200 && e.GetHttpCode() < 500) {
                 throw e;
             }
             LOG.error("ConsumerGroup {} HeartBeat failed, httpCode: {}, errorCode: {}, errorMessage: {}",
@@ -230,7 +231,7 @@ public class LogHubClientAdapter {
         } catch (Exception e) {
             throw e;
         }
-        // do retry if client network error
+        // do retry if client network error or internal server error(500)
         LoghubClientUtil.sleep(HEARTBEAT_RETRY_INTERVAL_MS);
         return HeartBeat(shards);
     }
