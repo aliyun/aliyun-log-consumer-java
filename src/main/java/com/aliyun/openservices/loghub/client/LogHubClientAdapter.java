@@ -226,7 +226,7 @@ public class LogHubClientAdapter {
             if (e.GetHttpCode() >= 200 && e.GetHttpCode() < 500) {
                 throw e;
             }
-            LOG.error("ConsumerGroup {} HeartBeat failed, httpCode: {}, errorCode: {}, errorMessage: {}",
+            LOG.warn("ConsumerGroup {} HeartBeat failed, httpCode: {}, errorCode: {}, errorMessage: {}",
                     consumerGroupName, e.GetHttpCode(), e.GetErrorCode(), e.GetErrorMessage());
         } catch (Exception e) {
             throw e;
