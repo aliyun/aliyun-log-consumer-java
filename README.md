@@ -1,5 +1,7 @@
 # Consumer Library使用说明
 
+[README in English](https://github.com/aliyun/aliyun-log-consumer-java/blob/master/README_EN.md)
+
 ## 使用场景
 Consumer Library是对LogHub消费者提供的高级模式，解决多个消费者同时消费logstore时自动分配shard问题。
 例如在storm、spark场景中多个消费者情况下，自动处理shard的负载均衡，消费者failover等逻辑。用户只需专注在自己业务逻辑上，而无需关心shard分配、CheckPoint、Failover等事宜。
