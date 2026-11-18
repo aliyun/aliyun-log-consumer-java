@@ -81,9 +81,7 @@ public class ShardConsumer {
     public boolean consume(boolean fetchAllowed) {
         checkAndGenerateNextTask();
         if (this.currentStatus.equals(ConsumerStatus.PROCESSING) && lastFetchedData == null) {
-            if (!fetchData(fetchAllowed)) {
-                return !fetchAllowed;
-            }
+            return fetchData(fetchAllowed);
         }
         return true;
     }
@@ -208,14 +206,17 @@ public class ShardConsumer {
             }
         }
         LOG.debug("Fetch data task completed, shard={}, hasError={}", shardID, hasError);
-        if (fetchAllowed && shouldFetchNext(hasError) && !checkThrottled()) {
-            lastFetchTime = System.currentTimeMillis();
-            LogHubFetchTask task = new LogHubFetchTask(loghubClient, shardID, nextFetchCursor, config);
-            fetchDataFuture = executorService.submit(task);
-        } else {
-            fetchDataFuture = null;
+        fetchDataFuture = null;
+        if (!fetchAllowed || !shouldFetchNext(hasError)) {
+            // Waiting for this shard must not change the worker's throttle priority.
+            return true;
+        }
+        if (checkThrottled()) {
             return false;
         }
+        lastFetchTime = System.currentTimeMillis();
+        LogHubFetchTask task = new LogHubFetchTask(loghubClient, shardID, nextFetchCursor, config);
+        fetchDataFuture = executorService.submit(task);
         return true;
     }
 
